@@ -1,4 +1,4 @@
-const segmentPattern = /^[\p{Letter}\p{Number}-]+$/u;
+const forbiddenSegmentPattern = /[\/\\\u0000-\u001F\u007F?#]/u;
 
 export function canonicalizePath(input: string) {
   const normalized = input
@@ -50,8 +50,8 @@ function validateAndCanonicalizeSegment(segment: string) {
 
   const lowered = segment.replace(/[A-Z]/g, (char) => char.toLowerCase());
 
-  if (!segmentPattern.test(lowered)) {
-    throw new Error("Path segments can only contain letters, numbers, and hyphens.");
+  if (forbiddenSegmentPattern.test(lowered)) {
+    throw new Error("Path segments cannot contain slashes, URL query/fragment markers, or control characters.");
   }
 
   return lowered;

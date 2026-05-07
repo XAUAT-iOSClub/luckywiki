@@ -1,9 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { renderToStaticMarkup } from "react-dom/server";
-import { MarkdownRenderer } from "@/components/markdown-renderer";
 
-test("markdown renderer supports gfm and strips raw html", () => {
+test("markdown renderer supports gfm and strips raw html", async () => {
+  const { MarkdownRenderer } = await import("@/components/markdown-renderer");
   const html = renderToStaticMarkup(
     <MarkdownRenderer markdown={"# Title\n\n- item\n\n<script>alert(1)</script>"} />,
   );
@@ -13,7 +13,8 @@ test("markdown renderer supports gfm and strips raw html", () => {
   assert.doesNotMatch(html, /script/);
 });
 
-test("markdown renderer supports markdown-core custom syntax", () => {
+test("markdown renderer supports markdown-core custom syntax", async () => {
+  const { MarkdownRenderer } = await import("@/components/markdown-renderer");
   const html = renderToStaticMarkup(
     <MarkdownRenderer
       markdown={`:badge[Stable](outline)

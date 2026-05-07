@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@luckyfishes/markdown-core':
-        specifier: 0.1.0
-        version: 0.1.0
+        specifier: file:../markdown-core
+        version: file:../markdown-core
       '@prisma/adapter-pg':
         specifier: ^7.8.0
         version: 7.8.0
@@ -29,6 +29,9 @@ importers:
       dotenv:
         specifier: ^17.4.2
         version: 17.4.2
+      gray-matter:
+        specifier: ^4.0.3
+        version: 4.0.3
       lucide-react:
         specifier: ^1.14.0
         version: 1.14.0(react@19.2.4)
@@ -849,8 +852,8 @@ packages:
   '@kurkle/color@0.3.4':
     resolution: {integrity: sha512-M5UknZPHRu3DEDWoipU6sE8PdkZ6Z/S+v4dD+Ke8IaNlpdSQah50lz1KtcFBa2vsdOnwbbnxJwVM4wty6udA5w==}
 
-  '@luckyfishes/markdown-core@0.1.0':
-    resolution: {integrity: sha512-1EVIup9cuJyWD2wQlP/KnLjzVAtUQBvkNYO/zY0KHydS8O97xVfuSYJQnu/8DfJXTCBEc4B/tNx8jLwz9UlAdw==}
+  '@luckyfishes/markdown-core@file:../markdown-core':
+    resolution: {directory: ../markdown-core, type: directory}
 
   '@modelcontextprotocol/sdk@1.29.0':
     resolution: {integrity: sha512-zo37mZA9hJWpULgkRpowewez1y6ML5GsXJPY8FI0tBBCd77HEvza4jDqRKOXgHNn867PVGCyTdzqpz0izu5ZjQ==}
@@ -5890,7 +5893,7 @@ snapshots:
 
   '@kurkle/color@0.3.4': {}
 
-  '@luckyfishes/markdown-core@0.1.0':
+  '@luckyfishes/markdown-core@file:../markdown-core':
     dependencies:
       github-slugger: 2.0.0
       gray-matter: 4.0.3

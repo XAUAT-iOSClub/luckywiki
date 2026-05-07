@@ -94,6 +94,9 @@ model Article {
   id          String        @id @default(cuid())
   path        String        @unique
   title       String
+  description String?
+  tags        String[]      @default([])
+  editor      String?
   markdown    String
   status      ArticleStatus @default(DRAFT)
   authorId    String        @map("author_id")

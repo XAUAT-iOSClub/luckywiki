@@ -27,6 +27,9 @@ async function main() {
           select: {
             id: true,
             title: true,
+            description: true,
+            tags: true,
+            editor: true,
             markdown: true,
             status: true,
             publishedAt: true,
