@@ -48,22 +48,39 @@ export const getPublishedArticleByPath = cache(async (path: string) => {
   });
 });
 
-export async function listAdminArticles() {
-  return prisma.article.findMany({
-    include: {
-      author: {
-        select: {
-          name: true,
+export async function listAdminArticles(options?: { page?: number; pageSize?: number }) {
+  const page = options?.page ?? 1;
+  const pageSize = options?.pageSize ?? 10;
+  const skip = (page - 1) * pageSize;
+
+  const [articles, totalCount] = await Promise.all([
+    prisma.article.findMany({
+      include: {
+        author: {
+          select: {
+            name: true,
+          },
+        },
+        _count: {
+          select: {
+            comments: true,
+          },
         },
       },
-      _count: {
-        select: {
-          comments: true,
-        },
-      },
-    },
-    orderBy: [{ updatedAt: "desc" }, { path: "asc" }],
-  });
+      orderBy: [{ updatedAt: "desc" }, { path: "asc" }],
+      skip,
+      take: pageSize,
+    }),
+    prisma.article.count(),
+  ]);
+
+  return {
+    articles,
+    totalCount,
+    page,
+    pageSize,
+    totalPages: Math.ceil(totalCount / pageSize),
+  };
 }
 
 export async function getArticleById(id: string) {

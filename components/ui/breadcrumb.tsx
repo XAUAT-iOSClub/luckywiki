@@ -83,7 +83,7 @@ function BreadcrumbSeparator({
       {...props}
     >
       {children ?? (
-        <ChevronRightIcon className="rtl:rotate-180" />
+        <ChevronRightIcon />
       )}
     </li>
   )
