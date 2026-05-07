@@ -5,13 +5,15 @@ import { createCommentAction } from "@/app/actions/comments";
 import { CommentForm } from "@/components/comment-form";
 import { MarkdownRenderer } from "@/components/markdown-renderer";
 import { SignOutButton } from "@/components/sign-out-button";
-import { WikiTreeNav } from "@/components/wiki-tree-nav";
-import { buildWikiTree } from "@/lib/wiki-tree";
 import { buildWikiHref, canonicalizeSlugSegments } from "@/lib/wiki-path";
 import { extractMarkdownDescription } from "@/lib/text";
 import { getCurrentSession } from "@/lib/session";
-import { getPublishedArticleByPath, listPublishedArticleTreeData } from "@/lib/articles";
-import { canComment, canManageWiki } from "@/lib/permissions";
+import { getPublishedArticleByPath } from "@/lib/articles";
+import { canComment } from "@/lib/permissions";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Calendar, User, Hash, MessageCircle } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 type Params = Promise<{ slug?: string[] }>;
 
@@ -55,9 +57,8 @@ export default async function WikiArticlePage({
     notFound();
   }
 
-  const [article, treeArticles, session] = await Promise.all([
+  const [article, session] = await Promise.all([
     getPublishedArticleByPath(path),
-    listPublishedArticleTreeData(),
     getCurrentSession(),
   ]);
 
@@ -65,104 +66,122 @@ export default async function WikiArticlePage({
     notFound();
   }
 
-  const tree = buildWikiTree(treeArticles);
   const canPostComment = canComment(session?.user ?? null);
-  const isAdmin = canManageWiki(session?.user ?? null);
   const articleHref = buildWikiHref(article.path);
 
   return (
-    <div className="min-h-screen px-4 py-6 md:px-6 lg:px-8">
-      <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 lg:flex-row">
-        <aside className="surface-panel lg:sticky lg:top-6 lg:h-[calc(100vh-3rem)] lg:w-[300px] lg:overflow-auto">
+    <div className="mx-auto max-w-5xl px-4 py-10 md:px-8 lg:px-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
+      <div className="flex flex-col gap-10">
+        {/* Article Header */}
+        <header className="space-y-6">
           <div className="space-y-4">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="eyebrow">LuckyWiki</p>
-                <h1 className="text-xl font-semibold">Published pages</h1>
-              </div>
-              {isAdmin ? (
-                <Link className="button-secondary" href="/admin/articles">
-                  Admin
-                </Link>
-              ) : null}
-            </div>
-            <WikiTreeNav currentPath={article.path} tree={tree} />
+            <Badge variant="secondary" className="rounded-full px-3 py-1 text-[10px] uppercase tracking-widest font-bold bg-primary/10 text-primary border-none">
+              Wiki Article
+            </Badge>
+            <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-balance text-foreground">
+              {article.title}
+            </h1>
           </div>
-        </aside>
-
-        <div className="flex min-w-0 flex-1 flex-col gap-6">
-          <header className="surface-panel flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <div className="space-y-2">
-              <p className="eyebrow">Wiki Article</p>
-              <h2 className="text-3xl font-semibold text-balance">{article.title}</h2>
-              <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
-                <span>Path: {article.path || "(root)"}</span>
-                <span>Author: {article.author.name}</span>
-                {article.publishedAt ? <span>Published: {article.publishedAt.toLocaleDateString()}</span> : null}
+          
+          <div className="flex flex-wrap items-center gap-6 text-sm text-muted-foreground">
+            <div className="flex items-center gap-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted/50">
+                <User className="h-4 w-4" />
               </div>
+              <span className="font-medium">{article.author.name}</span>
             </div>
-            <div className="flex flex-wrap items-center gap-3">
-              {session ? (
-                <>
-                  <span className="rounded-full bg-muted px-3 py-1 text-sm text-muted-foreground">
-                    {session.user.name}
-                  </span>
-                  <SignOutButton />
-                </>
-              ) : (
-                <>
-                  <Link className="button-secondary" href={`/auth/sign-in?next=${encodeURIComponent(articleHref)}`}>
-                    Sign in
-                  </Link>
-                  <Link className="button-primary" href={`/auth/sign-up?next=${encodeURIComponent(articleHref)}`}>
-                    Create account
-                  </Link>
-                </>
-              )}
-            </div>
-          </header>
-
-          <article className="surface-panel">
-            <MarkdownRenderer markdown={article.markdown} />
-          </article>
-
-          <section className="surface-panel space-y-6">
-            <div>
-              <p className="eyebrow">Comments</p>
-              <h3 className="text-2xl font-semibold">Reader discussion</h3>
-            </div>
-
-            {canPostComment ? (
-              <CommentForm
-                action={createCommentAction.bind(null, article.id, articleHref)}
-                initialState={{}}
-              />
-            ) : (
-              <div className="rounded-3xl border border-dashed border-border p-5 text-sm leading-7 text-muted-foreground">
-                {session
-                  ? "Verify your email before posting comments."
-                  : "Sign in and verify your email to join the discussion."}
+            
+            {article.publishedAt && (
+              <div className="flex items-center gap-2">
+                <Calendar className="h-4 w-4" />
+                <span>{article.publishedAt.toLocaleDateString("en-US", { month: 'long', day: 'numeric', year: 'numeric' })}</span>
               </div>
             )}
-
-            <div className="space-y-4">
-              {article.comments.length === 0 ? (
-                <div className="rounded-3xl border border-dashed border-border p-5 text-sm text-muted-foreground">
-                  No approved comments yet.
-                </div>
-              ) : null}
-              {article.comments.map((comment) => (
-                <article key={comment.id} className="rounded-3xl border border-border/70 bg-white/70 p-5 shadow-sm shadow-slate-200/30">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-medium">{comment.author.name}</span>
-                    <span className="text-xs text-muted-foreground">{comment.createdAt.toLocaleString()}</span>
-                  </div>
-                  <p className="mt-3 whitespace-pre-wrap text-sm leading-7">{comment.body}</p>
-                </article>
-              ))}
+            
+            <div className="flex items-center gap-2">
+              <Hash className="h-4 w-4" />
+              <code className="bg-muted/50 px-2 py-0.5 rounded text-xs">{article.path || "root"}</code>
             </div>
-          </section>
-        </div>
+          </div>
+        </header>
+
+        {/* Main Content */}
+        <article className="surface-panel !p-8 md:!p-12 !rounded-[2.5rem] shadow-xl shadow-black/5 dark:shadow-black/20 border-border/40">
+          <MarkdownRenderer markdown={article.markdown} />
+        </article>
+
+        {/* Comments Section */}
+        <section className="space-y-8">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+              <MessageCircle className="h-5 w-5" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold tracking-tight">Discussion</h2>
+              <p className="text-sm text-muted-foreground">{article.comments.length} comments</p>
+            </div>
+          </div>
+
+          <div className="grid gap-8 lg:grid-cols-[1fr_350px]">
+            <div className="space-y-6">
+              {article.comments.length === 0 ? (
+                <div className="rounded-3xl border border-dashed border-border/60 p-10 text-center">
+                  <p className="text-sm text-muted-foreground italic">No comments yet. Be the first to start the conversation.</p>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {article.comments.map((comment) => (
+                    <article key={comment.id} className="group rounded-3xl border border-border/50 bg-card/50 p-6 shadow-sm transition-all hover:shadow-md dark:bg-zinc-900/40">
+                      <div className="flex items-center justify-between gap-2 mb-4">
+                        <div className="flex items-center gap-3">
+                          <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center font-bold text-primary">
+                            {comment.author.name.slice(0, 1).toUpperCase()}
+                          </div>
+                          <div>
+                            <p className="font-semibold text-sm">{comment.author.name}</p>
+                            <p className="text-xs text-muted-foreground">{comment.createdAt.toLocaleDateString()}</p>
+                          </div>
+                        </div>
+                      </div>
+                      <p className="text-[15px] leading-relaxed text-foreground/90 whitespace-pre-wrap">
+                        {comment.body}
+                      </p>
+                    </article>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <aside className="space-y-6">
+              <div className="sticky top-24">
+                <div className="rounded-[2rem] border border-border/50 bg-muted/30 p-6 backdrop-blur-sm">
+                  <h3 className="font-bold mb-4">Join the discussion</h3>
+                  {canPostComment ? (
+                    <CommentForm
+                      action={createCommentAction.bind(null, article.id, articleHref)}
+                      initialState={{}}
+                    />
+                  ) : (
+                    <div className="space-y-4">
+                      <p className="text-sm text-muted-foreground leading-relaxed">
+                        {session
+                          ? "Please verify your email address to post comments on this article."
+                          : "Sign in to your account to participate in the discussion and share your thoughts."}
+                      </p>
+                      {!session && (
+                        <Button asChild className="w-full rounded-xl">
+                          <Link href={`/auth/sign-in?next=${encodeURIComponent(articleHref)}`}>
+                            Sign In
+                          </Link>
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </aside>
+          </div>
+        </section>
       </div>
     </div>
   );

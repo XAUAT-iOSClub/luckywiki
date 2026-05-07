@@ -158,27 +158,31 @@
 
 @layer components {
   .surface-panel {
-    @apply rounded-[2rem] border border-border/50 bg-white/80 p-6 shadow-[0_20px_70px_-40px_rgba(15,23,42,0.45)] backdrop-blur-xl transition-colors;
+    @apply rounded-[2.5rem] border border-border/40 bg-white/70 p-8 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.08)] backdrop-blur-2xl transition-all duration-300;
   }
 
   .dark .surface-panel {
-    @apply border-white/10 bg-zinc-900/60 shadow-[0_20px_70px_-40px_rgba(0,0,0,0.8)];
+    @apply border-white/5 bg-zinc-900/50 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.4)];
+  }
+
+  .apple-blur {
+    @apply bg-white/60 backdrop-blur-xl dark:bg-black/60;
   }
 
   .eyebrow {
-    @apply text-xs font-semibold uppercase tracking-[0.22em] text-primary/80;
+    @apply text-[10px] font-bold uppercase tracking-[0.25em] text-primary/70;
   }
 
   .button-primary {
-    @apply inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground shadow-sm transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60;
+    @apply inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition-all hover:bg-primary/90 hover:translate-y-[-1px] active:translate-y-[0px] disabled:cursor-not-allowed disabled:opacity-60;
   }
 
   .button-secondary {
-    @apply inline-flex items-center gap-2 rounded-full border border-border/80 bg-white/70 px-4 py-2.5 text-sm font-medium text-foreground transition hover:border-primary/30 hover:bg-white;
+    @apply inline-flex items-center gap-2 rounded-xl border border-border/50 bg-white/50 px-5 py-3 text-sm font-semibold text-foreground backdrop-blur-md transition-all hover:bg-white hover:border-primary/20;
   }
 
   .dark .button-secondary {
-    @apply bg-zinc-800/70 hover:bg-zinc-800;
+    @apply bg-zinc-800/50 hover:bg-zinc-800;
   }
 
   .field-block {
@@ -246,58 +250,39 @@
   }
 
   .markdown-body {
-    @apply space-y-5 text-[15px] leading-8 text-slate-700 transition-colors dark:text-zinc-300;
-  }
-
-  .markdown-body > *:first-child {
-    @apply mt-0;
+    @apply space-y-6 text-[16px] leading-[1.8] text-slate-800 transition-colors dark:text-zinc-200;
   }
 
   .markdown-body h1 {
-    @apply mt-2 text-4xl font-semibold tracking-tight text-slate-900 dark:text-zinc-100;
+    @apply mt-2 text-4xl font-bold tracking-tight text-slate-900 dark:text-zinc-100;
   }
 
   .markdown-body h2 {
-    @apply mt-8 text-2xl font-semibold text-slate-900 dark:text-zinc-100;
+    @apply mt-10 text-2xl font-bold tracking-tight text-slate-900 dark:text-zinc-100 border-b border-border/30 pb-2;
   }
 
   .markdown-body h3 {
-    @apply mt-6 text-xl font-semibold text-slate-900 dark:text-zinc-100;
+    @apply mt-8 text-xl font-bold tracking-tight text-slate-900 dark:text-zinc-100;
   }
 
-  .markdown-body p,
-  .markdown-body ul,
-  .markdown-body ol,
-  .markdown-body blockquote {
-    @apply mt-4;
-  }
-
-  .markdown-body ul {
-    @apply list-disc pl-6;
-  }
-
-  .markdown-body ol {
-    @apply list-decimal pl-6;
-  }
-
-  .markdown-body li + li {
-    @apply mt-2;
-  }
-
-  .markdown-body a {
-    @apply text-primary underline decoration-primary/30 underline-offset-4 hover:decoration-primary;
+  .markdown-body p {
+    @apply mt-4 first:mt-0;
   }
 
   .markdown-body blockquote {
-    @apply rounded-2xl border-l-4 border-primary/30 bg-primary/5 px-4 py-3 italic text-slate-600 dark:text-zinc-400;
+    @apply rounded-3xl border-l-0 bg-primary/5 px-6 py-5 italic text-slate-700 dark:text-zinc-300 relative overflow-hidden;
+  }
+
+  .markdown-body blockquote::before {
+    @apply content-[''] absolute left-0 top-0 bottom-0 w-1.5 bg-primary/30;
   }
 
   .markdown-body code {
-    @apply rounded-md bg-slate-100 px-1.5 py-0.5 font-mono text-[0.9em] text-slate-800 dark:bg-zinc-800 dark:text-zinc-200;
+    @apply rounded-lg bg-slate-100/80 px-1.5 py-0.5 font-mono text-[0.85em] text-primary dark:bg-zinc-800/80 dark:text-primary-foreground/90;
   }
 
   .markdown-body pre {
-    @apply overflow-x-auto rounded-3xl bg-slate-950 p-5 text-slate-100 dark:bg-black;
+    @apply overflow-x-auto rounded-[2rem] bg-slate-950 p-6 text-slate-100 shadow-xl dark:bg-black border border-white/5;
   }
 
   .markdown-body pre code {
