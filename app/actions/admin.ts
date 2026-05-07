@@ -3,8 +3,12 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { ArticleStatus, CommentStatus } from "@/generated/prisma/enums";
+import type { Locale } from "@/lib/i18n/config";
+import { locales, localizeHref } from "@/lib/i18n/config";
+import { getDictionary } from "@/lib/i18n/get-dictionary";
 import { prisma } from "@/lib/prisma";
 import { buildWikiHref, canonicalizePath } from "@/lib/wiki-path";
+import { revalidateLocalizedPath } from "@/lib/i18n/revalidate";
 import { requireRootSession } from "@/lib/session";
 
 export type FormActionState = {
@@ -12,22 +16,16 @@ export type FormActionState = {
   success?: string;
 };
 
-const articleSchema = z.object({
-  title: z.string().trim().min(1, "Title is required."),
-  path: z.string(),
-  description: z.string().trim().max(280, "Description must be 280 characters or less."),
-  tags: z.array(z.string().trim().min(1)).max(12, "Use at most 12 tags."),
-  editor: z.string().trim().max(40, "Editor name must be 40 characters or less."),
-  markdown: z.string(),
-  status: z.enum([ArticleStatus.DRAFT, ArticleStatus.PUBLISHED]),
-});
-
 export async function createArticleAction(
+  locale: Locale,
   _previousState: FormActionState,
   formData: FormData,
 ): Promise<FormActionState> {
-  const session = await requireRootSession();
-  const parsed = parseArticleForm(formData);
+  const [session, dictionary] = await Promise.all([
+    requireRootSession(locale),
+    getDictionary(locale),
+  ]);
+  const parsed = parseArticleForm(formData, dictionary);
 
   if (!parsed.success) {
     return { error: parsed.error };
@@ -44,24 +42,28 @@ export async function createArticleAction(
     });
 
     revalidateWikiPaths(article.path);
-    revalidatePath("/admin/articles");
-    revalidatePath("/admin");
-    revalidatePath("/admin/taxonomy");
-    revalidatePath("/admin/users");
+    revalidateLocalizedPath("/admin/articles");
+    revalidateLocalizedPath("/admin");
+    revalidateLocalizedPath("/admin/taxonomy");
+    revalidateLocalizedPath("/admin/users");
 
-    return { success: `/admin/articles/${article.id}` };
+    return { success: localizeHref(locale, `/admin/articles/${article.id}`) };
   } catch (error) {
-    return { error: getActionErrorMessage(error) };
+    return { error: getActionErrorMessage(error, dictionary.feedback.duplicatePath, dictionary.feedback.somethingWentWrong) };
   }
 }
 
 export async function updateArticleAction(
   articleId: string,
+  locale: Locale,
   _previousState: FormActionState,
   formData: FormData,
 ): Promise<FormActionState> {
-  await requireRootSession();
-  const parsed = parseArticleForm(formData);
+  const [dictionary] = await Promise.all([
+    getDictionary(locale),
+    requireRootSession(locale),
+  ]);
+  const parsed = parseArticleForm(formData, dictionary);
 
   if (!parsed.success) {
     return { error: parsed.error };
@@ -72,7 +74,7 @@ export async function updateArticleAction(
   });
 
   if (!existing) {
-    return { error: "Article not found." };
+    return { error: dictionary.feedback.articleNotFound };
   }
 
   try {
@@ -89,19 +91,19 @@ export async function updateArticleAction(
 
     revalidateWikiPaths(existing.path);
     revalidateWikiPaths(article.path);
-    revalidatePath("/admin/articles");
-    revalidatePath("/admin");
-    revalidatePath("/admin/taxonomy");
-    revalidatePath("/admin/users");
+    revalidateLocalizedPath("/admin/articles");
+    revalidateLocalizedPath("/admin");
+    revalidateLocalizedPath("/admin/taxonomy");
+    revalidateLocalizedPath("/admin/users");
 
-    return { success: "Saved article changes." };
+    return { success: dictionary.feedback.articleSaved };
   } catch (error) {
-    return { error: getActionErrorMessage(error) };
+    return { error: getActionErrorMessage(error, dictionary.feedback.duplicatePath, dictionary.feedback.somethingWentWrong) };
   }
 }
 
-export async function approveCommentAction(commentId: string) {
-  const session = await requireRootSession();
+export async function approveCommentAction(locale: Locale, commentId: string) {
+  const session = await requireRootSession(locale);
   const comment = await prisma.comment.findUnique({
     where: { id: commentId },
     include: {
@@ -126,14 +128,14 @@ export async function approveCommentAction(commentId: string) {
     },
   });
 
-  revalidatePath("/admin/comments");
-  revalidatePath("/admin");
-  revalidatePath("/admin/users");
+  revalidateLocalizedPath("/admin/comments");
+  revalidateLocalizedPath("/admin");
+  revalidateLocalizedPath("/admin/users");
   revalidateWikiPaths(comment.article.path);
 }
 
-export async function rejectCommentAction(commentId: string) {
-  const session = await requireRootSession();
+export async function rejectCommentAction(locale: Locale, commentId: string) {
+  const session = await requireRootSession(locale);
   const comment = await prisma.comment.findUnique({
     where: { id: commentId },
     include: {
@@ -158,17 +160,18 @@ export async function rejectCommentAction(commentId: string) {
     },
   });
 
-  revalidatePath("/admin/comments");
-  revalidatePath("/admin");
-  revalidatePath("/admin/users");
+  revalidateLocalizedPath("/admin/comments");
+  revalidateLocalizedPath("/admin");
+  revalidateLocalizedPath("/admin/users");
   revalidateWikiPaths(comment.article.path);
 }
 
 export async function setArticleStatusAction(
+  locale: Locale,
   articleId: string,
   status: ArticleStatus,
 ) {
-  await requireRootSession();
+  await requireRootSession(locale);
 
   const existing = await prisma.article.findUnique({
     where: {
@@ -197,12 +200,24 @@ export async function setArticleStatusAction(
   if (existing.path !== article.path) {
     revalidateWikiPaths(article.path);
   }
-  revalidatePath("/admin");
-  revalidatePath("/admin/articles");
-  revalidatePath("/admin/taxonomy");
+  revalidateLocalizedPath("/admin");
+  revalidateLocalizedPath("/admin/articles");
+  revalidateLocalizedPath("/admin/taxonomy");
 }
 
-function parseArticleForm(formData: FormData) {
+function parseArticleForm(
+  formData: FormData,
+  dictionary: Awaited<ReturnType<typeof getDictionary>>,
+) {
+  const articleSchema = z.object({
+    title: z.string().trim().min(1, dictionary.feedback.titleRequired),
+    path: z.string(),
+    description: z.string().trim().max(280, dictionary.feedback.descriptionTooLong),
+    tags: z.array(z.string().trim().min(1)).max(12, dictionary.feedback.tooManyTags),
+    editor: z.string().trim().max(40, dictionary.feedback.editorNameTooLong),
+    markdown: z.string(),
+    status: z.enum([ArticleStatus.DRAFT, ArticleStatus.PUBLISHED]),
+  });
   const raw = {
     title: String(formData.get("title") ?? ""),
     path: String(formData.get("path") ?? ""),
@@ -218,7 +233,7 @@ function parseArticleForm(formData: FormData) {
   if (!result.success) {
     return {
       success: false as const,
-      error: result.error.issues[0]?.message ?? "Invalid article input.",
+      error: result.error.issues[0]?.message ?? dictionary.feedback.invalidArticleInput,
     };
   }
 
@@ -235,31 +250,38 @@ function parseArticleForm(formData: FormData) {
   } catch (error) {
     return {
       success: false as const,
-      error: error instanceof Error ? error.message : "Invalid article path.",
+      error: error instanceof Error ? error.message : dictionary.feedback.invalidArticlePath,
     };
   }
 }
 
-function getActionErrorMessage(error: unknown) {
+function getActionErrorMessage(
+  error: unknown,
+  duplicatePathMessage: string,
+  fallbackMessage: string,
+) {
   if (
     typeof error === "object" &&
     error !== null &&
     "code" in error &&
     error.code === "P2002"
   ) {
-    return "That path is already used by another article.";
+    return duplicatePathMessage;
   }
 
   if (error instanceof Error) {
     return error.message;
   }
 
-  return "Something went wrong. Please try again.";
+  return fallbackMessage;
 }
 
 function revalidateWikiPaths(path: string) {
-  revalidatePath("/wiki");
-  revalidatePath(buildWikiHref(path));
+  revalidateLocalizedPath("/wiki");
+
+  for (const locale of locales) {
+    revalidatePath(buildWikiHref(path, locale));
+  }
 }
 
 function parseTags(input: string) {

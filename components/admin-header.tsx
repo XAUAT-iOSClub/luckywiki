@@ -12,10 +12,23 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import React from "react";
+import { localizeHref, stripLocaleFromPathname } from "@/lib/i18n/config";
+import { useLocale, useT } from "@/lib/i18n/provider";
 
 export function AdminHeader() {
   const pathname = usePathname();
-  const paths = pathname.split("/").filter(Boolean);
+  const locale = useLocale();
+  const t = useT();
+  const adminPath = stripLocaleFromPathname(pathname);
+  const paths = adminPath.split("/").filter(Boolean);
+  const breadcrumbLabels: Record<string, string> = {
+    admin: t.common.admin,
+    articles: t.common.articles,
+    comments: t.common.comments,
+    taxonomy: t.common.taxonomy,
+    users: t.common.contributors,
+    new: t.common.create,
+  };
 
   return (
     <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
@@ -25,12 +38,14 @@ export function AdminHeader() {
         <Breadcrumb>
           <BreadcrumbList>
             <BreadcrumbItem className="hidden md:block">
-              <BreadcrumbLink href="/admin">Admin</BreadcrumbLink>
+              <BreadcrumbLink href={localizeHref(locale, "/admin")}>
+                {t.common.admin}
+              </BreadcrumbLink>
             </BreadcrumbItem>
             {paths.slice(1).map((path, index) => {
-              const href = `/${paths.slice(0, index + 2).join("/")}`;
+              const href = localizeHref(locale, `/${paths.slice(0, index + 2).join("/")}`);
               const isLast = index === paths.length - 2;
-              const label = path.charAt(0).toUpperCase() + path.slice(1);
+              const label = breadcrumbLabels[path] ?? path.charAt(0).toUpperCase() + path.slice(1);
 
               return (
                 <React.Fragment key={href}>

@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
+import { useT } from "@/lib/i18n/provider";
 
 interface TocItem {
   id: string;
@@ -12,6 +13,7 @@ interface TocItem {
 export function WikiToc({ markdown }: { markdown: string }) {
   const [items, setItems] = useState<TocItem[]>([]);
   const [activeId, setActiveId] = useState<string>("");
+  const t = useT();
 
   // Extract headings from the DOM after rendering
   useEffect(() => {
@@ -71,7 +73,7 @@ export function WikiToc({ markdown }: { markdown: string }) {
   return (
     <div className="space-y-4 max-h-[calc(100vh-10rem)] overflow-y-auto no-scrollbar py-2 pr-2">
       <h4 className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/40 px-3">
-        On this page
+        {t.wiki.onThisPage}
       </h4>
       <nav className="space-y-0.5 relative px-1">
         {items.map((item) => (

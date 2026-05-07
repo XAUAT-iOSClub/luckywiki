@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from "react";
 import { clsx } from "clsx";
+import { useT } from "@/lib/i18n/provider";
 
 type MarkdownBadgeProps = HTMLAttributes<HTMLElement> & {
   children?: ReactNode;
@@ -122,6 +123,7 @@ function MarkdownTip({
   value,
   ...props
 }: MarkdownTipProps) {
+  const t = useT();
   const label = childrenToPlainText(children) || text || value || "";
 
   if (copy) {
@@ -132,12 +134,12 @@ function MarkdownTip({
           className,
         )}
         onClick={() => copyToClipboard(value || label)}
-        title={tip || "Copy"}
+        title={tip || t.common.copy}
         type="button"
         {...props}
       >
         <span>{label}</span>
-        <span className="text-[10px] uppercase tracking-[0.18em] text-slate-400">Copy</span>
+        <span className="text-[10px] uppercase tracking-[0.18em] text-slate-400">{t.common.copy}</span>
       </button>
     );
   }

@@ -9,15 +9,20 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { BookOpen, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import type { Locale } from "@/lib/i18n/config";
+import { localizeHref } from "@/lib/i18n/config";
+import { useT } from "@/lib/i18n/provider";
+import { LocaleSwitcher } from "@/components/locale-switcher";
 
 type AuthFormProps = {
+  locale: Locale;
   mode: "sign-in" | "sign-up";
   nextPath: string;
 };
 
-export function AuthForm({ mode, nextPath }: AuthFormProps) {
+export function AuthForm({ locale, mode, nextPath }: AuthFormProps) {
   const router = useRouter();
+  const t = useT();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -39,15 +44,15 @@ export function AuthForm({ mode, nextPath }: AuthFormProps) {
           name,
           email,
           password,
-          callbackURL: "/auth/verify-email",
+          callbackURL: localizeHref(locale, "/auth/verify-email"),
         });
 
         if (result.error) {
-          setError(result.error.message ?? "Could not create your account.");
+          setError(result.error.message ?? t.auth.createAccountError);
           return;
         }
 
-        setNotice("Account created. Check your inbox for the verification link.");
+        setNotice(t.auth.accountCreated);
         setPassword("");
         return;
       }
@@ -58,7 +63,7 @@ export function AuthForm({ mode, nextPath }: AuthFormProps) {
       });
 
       if (result.error) {
-        setError(result.error.message ?? "Could not sign you in.");
+        setError(result.error.message ?? t.auth.signInError);
         return;
       }
 
@@ -71,7 +76,10 @@ export function AuthForm({ mode, nextPath }: AuthFormProps) {
 
   return (
     <div className="flex w-full flex-col items-center gap-6">
-      <Link href="/wiki" className="flex items-center gap-2 group transition-transform hover:scale-105 active:scale-95">
+      <div className="flex w-full justify-end">
+        <LocaleSwitcher />
+      </div>
+      <Link href={localizeHref(locale, "/wiki")} className="flex items-center gap-2 group transition-transform hover:scale-105 active:scale-95">
         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary shadow-lg shadow-primary/20 ring-1 ring-white/10">
           <BookOpen className="h-5 w-5 text-primary-foreground" />
         </div>
@@ -81,19 +89,19 @@ export function AuthForm({ mode, nextPath }: AuthFormProps) {
       <Card className="w-full max-w-[400px] overflow-hidden border-border/50 bg-white/70 shadow-2xl shadow-black/5 backdrop-blur-xl dark:bg-zinc-900/70 dark:shadow-black/20">
         <CardHeader className="space-y-1 pb-6 text-center">
           <CardTitle className="text-2xl font-semibold tracking-tight">
-            {isSignUp ? "Create an account" : "Welcome back"}
+            {isSignUp ? t.auth.createAccount : t.auth.welcomeBack}
           </CardTitle>
           <CardDescription className="text-sm text-muted-foreground">
             {isSignUp 
-              ? "Enter your details below to create your account" 
-              : "Enter your email below to sign in to your account"}
+              ? t.auth.signUpDescription 
+              : t.auth.signInDescription}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             {isSignUp && (
               <div className="space-y-2">
-                <Label htmlFor="name">Name</Label>
+                <Label htmlFor="name">{t.auth.name}</Label>
                 <Input
                   id="name"
                   placeholder="Steve Jobs"
@@ -105,7 +113,7 @@ export function AuthForm({ mode, nextPath }: AuthFormProps) {
               </div>
             )}
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">{t.auth.email}</Label>
               <Input
                 id="email"
                 type="email"
@@ -118,13 +126,13 @@ export function AuthForm({ mode, nextPath }: AuthFormProps) {
             </div>
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label htmlFor="password">Password</Label>
+                <Label htmlFor="password">{t.auth.password}</Label>
                 {!isSignUp && (
                   <Link 
-                    href="/auth/forgot-password" 
+                    href={localizeHref(locale, "/auth/forgot-password")} 
                     className="text-xs text-primary hover:underline underline-offset-4"
                   >
-                    Forgot password?
+                    {t.auth.forgotPassword}
                   </Link>
                 )}
               </div>
@@ -161,38 +169,38 @@ export function AuthForm({ mode, nextPath }: AuthFormProps) {
               {pending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Please wait
+                  {t.common.working}
                 </>
               ) : (
-                isSignUp ? "Sign Up" : "Sign In"
+                isSignUp ? t.common.signUp : t.common.signIn
               )}
             </Button>
           </form>
         </CardContent>
         <CardFooter className="flex flex-col border-t border-border/50 bg-muted/30 py-4 text-center">
           <p className="text-xs text-muted-foreground">
-            {isSignUp ? "Already have an account?" : "Don't have an account?"}{" "}
+            {isSignUp ? t.auth.hasAccount : t.auth.noAccount}{" "}
             <Link 
               href={isSignUp 
-                ? `/auth/sign-in?next=${encodeURIComponent(nextPath)}` 
-                : `/auth/sign-up?next=${encodeURIComponent(nextPath)}`
+                ? `${localizeHref(locale, "/auth/sign-in")}?next=${encodeURIComponent(nextPath)}` 
+                : `${localizeHref(locale, "/auth/sign-up")}?next=${encodeURIComponent(nextPath)}`
               }
               className="font-medium text-primary hover:underline underline-offset-4"
             >
-              {isSignUp ? "Sign in" : "Create one"}
+              {isSignUp ? t.common.signIn : t.auth.createOne}
             </Link>
           </p>
         </CardFooter>
       </Card>
       
       <p className="px-8 text-center text-xs leading-relaxed text-muted-foreground">
-        By clicking continue, you agree to our{" "}
-        <Link href="/terms" className="underline underline-offset-4 hover:text-primary">
-          Terms of Service
+        {t.auth.byContinuing}{" "}
+        <Link href={localizeHref(locale, "/terms")} className="underline underline-offset-4 hover:text-primary">
+          {t.auth.terms}
         </Link>{" "}
-        and{" "}
-        <Link href="/privacy" className="underline underline-offset-4 hover:text-primary">
-          Privacy Policy
+        {locale === "zh" ? "和" : "and"}{" "}
+        <Link href={localizeHref(locale, "/privacy")} className="underline underline-offset-4 hover:text-primary">
+          {t.auth.privacy}
         </Link>
         .
       </p>

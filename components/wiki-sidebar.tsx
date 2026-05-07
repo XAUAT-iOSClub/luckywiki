@@ -5,7 +5,6 @@ import {
   ChevronRight,
   FileText,
   Folder,
-  LayoutDashboard,
   Moon,
   Search,
   Settings,
@@ -28,8 +27,6 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarMenuSub,
-  SidebarMenuSubButton,
-  SidebarMenuSubItem,
   SidebarRail,
   SidebarGroup,
   SidebarGroupLabel,
@@ -42,6 +39,10 @@ import { usePathname } from "next/navigation";
 import { NavUser } from "@/components/nav-user";
 import { isNodeExpanded, type WikiTreeNode } from "@/lib/wiki-tree";
 import { cn } from "@/lib/utils";
+import { buildWikiHref, getWikiPathFromPathname } from "@/lib/wiki-path";
+import { localizeHref } from "@/lib/i18n/config";
+import { useLocale, useT } from "@/lib/i18n/provider";
+import { LocaleSwitcher } from "@/components/locale-switcher";
 
 export function WikiSidebar({
   tree,
@@ -54,7 +55,9 @@ export function WikiSidebar({
 }) {
   const { setTheme, theme } = useTheme();
   const pathname = usePathname();
-  const currentWikiPath = pathname.replace("/wiki/", "").replace("/wiki", "");
+  const locale = useLocale();
+  const t = useT();
+  const currentWikiPath = getWikiPathFromPathname(pathname);
 
   return (
     <Sidebar variant="inset" collapsible="icon" className="border-r-0 bg-sidebar/40 backdrop-blur-xl">
@@ -62,13 +65,13 @@ export function WikiSidebar({
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild className="hover:bg-transparent group">
-              <Link href="/wiki">
+              <Link href={localizeHref(locale, "/wiki")}>
                 <div className="flex aspect-square size-9 items-center justify-center rounded-xl bg-primary shadow-lg shadow-primary/20 transition-transform group-hover:scale-105 group-active:scale-95">
                   <FileText className="size-5 text-primary-foreground" />
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight ml-2">
                   <span className="truncate font-bold text-lg tracking-tight">LuckyWiki</span>
-                  <span className="truncate text-xs opacity-60 font-medium">Knowledge Base</span>
+                  <span className="truncate text-xs opacity-60 font-medium">{t.wiki.knowledgeBase}</span>
                 </div>
               </Link>
             </SidebarMenuButton>
@@ -79,7 +82,7 @@ export function WikiSidebar({
           <div className="relative group/search">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground transition-colors group-focus-within/search:text-primary" />
             <SidebarInput 
-              placeholder="Search..." 
+              placeholder={t.wiki.searchPlaceholder} 
               className="pl-9 h-10 rounded-xl bg-background/50 border-border/50 focus:bg-background transition-all focus-visible:ring-primary/20"
             />
           </div>
@@ -89,13 +92,13 @@ export function WikiSidebar({
       <SidebarContent className="px-2">
         {isAdmin && (
           <SidebarGroup>
-            <SidebarGroupLabel className="px-2 text-[10px] uppercase tracking-widest font-bold opacity-40 group-data-[collapsible=icon]:hidden">Management</SidebarGroupLabel>
+            <SidebarGroupLabel className="px-2 text-[10px] uppercase tracking-widest font-bold opacity-40 group-data-[collapsible=icon]:hidden">{t.wiki.management}</SidebarGroupLabel>
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip="Dashboard" isActive={pathname.startsWith("/admin")}>
-                  <Link href="/admin" className="rounded-xl">
+                <SidebarMenuButton asChild tooltip={t.common.dashboard} isActive={pathname.startsWith(`/${locale}/admin`)}>
+                  <Link href={localizeHref(locale, "/admin")} className="rounded-xl">
                     <ShieldCheck className="size-4" />
-                    <span className="font-medium">Admin Panel</span>
+                    <span className="font-medium">{t.wiki.adminPanel}</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -104,7 +107,7 @@ export function WikiSidebar({
         )}
 
         <SidebarGroup>
-          <SidebarGroupLabel className="px-2 text-[10px] uppercase tracking-widest font-bold opacity-40 group-data-[collapsible=icon]:hidden">Articles</SidebarGroupLabel>
+          <SidebarGroupLabel className="px-2 text-[10px] uppercase tracking-widest font-bold opacity-40 group-data-[collapsible=icon]:hidden">{t.common.articles}</SidebarGroupLabel>
           <SidebarMenu>
             <TreeNav node={tree} currentPath={currentWikiPath} />
           </SidebarMenu>
@@ -114,19 +117,24 @@ export function WikiSidebar({
       <SidebarFooter className="py-4 px-2 space-y-2">
         <SidebarMenu className="group-data-[collapsible=icon]:hidden">
           <SidebarMenuItem>
+            <div className="px-1">
+              <LocaleSwitcher className="w-full justify-center" />
+            </div>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
             <SidebarMenuButton
               onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              tooltip="Appearance"
+              tooltip={t.common.appearance}
               className="rounded-xl"
             >
               {theme === "dark" ? <Sun className="size-4" /> : <Moon className="size-4" />}
-              <span className="font-medium">Appearance</span>
+              <span className="font-medium">{t.common.appearance}</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <SidebarMenuButton tooltip="Settings" className="rounded-xl">
+            <SidebarMenuButton tooltip={t.common.settings} className="rounded-xl">
               <Settings className="size-4" />
-              <span className="font-medium">Settings</span>
+              <span className="font-medium">{t.common.settings}</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
@@ -136,7 +144,7 @@ export function WikiSidebar({
         ) : (
           <div className="px-2 pb-2 group-data-[collapsible=icon]:hidden">
             <Button asChild variant="outline" className="w-full h-11 rounded-xl border-border/50 bg-background/50 backdrop-blur-sm shadow-sm hover:bg-background transition-all">
-              <Link href="/auth/sign-in">Sign In</Link>
+              <Link href={localizeHref(locale, "/auth/sign-in")}>{t.common.signIn}</Link>
             </Button>
           </div>
         )}
@@ -163,7 +171,9 @@ function TreeNav({ node, currentPath }: { node: WikiTreeNode; currentPath: strin
 }
 
 function TreeItem({ node, currentPath }: { node: WikiTreeNode; currentPath: string }) {
-  const href = `/wiki${node.path ? `/${node.path}` : ""}`;
+  const locale = useLocale();
+  const t = useT();
+  const href = buildWikiHref(node.path, locale);
   const isActive = currentPath === node.path;
   const isExpanded = isNodeExpanded(node.path, currentPath);
   const hasChildren = node.children.length > 0;
@@ -205,13 +215,13 @@ function TreeItem({ node, currentPath }: { node: WikiTreeNode; currentPath: stri
           <CollapsibleTrigger asChild>
             <SidebarMenuAction className="left-auto right-1 data-[state=open]:rotate-90 rounded-md transition-transform hover:bg-sidebar-accent">
               <ChevronRight className="size-4" />
-              <span className="sr-only">Toggle</span>
+              <span className="sr-only">{t.common.toggle}</span>
             </SidebarMenuAction>
           </CollapsibleTrigger>
         ) : (
           <SidebarMenuAction className="left-auto right-1 data-[state=open]:rotate-90 rounded-md transition-transform pointer-events-none">
             <ChevronRight className="size-4" />
-            <span className="sr-only">Toggle</span>
+            <span className="sr-only">{t.common.toggle}</span>
           </SidebarMenuAction>
         )}
 

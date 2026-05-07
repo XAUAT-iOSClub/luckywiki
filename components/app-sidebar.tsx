@@ -27,72 +27,9 @@ import {
 } from "@/components/ui/sidebar";
 import { useTheme } from "next-themes";
 import Link from "next/link";
-
-const data = {
-  user: {
-    name: "Admin",
-    email: "admin@luckywiki.com",
-    image: null,
-  },
-  navMain: [
-    {
-      title: "Dashboard",
-      url: "/admin",
-      icon: LayoutDashboard,
-    },
-    {
-      title: "Articles",
-      url: "/admin/articles",
-      icon: FileText,
-      items: [
-        {
-          title: "All Articles",
-          url: "/admin/articles",
-        },
-        {
-          title: "Drafts",
-          url: "/admin/articles?status=DRAFT",
-        },
-        {
-          title: "Published",
-          url: "/admin/articles?status=PUBLISHED",
-        },
-      ],
-    },
-    {
-      title: "Comments",
-      url: "/admin/comments",
-      icon: MessageSquare,
-      items: [
-        {
-          title: "Pending",
-          url: "/admin/comments?status=PENDING",
-        },
-        {
-          title: "Approved",
-          url: "/admin/comments?status=APPROVED",
-        },
-      ],
-    },
-    {
-      title: "Taxonomy",
-      url: "/admin/taxonomy",
-      icon: FolderTree,
-    },
-    {
-      title: "Contributors",
-      url: "/admin/users",
-      icon: Users,
-    },
-  ],
-  secondaryNav: [
-    {
-      title: "View Wiki",
-      url: "/wiki",
-      icon: View,
-    },
-  ],
-};
+import { localizeHref } from "@/lib/i18n/config";
+import { useLocale, useT } from "@/lib/i18n/provider";
+import { LocaleSwitcher } from "@/components/locale-switcher";
 
 export function AppSidebar({
   user,
@@ -101,6 +38,66 @@ export function AppSidebar({
   user: { name: string; email: string; image?: string | null };
 }) {
   const { setTheme, theme } = useTheme();
+  const locale = useLocale();
+  const t = useT();
+  const navMain = [
+    {
+      title: t.common.dashboard,
+      url: localizeHref(locale, "/admin"),
+      icon: LayoutDashboard,
+    },
+    {
+      title: t.common.articles,
+      url: localizeHref(locale, "/admin/articles"),
+      icon: FileText,
+      items: [
+        {
+          title: t.common.articles,
+          url: localizeHref(locale, "/admin/articles"),
+        },
+        {
+          title: t.common.draft,
+          url: localizeHref(locale, "/admin/articles?status=DRAFT"),
+        },
+        {
+          title: t.common.published,
+          url: localizeHref(locale, "/admin/articles?status=PUBLISHED"),
+        },
+      ],
+    },
+    {
+      title: t.common.comments,
+      url: localizeHref(locale, "/admin/comments"),
+      icon: MessageSquare,
+      items: [
+        {
+          title: t.common.pending,
+          url: localizeHref(locale, "/admin/comments?status=PENDING"),
+        },
+        {
+          title: t.common.approved,
+          url: localizeHref(locale, "/admin/comments?status=APPROVED"),
+        },
+      ],
+    },
+    {
+      title: t.common.taxonomy,
+      url: localizeHref(locale, "/admin/taxonomy"),
+      icon: FolderTree,
+    },
+    {
+      title: t.common.contributors,
+      url: localizeHref(locale, "/admin/users"),
+      icon: Users,
+    },
+  ];
+  const secondaryNav = [
+    {
+      title: t.common.viewWiki,
+      url: localizeHref(locale, "/wiki"),
+      icon: View,
+    },
+  ];
 
   return (
     <Sidebar collapsible="icon" {...props}>
@@ -108,13 +105,13 @@ export function AppSidebar({
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
-              <Link href="/admin">
+              <Link href={localizeHref(locale, "/admin")}>
                 <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
                   <BookOpen className="size-4" />
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-semibold text-lg tracking-tight">LuckyWiki</span>
-                  <span className="truncate text-xs opacity-70">Admin Control</span>
+                  <span className="truncate text-xs opacity-70">{t.admin.control}</span>
                 </div>
               </Link>
             </SidebarMenuButton>
@@ -122,18 +119,23 @@ export function AppSidebar({
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={data.navMain} />
-        <NavMain items={data.secondaryNav} />
+        <NavMain items={navMain} />
+        <NavMain items={secondaryNav} />
       </SidebarContent>
       <SidebarFooter>
         <SidebarMenu>
           <SidebarMenuItem>
+            <div className="px-2">
+              <LocaleSwitcher className="w-full justify-center" />
+            </div>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
             <SidebarMenuButton
               onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              tooltip="Toggle Theme"
+              tooltip={t.common.appearance}
             >
               {theme === "dark" ? <Sun className="size-4" /> : <Moon className="size-4" />}
-              <span>Toggle Theme</span>
+              <span>{t.common.appearance}</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

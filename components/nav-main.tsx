@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/sidebar";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
+import { useT } from "@/lib/i18n/provider";
 
 export function NavMain({
   items,
@@ -38,10 +39,11 @@ export function NavMain({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const currentQuery = searchParams.toString();
+  const t = useT();
 
   return (
     <SidebarGroup>
-      <SidebarGroupLabel>Platform</SidebarGroupLabel>
+      <SidebarGroupLabel>{t.common.platform}</SidebarGroupLabel>
       <SidebarMenu>
         {items.map((item) => {
           const isActive = matchesNavLink(pathname, currentQuery, item.url);
@@ -73,7 +75,7 @@ export function NavMain({
                     <CollapsibleTrigger asChild>
                       <SidebarMenuAction className="data-[state=open]:rotate-90">
                         <ChevronRight />
-                        <span className="sr-only">Toggle</span>
+                        <span className="sr-only">{t.common.toggle}</span>
                       </SidebarMenuAction>
                     </CollapsibleTrigger>
                     <CollapsibleContent>

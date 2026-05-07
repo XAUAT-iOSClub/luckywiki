@@ -29,8 +29,8 @@ test("canonicalizes catch-all slug segments into path", () => {
 });
 
 test("builds hrefs with encoded segments", () => {
-  assert.equal(buildWikiHref("指南/next-16/入门"), "/wiki/%E6%8C%87%E5%8D%97/next-16/%E5%85%A5%E9%97%A8");
-  assert.equal(buildWikiHref(""), "/wiki");
+  assert.equal(buildWikiHref("指南/next-16/入门", "zh"), "/zh/wiki/%E6%8C%87%E5%8D%97/next-16/%E5%85%A5%E9%97%A8");
+  assert.equal(buildWikiHref("", "en"), "/en/wiki");
 });
 
 test("rejects invalid path segments", () => {

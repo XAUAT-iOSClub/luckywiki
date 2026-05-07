@@ -70,25 +70,31 @@ const markdownComponents = markdownComponentRenderers as Record<
   string,
   ElementType
 >;
-const rehypePlugins: NonNullable<ReactMarkdownOptions["rehypePlugins"]> = [
-  createCodeFenceComponentPlugin,
-  rehypeFootnotesHeading,
-  rehypeMdxJsxElements,
-  rehypeSlug,
-  [
-    rehypeAutolinkHeadings,
-    {
-      behavior: "append",
-      properties: {
-        className: ["anchor"],
-        ariaLabel: "Link to section",
+export function MarkdownRenderer({
+  markdown,
+  linkToSectionLabel = "Link to section",
+}: {
+  markdown: string;
+  linkToSectionLabel?: string;
+}) {
+  const rehypePlugins: NonNullable<ReactMarkdownOptions["rehypePlugins"]> = [
+    createCodeFenceComponentPlugin,
+    rehypeFootnotesHeading,
+    rehypeMdxJsxElements,
+    rehypeSlug,
+    [
+      rehypeAutolinkHeadings,
+      {
+        behavior: "append",
+        properties: {
+          className: ["anchor"],
+          ariaLabel: linkToSectionLabel,
+        },
       },
-    },
-  ],
-  [rehypeSanitize, sanitizeSchema],
-];
+    ],
+    [rehypeSanitize, sanitizeSchema],
+  ];
 
-export function MarkdownRenderer({ markdown }: { markdown: string }) {
   return (
     <div className="markdown-body">
       <ReactMarkdown

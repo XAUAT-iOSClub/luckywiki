@@ -1,3 +1,8 @@
+import { defaultLocale, getPathnameLocale } from "@/lib/i18n/config";
+import { en } from "@/lib/i18n/dictionaries/en";
+import { zh } from "@/lib/i18n/dictionaries/zh";
+import { formatTemplate } from "@/lib/i18n/format";
+
 type VerificationEmailPayload = {
   user: {
     email: string;
@@ -20,6 +25,9 @@ export async function sendVerificationEmail({
     return;
   }
 
+  const locale = getPathnameLocale(new URL(url).pathname) ?? defaultLocale;
+  const dictionary = locale === "zh" ? zh : en;
+
   const response = await fetch(resendEndpoint, {
     method: "POST",
     headers: {
@@ -29,21 +37,21 @@ export async function sendVerificationEmail({
     body: JSON.stringify({
       from: emailFrom,
       to: user.email,
-      subject: "Verify your LuckyWiki account",
+      subject: dictionary.emailVerification.subject,
       html: `
         <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #18181b;">
-          <h1 style="font-size: 20px;">Verify your LuckyWiki account</h1>
-          <p>Hello ${escapeHtml(user.name)},</p>
-          <p>Click the button below to verify your email address and finish setting up your account.</p>
+          <h1 style="font-size: 20px;">${dictionary.emailVerification.heading}</h1>
+          <p>${formatTemplate(dictionary.emailVerification.greeting, { name: escapeHtml(user.name) })}</p>
+          <p>${dictionary.emailVerification.body}</p>
           <p>
             <a
               href="${url}"
               style="display:inline-block;padding:12px 18px;background:#2563eb;color:#fff;text-decoration:none;border-radius:10px;"
             >
-              Verify email
+              ${dictionary.emailVerification.cta}
             </a>
           </p>
-          <p>If the button does not work, open this link:</p>
+          <p>${dictionary.emailVerification.fallback}</p>
           <p><a href="${url}">${url}</a></p>
         </div>
       `,

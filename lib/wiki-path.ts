@@ -1,3 +1,6 @@
+import type { Locale } from "@/lib/i18n/config";
+import { localizeHref, stripLocaleFromPathname } from "@/lib/i18n/config";
+
 const forbiddenSegmentPattern = /[\/\\\u0000-\u001F\u007F?#]/u;
 
 export function canonicalizePath(input: string) {
@@ -28,13 +31,27 @@ export function splitPath(path: string) {
   return path ? path.split("/") : [];
 }
 
-export function buildWikiHref(path: string) {
+export function buildWikiHref(path: string, locale: Locale) {
   if (!path) {
-    return "/wiki";
+    return localizeHref(locale, "/wiki");
   }
 
   const encoded = splitPath(path).map((segment) => encodeURIComponent(segment));
-  return `/wiki/${encoded.join("/")}`;
+  return localizeHref(locale, `/wiki/${encoded.join("/")}`);
+}
+
+export function getWikiPathFromPathname(pathname: string) {
+  const nonLocalizedPath = stripLocaleFromPathname(pathname);
+
+  if (nonLocalizedPath === "/wiki") {
+    return "";
+  }
+
+  if (!nonLocalizedPath.startsWith("/wiki/")) {
+    return "";
+  }
+
+  return canonicalizeSlugSegments(nonLocalizedPath.slice("/wiki/".length).split("/"));
 }
 
 function validateAndCanonicalizeSegment(segment: string) {

@@ -31,6 +31,8 @@ import {
 } from "@/components/ui/sidebar";
 import { authClient } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
+import { localizeHref } from "@/lib/i18n/config";
+import { useLocale, useT } from "@/lib/i18n/provider";
 
 export function NavUser({
   user,
@@ -43,10 +45,12 @@ export function NavUser({
 }) {
   const { isMobile } = useSidebar();
   const router = useRouter();
+  const locale = useLocale();
+  const t = useT();
 
   async function handleSignOut() {
     await authClient.signOut();
-    router.push("/wiki");
+    router.push(localizeHref(locale, "/wiki"));
     router.refresh();
   }
 
@@ -96,29 +100,29 @@ export function NavUser({
             <DropdownMenuGroup>
               <DropdownMenuItem>
                 <Sparkles className="mr-2 h-4 w-4" />
-                Upgrade to Pro
+                {t.common.upgrade}
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
               <DropdownMenuItem>
                 <BadgeCheck className="mr-2 h-4 w-4" />
-                Account
+                {t.common.account}
               </DropdownMenuItem>
               <DropdownMenuItem>
                 <CreditCard className="mr-2 h-4 w-4" />
-                Billing
+                {t.common.billing}
               </DropdownMenuItem>
               <DropdownMenuItem>
                 <Bell className="mr-2 h-4 w-4" />
-                Notifications
+                {t.common.notifications}
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleSignOut}>
-              <LogOut className="mr-2 h-4 w-4" />
-              Log out
-            </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleSignOut}>
+                <LogOut className="mr-2 h-4 w-4" />
+                {t.common.signOut}
+              </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </SidebarMenuItem>

@@ -6,6 +6,7 @@ import { ArticleStatus } from "@/generated/prisma/enums";
 import { MarkdownRenderer } from "@/components/markdown-renderer";
 import { SubmitButton } from "@/components/submit-button";
 import type { FormActionState } from "@/app/actions/admin";
+import { useT } from "@/lib/i18n/provider";
 
 type ArticleEditorProps = {
   action: (state: FormActionState, formData: FormData) => Promise<FormActionState>;
@@ -30,6 +31,7 @@ export function ArticleEditor({
 }: ArticleEditorProps) {
   const router = useRouter();
   const [state, formAction] = useActionState(action, initialState);
+  const t = useT();
   const [title, setTitle] = useState(initialValues?.title ?? "");
   const [path, setPath] = useState(initialValues?.path ?? "");
   const [description, setDescription] = useState(initialValues?.description ?? "");
@@ -51,72 +53,72 @@ export function ArticleEditor({
     <form action={formAction} className="space-y-6">
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_220px]">
         <label className="field-block">
-          <span>Title</span>
+          <span>{t.common.title}</span>
           <input
             required
             className="field-input"
             name="title"
             onChange={(event) => setTitle(event.target.value)}
-            placeholder="How to structure your knowledge base"
+            placeholder={t.admin.articleEditor.titlePlaceholder}
             value={title}
           />
         </label>
         <label className="field-block">
-          <span>Status</span>
+          <span>{t.common.status}</span>
           <select
             className="field-input"
             name="status"
             onChange={(event) => setStatus(event.target.value as ArticleStatus)}
             value={status}
           >
-            <option value={ArticleStatus.DRAFT}>Draft</option>
-            <option value={ArticleStatus.PUBLISHED}>Published</option>
+            <option value={ArticleStatus.DRAFT}>{t.common.draft}</option>
+            <option value={ArticleStatus.PUBLISHED}>{t.common.published}</option>
           </select>
         </label>
       </div>
 
       <label className="field-block">
-        <span>Path</span>
+        <span>{t.common.path}</span>
         <input
           required
           className="field-input"
           name="path"
           onChange={(event) => setPath(event.target.value)}
-          placeholder="指南/next-16/入门"
+          placeholder={t.admin.articleEditor.pathPlaceholder}
           value={path}
         />
       </label>
 
       <div className="grid gap-4 lg:grid-cols-2">
         <label className="field-block">
-          <span>Description</span>
+          <span>{t.common.description}</span>
           <textarea
             className="field-textarea min-h-28"
             maxLength={280}
             name="description"
             onChange={(event) => setDescription(event.target.value)}
-            placeholder="Short summary shown in listings and search results."
+            placeholder={t.admin.articleEditor.descriptionPlaceholder}
             value={description}
           />
         </label>
         <div className="grid gap-4">
           <label className="field-block">
-            <span>Tags</span>
+            <span>{t.common.tags}</span>
             <input
               className="field-input"
               name="tags"
               onChange={(event) => setTags(event.target.value)}
-              placeholder="nextjs, cms, moderation"
+              placeholder={t.admin.articleEditor.tagsPlaceholder}
               value={tags}
             />
           </label>
           <label className="field-block">
-            <span>Editor</span>
+            <span>{t.common.editor}</span>
             <input
               className="field-input"
               name="editor"
               onChange={(event) => setEditor(event.target.value)}
-              placeholder="markdown"
+              placeholder={t.admin.articleEditor.editorPlaceholder}
               value={editor}
             />
           </label>
@@ -125,19 +127,22 @@ export function ArticleEditor({
 
       <div className="grid gap-6 xl:grid-cols-2">
         <label className="field-block">
-          <span>Markdown</span>
+          <span>{t.common.markdown}</span>
           <textarea
             className="field-textarea min-h-[480px]"
             name="markdown"
             onChange={(event) => setMarkdown(event.target.value)}
-            placeholder="# Start writing..."
+            placeholder={t.admin.articleEditor.markdownPlaceholder}
             value={markdown}
           />
         </label>
         <div className="field-block">
-          <span>Preview</span>
+          <span>{t.common.preview}</span>
           <div className="rounded-3xl border border-border/70 bg-white/80 dark:bg-zinc-900/60 p-5">
-            <MarkdownRenderer markdown={markdown || "_Nothing to preview yet._"} />
+            <MarkdownRenderer
+              linkToSectionLabel={t.common.linkToSection}
+              markdown={markdown || t.admin.articleEditor.previewFallback}
+            />
           </div>
         </div>
       </div>
