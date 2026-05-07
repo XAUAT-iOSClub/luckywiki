@@ -167,6 +167,7 @@ function TreeItem({ node, currentPath }: { node: WikiTreeNode; currentPath: stri
   const isActive = currentPath === node.path;
   const isExpanded = isNodeExpanded(node.path, currentPath);
   const hasChildren = node.children.length > 0;
+  const hasArticle = !!node.articleTitle;
 
   if (!hasChildren) {
     return (
@@ -184,18 +185,36 @@ function TreeItem({ node, currentPath }: { node: WikiTreeNode; currentPath: stri
   return (
     <Collapsible asChild defaultOpen={isExpanded} className="group/collapsible">
       <SidebarMenuItem>
-        <SidebarMenuButton asChild isActive={isActive} tooltip={node.label} className="rounded-xl">
-          <Link href={href}>
-            <Folder className={cn("size-4", isActive ? "text-primary" : "text-muted-foreground")} />
-            <span className={cn(isActive && "font-semibold")}>{node.label}</span>
-          </Link>
-        </SidebarMenuButton>
-        <CollapsibleTrigger asChild>
-          <SidebarMenuAction className="left-auto right-1 data-[state=open]:rotate-90 rounded-md transition-transform hover:bg-sidebar-accent">
+        {hasArticle ? (
+          <SidebarMenuButton asChild isActive={isActive} tooltip={node.label} className="rounded-xl">
+            <Link href={href}>
+              <Folder className={cn("size-4", isActive ? "text-primary" : "text-muted-foreground")} />
+              <span className={cn(isActive && "font-semibold")}>{node.label}</span>
+            </Link>
+          </SidebarMenuButton>
+        ) : (
+          <CollapsibleTrigger asChild>
+            <SidebarMenuButton tooltip={node.label} className="rounded-xl">
+              <Folder className="size-4 text-muted-foreground" />
+              <span>{node.label}</span>
+            </SidebarMenuButton>
+          </CollapsibleTrigger>
+        )}
+        
+        {hasArticle ? (
+          <CollapsibleTrigger asChild>
+            <SidebarMenuAction className="left-auto right-1 data-[state=open]:rotate-90 rounded-md transition-transform hover:bg-sidebar-accent">
+              <ChevronRight className="size-4" />
+              <span className="sr-only">Toggle</span>
+            </SidebarMenuAction>
+          </CollapsibleTrigger>
+        ) : (
+          <SidebarMenuAction className="left-auto right-1 data-[state=open]:rotate-90 rounded-md transition-transform pointer-events-none">
             <ChevronRight className="size-4" />
             <span className="sr-only">Toggle</span>
           </SidebarMenuAction>
-        </CollapsibleTrigger>
+        )}
+
         <CollapsibleContent>
           <SidebarMenuSub className="border-l-0 ml-4 pl-2 space-y-1 mt-1 border-l border-border/10">
             {node.children.map((child) => (

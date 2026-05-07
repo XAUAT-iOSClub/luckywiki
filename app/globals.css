@@ -253,6 +253,15 @@
     @apply space-y-6 text-[16px] leading-[1.8] text-slate-800 transition-colors dark:text-zinc-200;
   }
 
+  .markdown-body h1,
+  .markdown-body h2,
+  .markdown-body h3,
+  .markdown-body h4,
+  .markdown-body h5,
+  .markdown-body h6 {
+    @apply scroll-mt-24;
+  }
+
   .markdown-body h1 {
     @apply mt-2 text-4xl font-bold tracking-tight text-slate-900 dark:text-zinc-100;
   }

@@ -9,6 +9,8 @@ import ReactMarkdown from "react-markdown";
 import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
 import type { Components, Options as ReactMarkdownOptions } from "react-markdown";
 import remarkGfm from "remark-gfm";
+import rehypeSlug from "rehype-slug";
+import rehypeAutolinkHeadings from "rehype-autolink-headings";
 import { markdownComponentRenderers } from "@/components/markdown-custom-components";
 import { rehypeMdxJsxElements } from "@/lib/markdown-mdx-elements";
 
@@ -51,6 +53,12 @@ const sanitizeSchema = {
       "count",
     ],
     "mdx-component-inline": ["data-mdx-name"],
+    h1: ["id"],
+    h2: ["id"],
+    h3: ["id"],
+    h4: ["id"],
+    h5: ["id"],
+    h6: ["id"],
   },
   tagNames: [
     ...(defaultSchema.tagNames ?? []),
@@ -66,6 +74,17 @@ const rehypePlugins: NonNullable<ReactMarkdownOptions["rehypePlugins"]> = [
   createCodeFenceComponentPlugin,
   rehypeFootnotesHeading,
   rehypeMdxJsxElements,
+  rehypeSlug,
+  [
+    rehypeAutolinkHeadings,
+    {
+      behavior: "append",
+      properties: {
+        className: ["anchor"],
+        ariaLabel: "Link to section",
+      },
+    },
+  ],
   [rehypeSanitize, sanitizeSchema],
 ];
 
