@@ -14,5 +14,5 @@ export default async function LocalizedHomePage({
     notFound();
   }
 
-  redirect(localizeHref(lang, "/wiki"));
+  redirect(localizeHref(lang, "/wiki/home"));
 }

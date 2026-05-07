@@ -17,7 +17,7 @@ export default function NotFound() {
           {t.notFound.description}
         </p>
         <div className="flex justify-center gap-3">
-          <Link className="button-primary" href={localizeHref(locale, "/wiki")}>
+          <Link className="button-primary" href={localizeHref(locale, "/wiki/home")}>
             {t.common.backToWiki}
           </Link>
           <Link className="button-secondary" href={localizeHref(locale, "/admin/articles")}>

@@ -20,6 +20,37 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## Image Hosting
+
+The admin article editor can upload images to an S3-compatible image host and insert the Markdown image link automatically.
+
+Set these server-side environment variables before using it:
+
+```bash
+IMAGE_HOSTING_BUCKET=your-bucket
+IMAGE_HOSTING_REGION=auto
+IMAGE_HOSTING_ACCESS_KEY_ID=your-access-key
+IMAGE_HOSTING_SECRET_ACCESS_KEY=your-secret-key
+
+# Optional but recommended when you front the bucket with a CDN or custom domain.
+IMAGE_HOSTING_PUBLIC_URL_BASE=https://cdn.example.com/wiki-assets
+
+# Optional for Cloudflare R2, MinIO, and other S3-compatible services.
+IMAGE_HOSTING_ENDPOINT=https://<account-or-host-endpoint>
+
+# Optional object key prefix inside the bucket.
+IMAGE_HOSTING_PATH_PREFIX=wiki-assets
+
+# Optional upload size limit in bytes. Defaults to 5242880 (5 MB).
+IMAGE_UPLOAD_MAX_BYTES=5242880
+```
+
+Notes:
+
+- Uploads are restricted to root admins in the LuckyWiki admin area.
+- The bucket or CDN origin must be publicly readable, otherwise uploaded Markdown image URLs will not render.
+- If your storage endpoint is private or internal, set `IMAGE_HOSTING_PUBLIC_URL_BASE` to the public CDN/domain that serves the uploaded files.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:
