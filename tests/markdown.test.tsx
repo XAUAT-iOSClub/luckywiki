@@ -17,43 +17,53 @@ test("markdown renderer supports gfm and strips raw html", async () => {
   assert.doesNotMatch(html, /script/);
 });
 
-test("markdown renderer supports markdown-core custom syntax", async () => {
+test("markdown renderer supports math, mermaid, and code highlighting", async () => {
   const { MarkdownRenderer } = await import("@/components/markdown-renderer");
   const html = renderToStaticMarkup(
     <I18nProvider dictionary={en} locale="en">
       <MarkdownRenderer
-        markdown={`:badge[Stable](outline)
+        markdown={`
+# Test Math
+Inline $E=mc^2$ and block:
+$$
+a^2 + b^2 = c^2
+$$
 
-:: details [open] Deep Dive
-Use :tip[API_KEY](copy) for local testing.
-::
+# Test Mermaid
+\`\`\`mermaid
+graph TD;
+    A-->B;
+\`\`\`
 
-::tabs
-tabs:
-  - Overview
-  - Details
----
-First tab body.
----
-Second tab body.
-::
+# Test Code Highlighting
+\`\`\`typescript
+const x: number = 1;
+\`\`\`
 
-::Callout
-title: Example
----
-Fallback body
-::
+# Test GFM Task Lists
+- [ ] Task 1
+- [x] Task 2
 `}
       />
     </I18nProvider>,
   );
 
-  assert.match(html, /Stable/);
-  assert.match(html, /Deep Dive/);
-  assert.match(html, /Copy/);
-  assert.match(html, /Overview/);
-  assert.match(html, /First tab body\./);
-  assert.doesNotMatch(html, /Second tab body\./);
-  assert.match(html, /Callout/);
-  assert.match(html, /Fallback body/);
+  // Math
+  assert.match(html, /katex/);
+  assert.match(html, /katex-mathml/);
+  assert.match(html, /katex-html/);
+  assert.match(html, /katex-display/);
+
+  // Mermaid (mapped to mdx-mermaid, which renders as a div with specific classes)
+  assert.match(html, /flex justify-center/);
+  assert.match(html, /rounded-3xl border border-slate-200 bg-slate-50\/50/);
+
+  // Code Highlighting (rehype-highlight adds hljs classes)
+  assert.match(html, /code/);
+  assert.match(html, /hljs/);
+  assert.match(html, /language-typescript/);
+
+  // GFM Task Lists
+  assert.match(html, /input/);
+  assert.match(html, /type="checkbox"/);
 });

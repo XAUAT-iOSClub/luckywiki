@@ -3,12 +3,15 @@
 import {
   createContext,
   useContext,
+  useEffect,
+  useRef,
   useState,
   type HTMLAttributes,
   type ReactNode,
 } from "react";
 import { clsx } from "clsx";
 import { useT } from "@/lib/i18n/provider";
+import mermaid from "mermaid";
 
 type MarkdownBadgeProps = HTMLAttributes<HTMLElement> & {
   children?: ReactNode;
@@ -289,6 +292,111 @@ function MarkdownComponentInline({
   );
 }
 
+function MarkdownMermaid({ chart }: { chart?: string }) {
+  const [svg, setSvg] = useState("");
+  const id = useRef(`mermaid-${Math.random().toString(36).substring(2, 9)}`);
+
+  useEffect(() => {
+    if (!chart) return;
+
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: "default",
+      securityLevel: "loose",
+    });
+
+    mermaid
+      .render(id.current, chart)
+      .then((result) => {
+        setSvg(result.svg);
+      })
+      .catch((err) => {
+        console.error("Mermaid render error:", err);
+      });
+  }, [chart]);
+
+  if (!chart) return null;
+
+  return (
+    <div
+      className="mt-6 flex justify-center overflow-hidden rounded-3xl border border-slate-200 bg-slate-50/50 p-6"
+      dangerouslySetInnerHTML={{ __html: svg }}
+    />
+  );
+}
+
+import {
+  Info,
+  Lightbulb,
+  AlertTriangle,
+  AlertCircle,
+  ShieldAlert,
+} from "lucide-react";
+
+type MarkdownAlertProps = HTMLAttributes<HTMLElement> & {
+  children?: ReactNode;
+  type?: "NOTE" | "TIP" | "WARNING" | "IMPORTANT" | "CAUTION";
+};
+
+const ALERT_CONFIG = {
+  NOTE: {
+    icon: Info,
+    className: "border-blue-200 bg-blue-50 text-blue-800",
+    iconClassName: "text-blue-500",
+    label: "Note",
+  },
+  TIP: {
+    icon: Lightbulb,
+    className: "border-emerald-200 bg-emerald-50 text-emerald-800",
+    iconClassName: "text-emerald-500",
+    label: "Tip",
+  },
+  WARNING: {
+    icon: AlertTriangle,
+    className: "border-amber-200 bg-amber-50 text-amber-800",
+    iconClassName: "text-amber-500",
+    label: "Warning",
+  },
+  IMPORTANT: {
+    icon: AlertCircle,
+    className: "border-indigo-200 bg-indigo-50 text-indigo-800",
+    iconClassName: "text-indigo-500",
+    label: "Important",
+  },
+  CAUTION: {
+    icon: ShieldAlert,
+    className: "border-red-200 bg-red-50 text-red-800",
+    iconClassName: "text-red-500",
+    label: "Caution",
+  },
+};
+
+function MarkdownAlert({ children, className, type = "NOTE", ...props }: MarkdownAlertProps) {
+  const config = ALERT_CONFIG[type] || ALERT_CONFIG.NOTE;
+  const Icon = config.icon;
+
+  return (
+    <div
+      className={clsx(
+        "mt-6 flex gap-4 rounded-2xl border p-4 text-sm leading-relaxed",
+        config.className,
+        className,
+      )}
+      {...props}
+    >
+      <div className="mt-0.5 shrink-0">
+        <Icon className={clsx("h-5 w-5", config.iconClassName)} />
+      </div>
+      <div className="flex-1">
+        <div className="mb-1 font-semibold tracking-wide uppercase text-xs opacity-90">
+          {config.label}
+        </div>
+        <div className="markdown-alert-content">{children}</div>
+      </div>
+    </div>
+  );
+}
+
 export const markdownComponentRenderers = {
   "mdx-badge": MarkdownBadge,
   "mdx-component-block": MarkdownComponentBlock,
@@ -298,4 +406,6 @@ export const markdownComponentRenderers = {
   "mdx-tabs-list": MarkdownTabsList,
   "mdx-tabs-trigger": MarkdownTabsTrigger,
   "mdx-tip": MarkdownTip,
+  "mdx-mermaid": MarkdownMermaid,
+  "mdx-alert": MarkdownAlert,
 };

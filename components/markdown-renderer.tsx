@@ -9,19 +9,79 @@ import ReactMarkdown from "react-markdown";
 import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
 import type { Components, Options as ReactMarkdownOptions } from "react-markdown";
 import remarkGfm from "remark-gfm";
+import remarkMath from "remark-math";
+import rehypeKatex from "rehype-katex";
+import rehypeHighlight from "rehype-highlight";
 import rehypeSlug from "rehype-slug";
 import rehypeAutolinkHeadings from "rehype-autolink-headings";
 import { markdownComponentRenderers } from "@/components/markdown-custom-components";
 import { rehypeMdxJsxElements } from "@/lib/markdown-mdx-elements";
+import { visit } from "unist-util-visit";
 
 const remarkRehypeOptions = {
   passThrough: ["mdxJsxFlowElement", "mdxJsxTextElement"] as never[],
 };
 const remarkPlugins: NonNullable<ReactMarkdownOptions["remarkPlugins"]> = [
+  remarkAlert,
   createCustomSyntaxRemarkPlugin,
   [remarkGfm, { singleTilde: false }],
+  remarkMath,
   remarkSuperSub,
 ];
+
+function rehypeExtractMermaid() {
+  return (tree: any) => {
+    visit(tree, "element", (node, index, parent) => {
+      if (node.tagName === "pre" && node.children?.[0]?.tagName === "code") {
+        const codeNode = node.children[0];
+        const className = codeNode.properties?.className || [];
+        if (Array.isArray(className) && className.includes("language-mermaid")) {
+          // Replace the whole 'pre' node with 'mdx-mermaid'
+          node.tagName = "mdx-mermaid";
+          node.properties = {
+            chart: codeNode.children[0].value,
+          };
+          node.children = [];
+        }
+      }
+    });
+  };
+}
+
+function remarkAlert() {
+  return (tree: any) => {
+    visit(tree, "blockquote", (node) => {
+      const firstChild = node.children[0];
+      if (firstChild?.type === "paragraph") {
+        const firstText = firstChild.children[0];
+        if (firstText?.type === "text") {
+          const match = firstText.value.match(
+            /^\s*\[!(NOTE|TIP|WARNING|IMPORTANT|CAUTION)\]\s*(?:\n|$)/i,
+          );
+          if (match) {
+            const type = match[1].toUpperCase();
+            node.data = node.data || {};
+            node.data.hName = "mdx-alert";
+            node.data.hProperties = { type };
+
+            // Remove the [!TYPE] marker
+            firstText.value = firstText.value.replace(
+              /^\s*\[!(NOTE|TIP|WARNING|IMPORTANT|CAUTION)\]\s*(?:\n|$)/i,
+              "",
+            );
+
+            // If the paragraph is now empty, remove it
+            if (firstText.value === "" && firstChild.children.length === 1) {
+              node.children.shift();
+            } else if (firstText.value === "") {
+              firstChild.children.shift();
+            }
+          }
+        }
+      }
+    });
+  };
+}
 
 const customTagNames = [
   "mdx-badge",
@@ -32,6 +92,8 @@ const customTagNames = [
   "mdx-tabs-content",
   "mdx-component-block",
   "mdx-component-inline",
+  "mdx-mermaid",
+  "mdx-alert",
 ];
 
 const sanitizeSchema = {
@@ -43,6 +105,7 @@ const sanitizeSchema = {
     "mdx-tabs": ["defaultValue"],
     "mdx-tabs-trigger": ["value"],
     "mdx-tabs-content": ["value"],
+    "mdx-alert": ["type"],
     "mdx-component-block": [
       "data-language",
       "data-mdx-name",
@@ -53,6 +116,12 @@ const sanitizeSchema = {
       "count",
     ],
     "mdx-component-inline": ["data-mdx-name"],
+    "mdx-mermaid": ["chart"],
+    input: ["type", "checked", "disabled"],
+    code: ["className"],
+    pre: ["className"],
+    span: ["className"],
+    div: ["className"],
     h1: ["id"],
     h2: ["id"],
     h3: ["id"],
@@ -63,6 +132,7 @@ const sanitizeSchema = {
   tagNames: [
     ...(defaultSchema.tagNames ?? []),
     ...customTagNames,
+    "input",
   ],
 };
 
@@ -78,6 +148,7 @@ export function MarkdownRenderer({
   linkToSectionLabel?: string;
 }) {
   const rehypePlugins: NonNullable<ReactMarkdownOptions["rehypePlugins"]> = [
+    rehypeExtractMermaid,
     createCodeFenceComponentPlugin,
     rehypeFootnotesHeading,
     rehypeMdxJsxElements,
@@ -93,6 +164,8 @@ export function MarkdownRenderer({
       },
     ],
     [rehypeSanitize, sanitizeSchema],
+    rehypeHighlight,
+    rehypeKatex,
   ];
 
   return (
