@@ -7,23 +7,123 @@ datasource db {
   provider = "postgresql"
 }
 
-model Post {
-  id        String  @id @default(cuid())
-  title     String
-  content   String?
-  published Boolean @default(false)
-  author    User?   @relation(fields: [authorId], references: [id])
-  authorId  String?
-  path      String
+enum Role {
+  ROOT
+  USER
+}
+
+enum ArticleStatus {
+  DRAFT
+  PUBLISHED
+}
+
+enum CommentStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }
 
 model User {
-  id        String   @id @default(cuid())
-  name      String?
-  email     String?  @unique
-  createdAt DateTime @default(now()) @map(name: "created_at")
-  updatedAt DateTime @updatedAt @map(name: "updated_at")
-  posts     Post[]
+  id               String    @id @default(cuid())
+  name             String
+  email            String    @unique
+  emailVerified    Boolean   @default(false) @map("email_verified")
+  emailVerifiedAt  DateTime? @map("email_verified_at")
+  image            String?
+  role             Role      @default(USER)
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+  sessions         Session[]
+  accounts         Account[]
+  articles         Article[] @relation("ArticleAuthor")
+  comments         Comment[] @relation("CommentAuthor")
+  approvedComments Comment[] @relation("CommentApprover")
 
-  @@map(name: "users")
+  @@map("users")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  expiresAt DateTime @map("expires_at")
+  token     String   @unique
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  ipAddress String?  @map("ip_address")
+  userAgent String?  @map("user_agent")
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+model Account {
+  id                    String    @id @default(cuid())
+  accountId             String    @map("account_id")
+  providerId            String    @map("provider_id")
+  userId                String    @map("user_id")
+  accessToken           String?   @map("access_token")
+  refreshToken          String?   @map("refresh_token")
+  idToken               String?   @map("id_token")
+  accessTokenExpiresAt  DateTime? @map("access_token_expires_at")
+  refreshTokenExpiresAt DateTime? @map("refresh_token_expires_at")
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now()) @map("created_at")
+  updatedAt             DateTime  @updatedAt @map("updated_at")
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@unique([providerId, accountId])
+  @@map("accounts")
+}
+
+model Verification {
+  id         String   @id @default(cuid())
+  identifier String
+  value      String
+  expiresAt  DateTime @map("expires_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  @@index([identifier])
+  @@map("verifications")
+}
+
+model Article {
+  id          String        @id @default(cuid())
+  path        String        @unique
+  title       String
+  markdown    String
+  status      ArticleStatus @default(DRAFT)
+  authorId    String        @map("author_id")
+  publishedAt DateTime?     @map("published_at")
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+  author      User          @relation("ArticleAuthor", fields: [authorId], references: [id], onDelete: Restrict)
+  comments    Comment[]
+
+  @@index([status])
+  @@index([authorId])
+  @@map("articles")
+}
+
+model Comment {
+  id           String        @id @default(cuid())
+  articleId    String        @map("article_id")
+  authorId     String        @map("author_id")
+  body         String
+  status       CommentStatus @default(PENDING)
+  approvedById String?       @map("approved_by_id")
+  approvedAt   DateTime?     @map("approved_at")
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+  article      Article       @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  author       User          @relation("CommentAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  approver     User?         @relation("CommentApprover", fields: [approvedById], references: [id], onDelete: SetNull)
+
+  @@index([articleId, status])
+  @@index([authorId])
+  @@index([approvedById])
+  @@map("comments")
 }
