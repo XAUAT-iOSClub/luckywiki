@@ -48,13 +48,51 @@ export const getPublishedArticleByPath = cache(async (path: string) => {
   });
 });
 
-export async function listAdminArticles(options?: { page?: number; pageSize?: number }) {
+export async function listAdminArticles(options?: {
+  page?: number;
+  pageSize?: number;
+  query?: string;
+  status?: ArticleStatus;
+  tag?: string;
+  section?: string;
+}) {
   const page = options?.page ?? 1;
   const pageSize = options?.pageSize ?? 10;
   const skip = (page - 1) * pageSize;
+  const query = options?.query?.trim();
+  const status = options?.status;
+  const tag = options?.tag?.trim();
+  const section = options?.section?.trim();
+  const where = {
+    ...(status ? { status } : {}),
+    ...(tag ? { tags: { has: tag } } : {}),
+    ...(section
+      ? {
+          OR: [
+            { path: section },
+            { path: { startsWith: `${section}/` } },
+          ],
+        }
+      : {}),
+    ...(query
+      ? {
+          AND: [
+            {
+              OR: [
+                { title: { contains: query, mode: "insensitive" as const } },
+                { path: { contains: query, mode: "insensitive" as const } },
+                { description: { contains: query, mode: "insensitive" as const } },
+                { tags: { has: query } },
+              ],
+            },
+          ],
+        }
+      : {}),
+  };
 
   const [articles, totalCount] = await Promise.all([
     prisma.article.findMany({
+      where,
       include: {
         author: {
           select: {
@@ -71,7 +109,9 @@ export async function listAdminArticles(options?: { page?: number; pageSize?: nu
       skip,
       take: pageSize,
     }),
-    prisma.article.count(),
+    prisma.article.count({
+      where,
+    }),
   ]);
 
   return {

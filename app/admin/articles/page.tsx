@@ -1,24 +1,20 @@
+import type { ReactNode } from "react";
 import Link from "next/link";
-import { Plus, ExternalLink, Edit3, MessageSquare, MoreHorizontal } from "lucide-react";
+import { ExternalLink, Filter, Plus, Search } from "lucide-react";
 import { ArticleStatus } from "@/generated/prisma/enums";
-import { buildWikiHref } from "@/lib/wiki-path";
+import { setArticleStatusAction } from "@/app/actions/admin";
+import { listAdminTaxonomy } from "@/lib/admin";
 import { listAdminArticles } from "@/lib/articles";
-import { Button } from "@/components/ui/button";
+import { buildWikiHref } from "@/lib/wiki-path";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import {
   Pagination,
   PaginationContent,
@@ -28,9 +24,14 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
-import { cn } from "@/lib/utils";
 
-type SearchParams = Promise<{ page?: string }>;
+type SearchParams = Promise<Record<string, string | string[] | undefined>>;
+
+const statusOptions = [
+  { label: "All statuses", value: "" },
+  { label: "Draft", value: ArticleStatus.DRAFT },
+  { label: "Published", value: ArticleStatus.PUBLISHED },
+];
 
 export default async function AdminArticlesPage({
   searchParams,
@@ -38,201 +39,445 @@ export default async function AdminArticlesPage({
   searchParams: SearchParams;
 }) {
   const params = await searchParams;
-  const currentPage = Number(params.page) || 1;
+  const currentPage = Math.max(Number(getSingleParam(params, "page")) || 1, 1);
+  const query = getSingleParam(params, "q")?.trim() ?? "";
+  const statusValue = getSingleParam(params, "status");
+  const tag = getSingleParam(params, "tag")?.trim() ?? "";
+  const section = getSingleParam(params, "section")?.trim() ?? "";
+  const status = Object.values(ArticleStatus).includes(statusValue as ArticleStatus)
+    ? (statusValue as ArticleStatus)
+    : undefined;
   const pageSize = 10;
-  
-  const { articles, totalCount, totalPages } = await listAdminArticles({ 
-    page: currentPage, 
-    pageSize 
-  });
+
+  const [{ articles, totalCount, totalPages }, taxonomy] = await Promise.all([
+    listAdminArticles({
+      page: currentPage,
+      pageSize,
+      query,
+      status,
+      tag,
+      section,
+    }),
+    listAdminTaxonomy(),
+  ]);
+
+  const activeFilterCount = [query, status, tag, section].filter(Boolean).length;
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
-          <p className="text-sm font-medium text-primary tracking-wide uppercase opacity-80">Content Management</p>
-          <h1 className="text-3xl font-bold tracking-tight">Articles</h1>
+    <div className="flex flex-col gap-6">
+      <section className="surface-panel">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div className="space-y-3">
+            <p className="eyebrow">Content Management</p>
+            <div className="space-y-2">
+              <h1 className="text-3xl font-semibold tracking-tight">Articles</h1>
+              <p className="max-w-3xl text-sm leading-7 text-muted-foreground">
+                Search by title and path, filter by status, tag, and section, and
+                update publishing state without leaving the list.
+              </p>
+            </div>
+          </div>
+          <Button asChild className="rounded-full px-6">
+            <Link href="/admin/articles/new">
+              <Plus data-icon="inline-start" />
+              New Article
+            </Link>
+          </Button>
         </div>
-        <Button asChild className="rounded-full px-6 shadow-md hover:shadow-lg transition-all duration-300">
-          <Link href="/admin/articles/new">
-            <Plus className="mr-2 h-4 w-4" />
-            New Article
-          </Link>
-        </Button>
-      </div>
+      </section>
 
-      <div className="group rounded-[2rem] border border-border/50 bg-white/50 dark:bg-zinc-900/50 backdrop-blur-xl overflow-hidden shadow-sm transition-all duration-500 hover:shadow-md hover:border-border/80">
-        <Table>
-          <TableHeader>
-            <TableRow className="hover:bg-transparent border-border/50 bg-zinc-50/50 dark:bg-zinc-800/30">
-              <TableHead className="py-5 px-6 font-semibold">Title</TableHead>
-              <TableHead className="py-5 font-semibold">Path</TableHead>
-              <TableHead className="py-5 font-semibold">Status</TableHead>
-              <TableHead className="py-5 font-semibold hidden lg:table-cell">Author</TableHead>
-              <TableHead className="py-5 text-center font-semibold">
-                <MessageSquare className="h-4 w-4 mx-auto opacity-50" />
-              </TableHead>
-              <TableHead className="py-5 font-semibold hidden md:table-cell">Updated</TableHead>
-              <TableHead className="py-5 px-6 text-right font-semibold">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {articles.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={7} className="h-32 text-center text-muted-foreground">
-                  No articles found. Create your first article to get started.
-                </TableCell>
-              </TableRow>
-            ) : (
-              articles.map((article) => (
-                <TableRow key={article.id} className="group/row border-border/40 hover:bg-zinc-100/30 dark:hover:bg-zinc-800/50 transition-colors">
-                  <TableCell className="py-4 px-6">
-                    <Link 
-                      href={`/admin/articles/${article.id}`}
-                      className="font-semibold text-foreground hover:text-primary transition-colors block decoration-primary/30 hover:underline underline-offset-4"
-                    >
-                      {article.title}
-                    </Link>
-                  </TableCell>
-                  <TableCell className="py-4 font-mono text-[11px] text-muted-foreground">
-                    <span className="bg-muted px-2 py-0.5 rounded-md">{article.path || "/"}</span>
-                  </TableCell>
-                  <TableCell className="py-4">
-                    <Badge 
-                      variant={article.status === ArticleStatus.PUBLISHED ? "default" : "secondary"}
-                      className={cn(
-                        "rounded-full px-3 py-0.5 text-[10px] font-bold uppercase tracking-wider border",
-                        article.status === ArticleStatus.PUBLISHED 
-                          ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 border-emerald-500/20" 
-                          : "bg-zinc-500/10 text-zinc-500 dark:text-zinc-400 hover:bg-zinc-500/20 border-zinc-500/20"
-                      )}
-                    >
-                      {article.status.toLowerCase()}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="py-4 text-sm text-muted-foreground hidden lg:table-cell">
-                    {article.author.name}
-                  </TableCell>
-                  <TableCell className="py-4 text-center text-sm font-medium">
-                    {article._count.comments > 0 ? (
-                      <span className="inline-flex items-center justify-center bg-primary/10 text-primary rounded-full w-6 h-6 text-[10px] font-bold ring-1 ring-primary/20">
-                        {article._count.comments}
-                      </span>
-                    ) : (
-                      <span className="opacity-20">0</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="py-4 text-xs text-muted-foreground hidden md:table-cell">
-                    {article.updatedAt.toLocaleDateString(undefined, {
-                      month: 'short',
-                      day: 'numeric',
-                      year: 'numeric'
-                    })}
-                  </TableCell>
-                  <TableCell className="py-4 px-6 text-right">
-                    <div className="flex items-center justify-end gap-1">
-                      <Button variant="ghost" size="icon-sm" asChild className="rounded-full opacity-0 group-hover/row:opacity-100 transition-opacity duration-200 hover:bg-primary/10 hover:text-primary">
-                        <Link href={`/admin/articles/${article.id}`} title="Edit Article">
-                          <Edit3 className="h-4 w-4" />
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <SummaryCard
+          title="Results"
+          value={totalCount}
+          detail={activeFilterCount > 0 ? `${activeFilterCount} active filters` : "All articles"}
+        />
+        <SummaryCard
+          title="Drafts"
+          value={taxonomy.sections.reduce((count, item) => count + item.draftArticles, 0)}
+          detail="Across all sections"
+        />
+        <SummaryCard
+          title="Published"
+          value={taxonomy.sections.reduce((count, item) => count + item.publishedArticles, 0)}
+          detail="Visible on the wiki"
+        />
+        <SummaryCard
+          title="Tags"
+          value={taxonomy.tags.length}
+          detail={`${taxonomy.sections.length} sections in use`}
+        />
+      </section>
+
+      <Card className="rounded-[2rem] border-border/50 bg-background/80 shadow-sm">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Filter className="size-5 text-primary" />
+            Filter articles
+          </CardTitle>
+          <CardDescription>
+            Combine structure and metadata filters to find exactly what needs work.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          <form className="grid gap-4 lg:grid-cols-[minmax(0,1.3fr)_repeat(3,minmax(0,1fr))_auto]">
+            <label className="field-block">
+              <span>Search</span>
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                <input
+                  className="field-input pl-10"
+                  defaultValue={query}
+                  name="q"
+                  placeholder="Title, path, description, or exact tag"
+                />
+              </div>
+            </label>
+            <label className="field-block">
+              <span>Status</span>
+              <select className="field-input" defaultValue={status ?? ""} name="status">
+                {statusOptions.map((option) => (
+                  <option key={option.label} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="field-block">
+              <span>Tag</span>
+              <select className="field-input" defaultValue={tag} name="tag">
+                <option value="">All tags</option>
+                {taxonomy.tags.slice(0, 100).map((item) => (
+                  <option key={item.tag} value={item.tag}>
+                    {item.tag}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="field-block">
+              <span>Section</span>
+              <select className="field-input" defaultValue={section} name="section">
+                <option value="">All sections</option>
+                {taxonomy.sections.map((item) => (
+                  <option key={item.slug || "root"} value={item.slug}>
+                    {item.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <div className="flex items-end gap-3">
+              <Button type="submit">Apply</Button>
+              {activeFilterCount > 0 ? (
+                <Button variant="outline" asChild>
+                  <Link href="/admin/articles">Reset</Link>
+                </Button>
+              ) : null}
+            </div>
+          </form>
+
+          <div className="flex flex-wrap gap-2">
+            {status ? (
+              <ActiveFilter href={buildArticleHref({ q: query, tag, section })}>
+                status: {status.toLowerCase()}
+              </ActiveFilter>
+            ) : null}
+            {tag ? (
+              <ActiveFilter href={buildArticleHref({ q: query, status, section })}>
+                tag: {tag}
+              </ActiveFilter>
+            ) : null}
+            {section ? (
+              <ActiveFilter href={buildArticleHref({ q: query, status, tag })}>
+                section: {section}
+              </ActiveFilter>
+            ) : null}
+            {query ? (
+              <ActiveFilter href={buildArticleHref({ status, tag, section })}>
+                search: {query}
+              </ActiveFilter>
+            ) : null}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="rounded-[2rem] border-border/50 bg-background/80 shadow-sm">
+        <CardHeader>
+          <CardTitle>Article library</CardTitle>
+          <CardDescription>
+            {totalCount === 0
+              ? "No articles match the current filters."
+              : `Showing page ${currentPage} of ${Math.max(totalPages, 1)}.`}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          {articles.length === 0 ? (
+            <div className="rounded-[1.5rem] border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
+              No articles matched your filters. Try broadening the search or create a new article.
+            </div>
+          ) : (
+            articles.map((article) => {
+              const targetStatus =
+                article.status === ArticleStatus.PUBLISHED
+                  ? ArticleStatus.DRAFT
+                  : ArticleStatus.PUBLISHED;
+
+              return (
+                <article
+                  key={article.id}
+                  className="rounded-[1.75rem] border border-border/60 bg-muted/20 p-5"
+                >
+                  <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+                    <div className="space-y-3">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Link
+                          href={`/admin/articles/${article.id}`}
+                          className="text-lg font-medium hover:text-primary"
+                        >
+                          {article.title}
+                        </Link>
+                        <Badge
+                          variant={
+                            article.status === ArticleStatus.PUBLISHED
+                              ? "default"
+                              : "secondary"
+                          }
+                        >
+                          {article.status.toLowerCase()}
+                        </Badge>
+                        <Badge variant="outline">
+                          {article._count.comments} comments
+                        </Badge>
+                      </div>
+                      <p className="font-mono text-xs text-muted-foreground">
+                        /{article.path}
+                      </p>
+                      {article.description ? (
+                        <p className="max-w-3xl text-sm leading-6 text-muted-foreground">
+                          {article.description}
+                        </p>
+                      ) : null}
+                      <div className="flex flex-wrap gap-2">
+                        {article.tags.map((item) => (
+                          <Link
+                            key={item}
+                            href={buildArticleHref({ q: query, status, section, tag: item })}
+                          >
+                            <Badge variant={item === tag ? "default" : "secondary"}>
+                              {item}
+                            </Badge>
+                          </Link>
+                        ))}
+                        {article.tags.length === 0 ? (
+                          <Badge variant="outline">untagged</Badge>
+                        ) : null}
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        {article.author.name} · Updated {article.updatedAt.toLocaleString()}
+                        {article.editor ? ` · ${article.editor}` : ""}
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2 xl:max-w-[320px] xl:justify-end">
+                      <Button variant="outline" asChild>
+                        <Link href={`/admin/articles/${article.id}`}>
+                          Edit article
                         </Link>
                       </Button>
-                      
-                      {article.status === ArticleStatus.PUBLISHED && (
-                        <Button variant="ghost" size="icon-sm" asChild className="rounded-full opacity-0 group-hover/row:opacity-100 transition-opacity duration-200 hover:bg-primary/10 hover:text-primary">
-                          <Link href={buildWikiHref(article.path)} target="_blank" title="View Live">
-                            <ExternalLink className="h-4 w-4" />
+                      {article.status === ArticleStatus.PUBLISHED ? (
+                        <Button variant="outline" asChild>
+                          <Link href={buildWikiHref(article.path)} target="_blank">
+                            <ExternalLink data-icon="inline-start" />
+                            View live
                           </Link>
                         </Button>
-                      )}
-
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon-sm" className="rounded-full hover:bg-muted">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="rounded-2xl p-2 min-w-40 shadow-xl border-border/40 backdrop-blur-xl">
-                          <DropdownMenuItem asChild className="rounded-xl focus:bg-primary/10 focus:text-primary cursor-pointer">
-                            <Link href={`/admin/articles/${article.id}`}>
-                              <Edit3 className="mr-2 h-4 w-4" />
-                              Edit Details
-                            </Link>
-                          </DropdownMenuItem>
-                          {article.status === ArticleStatus.PUBLISHED && (
-                            <DropdownMenuItem asChild className="rounded-xl focus:bg-primary/10 focus:text-primary cursor-pointer">
-                              <Link href={buildWikiHref(article.path)} target="_blank">
-                                <ExternalLink className="mr-2 h-4 w-4" />
-                                View Public Page
-                              </Link>
-                            </DropdownMenuItem>
-                          )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                      ) : null}
+                      <form action={setArticleStatusAction.bind(null, article.id, targetStatus)}>
+                        <Button type="submit">
+                          {article.status === ArticleStatus.PUBLISHED
+                            ? "Move to draft"
+                            : "Publish now"}
+                        </Button>
+                      </form>
                     </div>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+                  </div>
+                </article>
+              );
+            })
+          )}
 
-        {/* Pagination Footer */}
-        {totalPages > 1 && (
-          <div className="border-t border-border/40 bg-zinc-50/30 dark:bg-zinc-800/20 px-6 py-4 flex items-center justify-between">
-            <p className="text-xs text-muted-foreground font-medium">
-              Showing <span className="text-foreground">{(currentPage - 1) * pageSize + 1}</span> to <span className="text-foreground">{Math.min(currentPage * pageSize, totalCount)}</span> of <span className="text-foreground">{totalCount}</span> articles
-            </p>
-            <Pagination className="justify-end w-auto mx-0">
-              <PaginationContent className="gap-1">
+          {totalPages > 1 ? (
+            <Pagination className="justify-end">
+              <PaginationContent>
                 <PaginationItem>
-                  <PaginationPrevious 
-                    href={currentPage > 1 ? `/admin/articles?page=${currentPage - 1}` : "#"} 
-                    className={cn(
-                      "rounded-xl hover:bg-primary/10 hover:text-primary transition-colors",
-                      currentPage === 1 && "pointer-events-none opacity-40"
-                    )}
+                  <PaginationPrevious
+                    href={
+                      currentPage > 1
+                        ? buildArticleHref({
+                            q: query,
+                            status,
+                            tag,
+                            section,
+                            page: currentPage - 1,
+                          })
+                        : "#"
+                    }
+                    className={currentPage === 1 ? "pointer-events-none opacity-40" : ""}
                   />
                 </PaginationItem>
-                
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => {
-                  // Basic pagination logic to show current, first, last and neighbors
-                  if (totalPages > 5 && p !== 1 && p !== totalPages && Math.abs(p - currentPage) > 1) {
-                    if (p === 2 || p === totalPages - 1) return <PaginationItem key={p}><PaginationEllipsis /></PaginationItem>;
-                    return null;
-                  }
-
-                  return (
-                    <PaginationItem key={p}>
-                      <PaginationLink 
-                        href={`/admin/articles?page=${p}`} 
-                        isActive={p === currentPage}
-                        className={cn(
-                          "rounded-xl transition-all duration-200",
-                          p === currentPage 
-                            ? "bg-primary text-primary-foreground shadow-sm scale-110" 
-                            : "hover:bg-primary/10 hover:text-primary"
-                        )}
+                {buildPageNumbers(currentPage, totalPages).map((pageNumber, index) =>
+                  pageNumber === "ellipsis" ? (
+                    <PaginationItem key={`ellipsis-${index}`}>
+                      <PaginationEllipsis />
+                    </PaginationItem>
+                  ) : (
+                    <PaginationItem key={pageNumber}>
+                      <PaginationLink
+                        href={buildArticleHref({
+                          q: query,
+                          status,
+                          tag,
+                          section,
+                          page: pageNumber,
+                        })}
+                        isActive={pageNumber === currentPage}
                       >
-                        {p}
+                        {pageNumber}
                       </PaginationLink>
                     </PaginationItem>
-                  );
-                })}
-
+                  ),
+                )}
                 <PaginationItem>
-                  <PaginationNext 
-                    href={currentPage < totalPages ? `/admin/articles?page=${currentPage + 1}` : "#"} 
-                    className={cn(
-                      "rounded-xl hover:bg-primary/10 hover:text-primary transition-colors",
-                      currentPage === totalPages && "pointer-events-none opacity-40"
-                    )}
+                  <PaginationNext
+                    href={
+                      currentPage < totalPages
+                        ? buildArticleHref({
+                            q: query,
+                            status,
+                            tag,
+                            section,
+                            page: currentPage + 1,
+                          })
+                        : "#"
+                    }
+                    className={
+                      currentPage === totalPages ? "pointer-events-none opacity-40" : ""
+                    }
                   />
                 </PaginationItem>
               </PaginationContent>
             </Pagination>
-          </div>
-        )}
-      </div>
+          ) : null}
+        </CardContent>
+      </Card>
     </div>
   );
+}
+
+function SummaryCard({
+  title,
+  value,
+  detail,
+}: {
+  title: string;
+  value: number;
+  detail: string;
+}) {
+  return (
+    <Card className="rounded-[2rem] border-border/50 bg-background/80 shadow-sm">
+      <CardHeader>
+        <CardDescription>{title}</CardDescription>
+        <CardTitle className="text-3xl font-semibold">{value}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <p className="text-sm text-muted-foreground">{detail}</p>
+      </CardContent>
+    </Card>
+  );
+}
+
+function ActiveFilter({
+  href,
+  children,
+}: {
+  href: string;
+  children: ReactNode;
+}) {
+  return (
+    <Link href={href}>
+      <Badge variant="secondary">{children} x</Badge>
+    </Link>
+  );
+}
+
+function getSingleParam(
+  searchParams: Record<string, string | string[] | undefined>,
+  key: string,
+) {
+  const value = searchParams[key];
+  return Array.isArray(value) ? value[0] : value;
+}
+
+function buildArticleHref({
+  q,
+  status,
+  tag,
+  section,
+  page,
+}: {
+  q?: string;
+  status?: ArticleStatus;
+  tag?: string;
+  section?: string;
+  page?: number;
+}) {
+  const nextSearchParams = new URLSearchParams();
+
+  if (q) {
+    nextSearchParams.set("q", q);
+  }
+  if (status) {
+    nextSearchParams.set("status", status);
+  }
+  if (tag) {
+    nextSearchParams.set("tag", tag);
+  }
+  if (section) {
+    nextSearchParams.set("section", section);
+  }
+  if (page && page > 1) {
+    nextSearchParams.set("page", String(page));
+  }
+
+  const search = nextSearchParams.toString();
+  return search ? `/admin/articles?${search}` : "/admin/articles";
+}
+
+function buildPageNumbers(currentPage: number, totalPages: number) {
+  if (totalPages <= 7) {
+    return Array.from({ length: totalPages }, (_, index) => index + 1);
+  }
+
+  if (currentPage <= 3) {
+    return [1, 2, 3, 4, "ellipsis", totalPages] as const;
+  }
+
+  if (currentPage >= totalPages - 2) {
+    return [
+      1,
+      "ellipsis",
+      totalPages - 3,
+      totalPages - 2,
+      totalPages - 1,
+      totalPages,
+    ] as const;
+  }
+
+  return [
+    1,
+    "ellipsis",
+    currentPage - 1,
+    currentPage,
+    currentPage + 1,
+    "ellipsis",
+    totalPages,
+  ] as const;
 }

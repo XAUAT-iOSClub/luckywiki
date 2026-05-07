@@ -3,10 +3,13 @@
 import * as React from "react";
 import {
   BookOpen,
+  FolderTree,
   FileText,
+  LayoutDashboard,
   MessageSquare,
   Moon,
   Sun,
+  Users,
   View,
 } from "lucide-react";
 
@@ -33,14 +36,53 @@ const data = {
   },
   navMain: [
     {
+      title: "Dashboard",
+      url: "/admin",
+      icon: LayoutDashboard,
+    },
+    {
       title: "Articles",
       url: "/admin/articles",
       icon: FileText,
+      items: [
+        {
+          title: "All Articles",
+          url: "/admin/articles",
+        },
+        {
+          title: "Drafts",
+          url: "/admin/articles?status=DRAFT",
+        },
+        {
+          title: "Published",
+          url: "/admin/articles?status=PUBLISHED",
+        },
+      ],
     },
     {
       title: "Comments",
       url: "/admin/comments",
       icon: MessageSquare,
+      items: [
+        {
+          title: "Pending",
+          url: "/admin/comments?status=PENDING",
+        },
+        {
+          title: "Approved",
+          url: "/admin/comments?status=APPROVED",
+        },
+      ],
+    },
+    {
+      title: "Taxonomy",
+      url: "/admin/taxonomy",
+      icon: FolderTree,
+    },
+    {
+      title: "Contributors",
+      url: "/admin/users",
+      icon: Users,
     },
   ],
   secondaryNav: [

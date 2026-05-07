@@ -13,6 +13,9 @@ type ArticleEditorProps = {
   initialValues?: {
     title: string;
     path: string;
+    description: string | null;
+    tags: string[];
+    editor: string | null;
     markdown: string;
     status: ArticleStatus;
   };
@@ -29,6 +32,9 @@ export function ArticleEditor({
   const [state, formAction] = useActionState(action, initialState);
   const [title, setTitle] = useState(initialValues?.title ?? "");
   const [path, setPath] = useState(initialValues?.path ?? "");
+  const [description, setDescription] = useState(initialValues?.description ?? "");
+  const [tags, setTags] = useState(initialValues?.tags.join(", ") ?? "");
+  const [editor, setEditor] = useState(initialValues?.editor ?? "");
   const [markdown, setMarkdown] = useState(initialValues?.markdown ?? "");
   const [status, setStatus] = useState<ArticleStatus>(
     initialValues?.status ?? ArticleStatus.DRAFT,
@@ -80,6 +86,42 @@ export function ArticleEditor({
           value={path}
         />
       </label>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <label className="field-block">
+          <span>Description</span>
+          <textarea
+            className="field-textarea min-h-28"
+            maxLength={280}
+            name="description"
+            onChange={(event) => setDescription(event.target.value)}
+            placeholder="Short summary shown in listings and search results."
+            value={description}
+          />
+        </label>
+        <div className="grid gap-4">
+          <label className="field-block">
+            <span>Tags</span>
+            <input
+              className="field-input"
+              name="tags"
+              onChange={(event) => setTags(event.target.value)}
+              placeholder="nextjs, cms, moderation"
+              value={tags}
+            />
+          </label>
+          <label className="field-block">
+            <span>Editor</span>
+            <input
+              className="field-input"
+              name="editor"
+              onChange={(event) => setEditor(event.target.value)}
+              placeholder="markdown"
+              value={editor}
+            />
+          </label>
+        </div>
+      </div>
 
       <div className="grid gap-6 xl:grid-cols-2">
         <label className="field-block">

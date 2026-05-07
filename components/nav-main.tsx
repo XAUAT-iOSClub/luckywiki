@@ -19,7 +19,7 @@ import {
   SidebarMenuSubItem,
 } from "@/components/ui/sidebar";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 
 export function NavMain({
   items,
@@ -36,13 +36,15 @@ export function NavMain({
   }[];
 }) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const currentQuery = searchParams.toString();
 
   return (
     <SidebarGroup>
       <SidebarGroupLabel>Platform</SidebarGroupLabel>
       <SidebarMenu>
         {items.map((item) => {
-          const isActive = pathname === item.url || pathname.startsWith(item.url + "/");
+          const isActive = matchesNavLink(pathname, currentQuery, item.url);
 
           if (!item.items) {
             return (
@@ -78,7 +80,10 @@ export function NavMain({
                       <SidebarMenuSub>
                         {item.items?.map((subItem) => (
                           <SidebarMenuSubItem key={subItem.title}>
-                            <SidebarMenuSubButton asChild isActive={pathname === subItem.url}>
+                            <SidebarMenuSubButton
+                              asChild
+                              isActive={matchesNavLink(pathname, currentQuery, subItem.url)}
+                            >
                               <Link href={subItem.url}>
                                 <span>{subItem.title}</span>
                               </Link>
@@ -96,4 +101,14 @@ export function NavMain({
       </SidebarMenu>
     </SidebarGroup>
   );
+}
+
+function matchesNavLink(pathname: string, currentQuery: string, href: string) {
+  const [targetPath, targetQuery = ""] = href.split("?");
+
+  if (targetQuery) {
+    return pathname === targetPath && currentQuery === targetQuery;
+  }
+
+  return pathname === targetPath || pathname.startsWith(targetPath + "/");
 }
