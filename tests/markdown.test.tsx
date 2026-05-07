@@ -67,3 +67,40 @@ const x: number = 1;
   assert.match(html, /input/);
   assert.match(html, /type="checkbox"/);
 });
+
+test("markdown renderer supports custom components and attributes", async () => {
+  const { MarkdownRenderer } = await import("@/components/markdown-renderer");
+  const html = renderToStaticMarkup(
+    <I18nProvider dictionary={en} locale="en">
+      <MarkdownRenderer
+        markdown={`
+::GitHubCalendarCard
+username: luckyfishes
+::
+
+::Icon
+icon: ph:rocket-launch-duotone
+::
+
+::Card
+className: custom-class
+---
+Card content
+::
+`}
+      />
+    </I18nProvider>,
+  );
+
+  // GitHubCalendarCard
+  assert.match(html, /data-mdx-name="GitHubCalendarCard"/);
+  assert.match(html, /data-mdx-props="{&quot;username&quot;:&quot;luckyfishes&quot;}"/);
+
+  // Icon (block)
+  assert.match(html, /data-mdx-name="Icon"/);
+  assert.match(html, /ph:rocket-launch-duotone/);
+
+  // Card
+  assert.match(html, /data-mdx-name="Card"/);
+  assert.match(html, /custom-class/);
+});

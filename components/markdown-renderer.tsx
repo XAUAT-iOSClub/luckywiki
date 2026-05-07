@@ -1,3 +1,5 @@
+"use client";
+
 import type { ElementType } from "react";
 import {
   createCodeFenceComponentPlugin,
@@ -30,16 +32,21 @@ const remarkPlugins: NonNullable<ReactMarkdownOptions["remarkPlugins"]> = [
 ];
 
 function rehypeExtractMermaid() {
-  return (tree: any) => {
-    visit(tree, "element", (node, index, parent) => {
+  return (tree: import("hast").Root) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    visit(tree, "element", (node: any) => {
       if (node.tagName === "pre" && node.children?.[0]?.tagName === "code") {
         const codeNode = node.children[0];
         const className = codeNode.properties?.className || [];
-        if (Array.isArray(className) && className.includes("language-mermaid")) {
+        if (
+          Array.isArray(className) &&
+          className.includes("language-mermaid")
+        ) {
           // Replace the whole 'pre' node with 'mdx-mermaid'
           node.tagName = "mdx-mermaid";
           node.properties = {
-            chart: codeNode.children[0].value,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            chart: (codeNode.children[0] as any).value,
           };
           node.children = [];
         }
@@ -49,8 +56,10 @@ function rehypeExtractMermaid() {
 }
 
 function remarkAlert() {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return (tree: any) => {
-    visit(tree, "blockquote", (node) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    visit(tree, "blockquote", (node: any) => {
       const firstChild = node.children[0];
       if (firstChild?.type === "paragraph") {
         const firstText = firstChild.children[0];
@@ -109,14 +118,17 @@ const sanitizeSchema = {
     "mdx-component-block": [
       "data-language",
       "data-mdx-name",
+      "data-mdx-props",
       "spec",
       "chart",
       "score",
       "title",
       "count",
     ],
-    "mdx-component-inline": ["data-mdx-name"],
+    "mdx-component-inline": ["data-mdx-name", "data-mdx-props"],
     "mdx-mermaid": ["chart"],
+    details: ["className", "open"],
+    summary: ["className"],
     input: ["type", "checked", "disabled"],
     code: ["className"],
     pre: ["className"],
@@ -133,6 +145,8 @@ const sanitizeSchema = {
     ...(defaultSchema.tagNames ?? []),
     ...customTagNames,
     "input",
+    "details",
+    "summary",
   ],
 };
 

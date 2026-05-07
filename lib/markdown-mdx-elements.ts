@@ -59,14 +59,29 @@ function resolveTagName(node: HastNode) {
 
 function convertNode(node: HastNode): HastNode {
   if (node.type === "mdxJsxFlowElement" || node.type === "mdxJsxTextElement") {
-    const properties = Object.fromEntries(
+    const rawProperties = Object.fromEntries(
       (node.attributes ?? []).map((attribute) => [
         attribute.name ?? "",
         decodeAttributeValue(attribute.value),
       ]),
     );
 
-    if (node.name && !(node.name in COMPONENT_TAG_NAMES)) {
+    const isCustom =
+      node.name &&
+      !(node.name in COMPONENT_TAG_NAMES) &&
+      node.name !== "details" &&
+      node.name !== "summary" &&
+      node.name !== "sup" &&
+      node.name !== "sub";
+
+    const properties: Record<string, unknown> = isCustom
+      ? {
+          "data-mdx-name": node.name,
+          "data-mdx-props": JSON.stringify(rawProperties),
+        }
+      : rawProperties;
+
+    if (node.name && !(node.name in COMPONENT_TAG_NAMES) && !isCustom) {
       properties["data-mdx-name"] = node.name;
     }
 

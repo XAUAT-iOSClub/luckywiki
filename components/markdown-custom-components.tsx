@@ -6,12 +6,41 @@ import {
   useEffect,
   useRef,
   useState,
+  lazy,
+  Suspense,
+  useId,
   type HTMLAttributes,
   type ReactNode,
 } from "react";
 import { clsx } from "clsx";
 import { useT } from "@/lib/i18n/provider";
 import mermaid from "mermaid";
+
+const GitHubCalendarCard = lazy(() =>
+  import("./markdown-custom-components/github-calendar").then((m) => ({
+    default: m.GitHubCalendarCard,
+  })),
+);
+const Icon = lazy(() =>
+  import("./markdown-custom-components/icon").then((m) => ({
+    default: m.Icon,
+  })),
+);
+const CustomCard = lazy(() =>
+  import("./markdown-custom-components/card").then((m) => ({
+    default: m.CustomCard,
+  })),
+);
+const Timeline = lazy(() =>
+  import("./markdown-custom-components/timeline").then((m) => ({
+    default: m.Timeline,
+  })),
+);
+const Chat = lazy(() =>
+  import("./markdown-custom-components/chat").then((m) => ({
+    default: m.Chat,
+  })),
+);
 
 type MarkdownBadgeProps = HTMLAttributes<HTMLElement> & {
   children?: ReactNode;
@@ -45,6 +74,7 @@ type MarkdownComponentFallbackProps = HTMLAttributes<HTMLElement> & {
   children?: ReactNode;
   "data-language"?: string;
   "data-mdx-name"?: string;
+  "data-mdx-props"?: string;
   chart?: string;
   count?: unknown;
   score?: string;
@@ -80,6 +110,18 @@ function stringifyUnknownProps(props: MarkdownComponentFallbackProps) {
   return "";
 }
 
+function parseMdxProps(
+  props: MarkdownComponentFallbackProps,
+): Record<string, unknown> {
+  const { "data-mdx-props": propsStr, ...rest } = props;
+  if (!propsStr) return rest as Record<string, unknown>;
+  try {
+    return { ...rest, ...JSON.parse(propsStr) };
+  } catch {
+    return rest as Record<string, unknown>;
+  }
+}
+
 function childrenToPlainText(children: ReactNode): string {
   if (typeof children === "string" || typeof children === "number") {
     return String(children);
@@ -100,7 +142,12 @@ function copyToClipboard(value: string) {
   void navigator.clipboard.writeText(value);
 }
 
-function MarkdownBadge({ children, className, shape, ...props }: MarkdownBadgeProps) {
+function MarkdownBadge({
+  children,
+  className,
+  shape,
+  ...props
+}: MarkdownBadgeProps) {
   return (
     <span
       className={clsx(
@@ -142,7 +189,9 @@ function MarkdownTip({
         {...props}
       >
         <span>{label}</span>
-        <span className="text-[10px] uppercase tracking-[0.18em] text-slate-400">{t.common.copy}</span>
+        <span className="text-[10px] uppercase tracking-[0.18em] text-slate-400">
+          {t.common.copy}
+        </span>
       </button>
     );
   }
@@ -161,7 +210,12 @@ function MarkdownTip({
   );
 }
 
-function MarkdownTabs({ children, className, defaultValue, ...props }: MarkdownTabsProps) {
+function MarkdownTabs({
+  children,
+  className,
+  defaultValue,
+  ...props
+}: MarkdownTabsProps) {
   const [activeValue, setActiveValue] = useState(defaultValue ?? "");
 
   return (
@@ -179,10 +233,17 @@ function MarkdownTabs({ children, className, defaultValue, ...props }: MarkdownT
   );
 }
 
-function MarkdownTabsList({ children, className, ...props }: HTMLAttributes<HTMLElement>) {
+function MarkdownTabsList({
+  children,
+  className,
+  ...props
+}: HTMLAttributes<HTMLElement>) {
   return (
     <div
-      className={clsx("flex flex-wrap gap-2 rounded-2xl bg-slate-100/80 p-2", className)}
+      className={clsx(
+        "flex flex-wrap gap-2 rounded-2xl bg-slate-100/80 p-2",
+        className,
+      )}
       role="tablist"
       {...props}
     >
@@ -249,9 +310,44 @@ function MarkdownComponentBlock({
   className,
   "data-language": language,
   "data-mdx-name": name,
-  ...props
+  "data-mdx-props": propsStr,
+  ...rest
 }: MarkdownComponentFallbackProps) {
-  const preview = stringifyUnknownProps(props);
+  const mdxProps = parseMdxProps({ "data-mdx-props": propsStr, ...rest });
+  const Component =
+    name === "GitHubCalendarCard"
+      ? GitHubCalendarCard
+      : name === "Icon"
+        ? Icon
+        : name === "Card"
+          ? CustomCard
+          : name === "timeline"
+            ? Timeline
+            : name === "Chat"
+              ? Chat
+              : null;
+
+  if (Component) {
+    return (
+      <Suspense
+        fallback={
+          <div
+            className="flex h-24 animate-pulse items-center justify-center rounded-3xl border border-dashed bg-slate-50 text-xs font-medium text-slate-400"
+            data-mdx-name={name}
+            data-mdx-props={propsStr}
+          >
+            Loading {name}...
+          </div>
+        }
+      >
+        <Component {...mdxProps} className={className}>
+          {children}
+        </Component>
+      </Suspense>
+    );
+  }
+
+  const preview = stringifyUnknownProps(mdxProps);
 
   return (
     <div
@@ -262,7 +358,11 @@ function MarkdownComponentBlock({
     >
       <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
         <span>{name || "Component"}</span>
-        {language ? <span className="rounded-full bg-white px-2 py-1 tracking-normal">{language}</span> : null}
+        {language ? (
+          <span className="rounded-full bg-white px-2 py-1 tracking-normal">
+            {language}
+          </span>
+        ) : null}
       </div>
       {preview ? (
         <pre className="mt-3 overflow-x-auto rounded-2xl bg-slate-950 p-4 text-xs leading-6 text-slate-100">
@@ -278,7 +378,27 @@ function MarkdownComponentInline({
   children,
   className,
   "data-mdx-name": name,
+  "data-mdx-props": propsStr,
+  ...rest
 }: MarkdownComponentFallbackProps) {
+  const mdxProps = parseMdxProps({ "data-mdx-props": propsStr, ...rest });
+
+  if (name === "Icon") {
+    return (
+      <Suspense
+        fallback={
+          <span
+            className="inline-block h-4 w-4 animate-pulse rounded bg-slate-100"
+            data-mdx-name={name}
+            data-mdx-props={propsStr}
+          />
+        }
+      >
+        <Icon {...mdxProps} className={clsx("mx-0.5", className)} />
+      </Suspense>
+    );
+  }
+
   return (
     <span
       className={clsx(
@@ -294,7 +414,8 @@ function MarkdownComponentInline({
 
 function MarkdownMermaid({ chart }: { chart?: string }) {
   const [svg, setSvg] = useState("");
-  const id = useRef(`mermaid-${Math.random().toString(36).substring(2, 9)}`);
+  const generatedId = useId();
+  const id = useRef(`mermaid-${generatedId.replace(/:/g, "")}`);
 
   useEffect(() => {
     if (!chart) return;
