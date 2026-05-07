@@ -94,7 +94,7 @@ export function ArticleEditor({
         </label>
         <div className="field-block">
           <span>Preview</span>
-          <div className="rounded-3xl border border-border/70 bg-white/80 p-5">
+          <div className="rounded-3xl border border-border/70 bg-white/80 dark:bg-zinc-900/60 p-5">
             <MarkdownRenderer markdown={markdown || "_Nothing to preview yet._"} />
           </div>
         </div>

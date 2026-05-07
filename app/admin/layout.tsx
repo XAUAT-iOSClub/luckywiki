@@ -1,5 +1,9 @@
-import Link from "next/link";
-import { SignOutButton } from "@/components/sign-out-button";
+import { AppSidebar } from "@/components/app-sidebar";
+import { AdminHeader } from "@/components/admin-header";
+import {
+  SidebarInset,
+  SidebarProvider,
+} from "@/components/ui/sidebar";
 import { requireRootSession } from "@/lib/session";
 
 export default async function AdminLayout({
@@ -9,32 +13,23 @@ export default async function AdminLayout({
 }>) {
   const session = await requireRootSession();
 
+  const user = {
+    name: session.user.name,
+    email: session.user.email,
+    image: session.user.image,
+  };
+
   return (
-    <div className="min-h-screen px-6 py-8">
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
-        <header className="surface-panel flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div>
-            <p className="eyebrow">Admin</p>
-            <h1 className="text-2xl font-semibold">LuckyWiki control room</h1>
+    <SidebarProvider>
+      <AppSidebar user={user} />
+      <SidebarInset>
+        <AdminHeader />
+        <div className="flex flex-1 flex-col gap-4 p-4 md:p-8 md:pt-6">
+          <div className="mx-auto w-full max-w-6xl">
+            {children}
           </div>
-          <div className="flex flex-wrap items-center gap-3 text-sm">
-            <Link className="button-secondary" href="/admin/articles">
-              Articles
-            </Link>
-            <Link className="button-secondary" href="/admin/comments">
-              Comments
-            </Link>
-            <Link className="button-secondary" href="/wiki">
-              View wiki
-            </Link>
-            <span className="rounded-full bg-muted px-3 py-1 text-muted-foreground">
-              {session.user.name}
-            </span>
-            <SignOutButton />
-          </div>
-        </header>
-        {children}
-      </div>
-    </div>
+        </div>
+      </SidebarInset>
+    </SidebarProvider>
   );
 }

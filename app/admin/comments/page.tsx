@@ -54,7 +54,7 @@ export default async function AdminCommentsPage({
           </div>
         ) : null}
         {comments.map((comment) => (
-          <article key={comment.id} className="rounded-3xl border border-border/70 bg-white/70 p-5 shadow-sm shadow-slate-200/30">
+          <article key={comment.id} className="rounded-3xl border border-border/70 bg-white/70 dark:bg-zinc-900/40 p-5 shadow-sm">
             <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
               <div className="space-y-2">
                 <div className="flex flex-wrap items-center gap-2">
