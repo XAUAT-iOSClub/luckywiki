@@ -98,6 +98,7 @@ export const en = {
   wiki: {
     knowledgeBase: "Knowledge Base",
     searchPlaceholder: "Search...",
+    noSearchResults: "No matching articles. Try another title or path keyword.",
     management: "Management",
     adminPanel: "Admin Panel",
     articlesBreadcrumb: "Articles",

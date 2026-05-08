@@ -98,6 +98,7 @@ export const zh = {
   wiki: {
     knowledgeBase: "知识库",
     searchPlaceholder: "搜索...",
+    noSearchResults: "没有匹配的文章，试试换个标题或路径关键词。",
     management: "管理",
     adminPanel: "管理后台",
     articlesBreadcrumb: "文章",

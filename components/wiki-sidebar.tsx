@@ -58,8 +58,15 @@ export function WikiSidebar({
   const pathname = usePathname();
   const locale = useLocale();
   const t = useT();
+  const [searchQuery, setSearchQuery] = React.useState("");
+  const deferredSearchQuery = React.useDeferredValue(searchQuery);
   const currentWikiPath = getWikiPathFromPathname(pathname);
   const isAgentRoute = pathname === localizeHref(locale, "/agent");
+  const normalizedSearchQuery = normalizeSearchQuery(deferredSearchQuery);
+  const filteredTree = normalizedSearchQuery
+    ? filterWikiTree(tree, normalizedSearchQuery)
+    : tree;
+  const hasSearchResults = hasVisibleTreeNodes(filteredTree);
 
   return (
     <Sidebar variant="inset" collapsible="icon" className="border-r-0 bg-sidebar/40 backdrop-blur-xl">
@@ -84,6 +91,9 @@ export function WikiSidebar({
           <div className="relative group/search">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground transition-colors group-focus-within/search:text-primary" />
             <SidebarInput
+              aria-label={t.common.search}
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
               placeholder={t.wiki.searchPlaceholder}
               className="pl-9 h-10 rounded-xl bg-background/50 border-border/50 focus:bg-background transition-all focus-visible:ring-primary/20"
             />
@@ -125,7 +135,17 @@ export function WikiSidebar({
         <SidebarGroup>
           <SidebarGroupLabel className="text-[10px] uppercase tracking-widest font-bold opacity-40 group-data-[collapsible=icon]:hidden">{t.common.articles}</SidebarGroupLabel>
           <SidebarMenu>
-            <TreeNav node={tree} currentPath={currentWikiPath} />
+            {hasSearchResults ? (
+              <TreeNav
+                node={filteredTree}
+                currentPath={currentWikiPath}
+                forceExpanded={normalizedSearchQuery.length > 0}
+              />
+            ) : (
+              <SidebarMenuItem className="px-2 py-3 text-sm text-muted-foreground group-data-[collapsible=icon]:hidden">
+                {t.wiki.noSearchResults}
+              </SidebarMenuItem>
+            )}
           </SidebarMenu>
         </SidebarGroup>
       </SidebarContent>
@@ -170,23 +190,44 @@ export function WikiSidebar({
   );
 }
 
-function TreeNav({ node, currentPath }: { node: WikiTreeNode; currentPath: string }) {
+function TreeNav({
+  node,
+  currentPath,
+  forceExpanded = false,
+}: {
+  node: WikiTreeNode;
+  currentPath: string;
+  forceExpanded?: boolean;
+}) {
   if (node.path === "" && node.children.length === 0) return null;
 
   if (node.path === "") {
     return (
       <>
         {node.children.map((child) => (
-          <TreeItem key={child.path} node={child} currentPath={currentPath} />
+          <TreeItem
+            key={child.path}
+            node={child}
+            currentPath={currentPath}
+            forceExpanded={forceExpanded}
+          />
         ))}
       </>
     );
   }
 
-  return <TreeItem node={node} currentPath={currentPath} />;
+  return <TreeItem node={node} currentPath={currentPath} forceExpanded={forceExpanded} />;
 }
 
-function TreeItem({ node, currentPath }: { node: WikiTreeNode; currentPath: string }) {
+function TreeItem({
+  node,
+  currentPath,
+  forceExpanded = false,
+}: {
+  node: WikiTreeNode;
+  currentPath: string;
+  forceExpanded?: boolean;
+}) {
   const locale = useLocale();
   const t = useT();
   const href = buildWikiHref(node.path, locale);
@@ -209,7 +250,12 @@ function TreeItem({ node, currentPath }: { node: WikiTreeNode; currentPath: stri
   }
 
   return (
-    <Collapsible asChild defaultOpen={isExpanded} className="group/collapsible">
+    <Collapsible
+      asChild
+      className="group/collapsible"
+      defaultOpen={forceExpanded ? undefined : isExpanded}
+      open={forceExpanded ? true : undefined}
+    >
       <SidebarMenuItem>
         {hasArticle ? (
           <SidebarMenuButton asChild isActive={isActive} tooltip={node.label} className="rounded-xl">
@@ -244,11 +290,61 @@ function TreeItem({ node, currentPath }: { node: WikiTreeNode; currentPath: stri
         <CollapsibleContent>
           <SidebarMenuSub className="border-l-0 ml-4 pl-2 space-y-1 mt-1 border-l border-border/10">
             {node.children.map((child) => (
-              <TreeItem key={child.path} node={child} currentPath={currentPath} />
+              <TreeItem
+                key={child.path}
+                node={child}
+                currentPath={currentPath}
+                forceExpanded={forceExpanded}
+              />
             ))}
           </SidebarMenuSub>
         </CollapsibleContent>
       </SidebarMenuItem>
     </Collapsible>
   );
+}
+
+function normalizeSearchQuery(query: string) {
+  return query.trim().toLocaleLowerCase();
+}
+
+function matchesWikiTreeNode(node: WikiTreeNode, query: string) {
+  return [node.label, node.articleTitle, node.path, node.segment]
+    .filter((value): value is string => Boolean(value))
+    .some((value) => value.toLocaleLowerCase().includes(query));
+}
+
+function filterWikiTree(node: WikiTreeNode, query: string): WikiTreeNode {
+  const filteredChildren = node.children
+    .map((child) => filterWikiTree(child, query))
+    .filter((child) => child.articleTitle || child.children.length > 0);
+  const matches = matchesWikiTreeNode(node, query);
+
+  if (node.path === "") {
+    return {
+      ...node,
+      children: filteredChildren,
+    };
+  }
+
+  if (!matches && filteredChildren.length === 0) {
+    return {
+      ...node,
+      articleTitle: undefined,
+      children: [],
+    };
+  }
+
+  return {
+    ...node,
+    children: matches && filteredChildren.length === 0 ? node.children : filteredChildren,
+  };
+}
+
+function hasVisibleTreeNodes(node: WikiTreeNode) {
+  if (node.path !== "") {
+    return true;
+  }
+
+  return node.children.length > 0;
 }

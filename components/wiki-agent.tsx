@@ -193,8 +193,8 @@ export function WikiAgent() {
 
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
-      <section className="surface-panel !rounded-[2.5rem] !p-5 md:!p-6 border-border/40 shadow-xl shadow-black/5 dark:shadow-black/20 min-h-[560px] flex flex-col">
-        <div className="mb-4 flex items-center justify-between gap-4 border-b border-border/40 pb-4">
+      <section className="surface-panel rounded-[2.5rem]! p-5! md:p-6! border-border/40 shadow-xl shadow-black/5 dark:shadow-black/20 min-h-140 flex flex-col">
+        <div className="mb-4 flex items-center justify-between gap-4 pb-4">
           <div>
             <p className="text-sm font-semibold">{t.agent.chatTitle}</p>
             <p className="text-sm text-muted-foreground">{t.agent.chatHint}</p>
@@ -276,7 +276,7 @@ export function WikiAgent() {
           <div ref={bottomRef} />
         </div>
 
-        <form onSubmit={handleSubmit} className="mt-6 border-t border-border/40 pt-4">
+        <form onSubmit={handleSubmit} className="mt-6 pt-4">
           <label className="sr-only" htmlFor="agent-input">
             {t.agent.inputPlaceholder}
           </label>
