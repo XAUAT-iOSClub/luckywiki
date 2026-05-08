@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import {
+  Bot,
   ChevronRight,
   FileText,
   Folder,
@@ -58,6 +59,7 @@ export function WikiSidebar({
   const locale = useLocale();
   const t = useT();
   const currentWikiPath = getWikiPathFromPathname(pathname);
+  const isAgentRoute = pathname === localizeHref(locale, "/agent");
 
   return (
     <Sidebar variant="inset" collapsible="icon" className="border-r-0 bg-sidebar/40 backdrop-blur-xl">
@@ -105,6 +107,20 @@ export function WikiSidebar({
             </SidebarMenu>
           </SidebarGroup>
         )}
+
+        <SidebarGroup>
+          <SidebarGroupLabel className="text-[10px] uppercase tracking-widest font-bold opacity-40 group-data-[collapsible=icon]:hidden">{t.common.platform}</SidebarGroupLabel>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild isActive={isAgentRoute} tooltip={t.common.agent} className="rounded-xl">
+                <Link href={localizeHref(locale, "/agent")}>
+                  <Bot className="size-4 text-muted-foreground" />
+                  <span className="font-medium">{t.common.agent}</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarGroup>
 
         <SidebarGroup>
           <SidebarGroupLabel className="text-[10px] uppercase tracking-widest font-bold opacity-40 group-data-[collapsible=icon]:hidden">{t.common.articles}</SidebarGroupLabel>

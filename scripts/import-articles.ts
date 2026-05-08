@@ -1,4 +1,5 @@
 import "dotenv/config";
+import { reindexAllPublishedArticleEmbeddings } from "../lib/agent-index";
 import { prisma } from "../lib/prisma";
 import {
   importArticlesFromDirectory,
@@ -51,6 +52,8 @@ async function main() {
   if (summary.failed > 0) {
     process.exitCode = 1;
   }
+
+  await reindexAllPublishedArticleEmbeddings();
 }
 
 main()

@@ -52,7 +52,7 @@ export default async function EditArticlePage({
             <Button variant="outline" size="sm" asChild className="rounded-full px-4 h-9 bg-white/50 dark:bg-zinc-900/50 backdrop-blur-sm border-border/50">
               <Link href={localizeHref(lang, `/wiki/${article.path}`)} target="_blank">
                 <ExternalLink className="size-3.5 mr-2" />
-                {dictionary.common.view}
+                {dictionary.common.viewLive}
               </Link>
             </Button>
           </div>

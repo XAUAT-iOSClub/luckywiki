@@ -5,6 +5,7 @@ import { z } from "zod";
 import { ArticleStatus, CommentStatus } from "@/generated/prisma/enums";
 import type { Locale } from "@/lib/i18n/config";
 import { locales, localizeHref } from "@/lib/i18n/config";
+import { safeSyncArticleEmbeddingsForArticleId } from "@/lib/agent-index";
 import { getDictionary } from "@/lib/i18n/get-dictionary";
 import { prisma } from "@/lib/prisma";
 import { buildWikiHref, canonicalizePath } from "@/lib/wiki-path";
@@ -40,6 +41,7 @@ export async function createArticleAction(
           parsed.data.status === ArticleStatus.PUBLISHED ? new Date() : null,
       },
     });
+    await safeSyncArticleEmbeddingsForArticleId(article.id);
 
     revalidateWikiPaths(article.path);
     revalidateLocalizedPath("/admin/articles");
@@ -88,6 +90,7 @@ export async function updateArticleAction(
             : null,
       },
     });
+    await safeSyncArticleEmbeddingsForArticleId(article.id);
 
     revalidateWikiPaths(existing.path);
     revalidateWikiPaths(article.path);
@@ -195,6 +198,7 @@ export async function setArticleStatusAction(
           : null,
     },
   });
+  await safeSyncArticleEmbeddingsForArticleId(article.id);
 
   revalidateWikiPaths(existing.path);
   if (existing.path !== article.path) {

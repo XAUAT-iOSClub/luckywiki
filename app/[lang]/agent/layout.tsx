@@ -2,7 +2,7 @@ import { WikiShell } from "@/components/wiki-shell";
 
 type Params = Promise<{ lang: string }>;
 
-export default async function WikiLayout({
+export default async function AgentLayout({
   children,
   params,
 }: {
@@ -10,5 +10,5 @@ export default async function WikiLayout({
   params: Params;
 }) {
   const { lang } = await params;
-  return <WikiShell lang={lang} section="articles">{children}</WikiShell>;
+  return <WikiShell lang={lang} section="agent">{children}</WikiShell>;
 }

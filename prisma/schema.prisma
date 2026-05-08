@@ -105,10 +105,27 @@ model Article {
   updatedAt   DateTime      @updatedAt @map("updated_at")
   author      User          @relation("ArticleAuthor", fields: [authorId], references: [id], onDelete: Restrict)
   comments    Comment[]
+  agentChunks AgentChunk[]
 
   @@index([status])
   @@index([authorId])
   @@map("articles")
+}
+
+model AgentChunk {
+  id         String   @id @default(cuid())
+  articleId  String   @map("article_id")
+  chunkIndex Int      @map("chunk_index")
+  heading    String?
+  content    String
+  embedding  String
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+  article    Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  @@unique([articleId, chunkIndex])
+  @@index([articleId])
+  @@map("agent_chunks")
 }
 
 model Comment {

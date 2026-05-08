@@ -46,7 +46,6 @@ export function ArticleEditor({
   const router = useRouter();
   const [state, formAction] = useActionState(action, initialState);
   const t = useT();
-  const [title, setTitle] = useState(initialValues?.title ?? "");
   const [path, setPath] = useState(initialValues?.path ?? "");
   const [description, setDescription] = useState(initialValues?.description ?? "");
   const [tags, setTags] = useState(initialValues?.tags.join(", ") ?? "");
@@ -56,7 +55,6 @@ export function ArticleEditor({
     initialValues?.status ?? ArticleStatus.DRAFT,
   );
   const [isUploadingImage, setIsUploadingImage] = useState(false);
-  const [imageUploadError, setImageUploadError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const markdownRef = useRef<HTMLTextAreaElement | null>(null);
 
@@ -104,7 +102,6 @@ export function ArticleEditor({
 
   async function uploadImage(file: File) {
     setIsUploadingImage(true);
-    setImageUploadError(null);
 
     try {
       const formData = new FormData();
@@ -132,7 +129,7 @@ export function ArticleEditor({
 
       insertMarkdownAtCursor(payload.markdown);
     } catch (error) {
-      setImageUploadError(
+      console.error(
         error instanceof Error ? error.message : t.feedback.somethingWentWrong,
       );
     } finally {

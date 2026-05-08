@@ -51,6 +51,31 @@ Notes:
 - The bucket or CDN origin must be publicly readable, otherwise uploaded Markdown image URLs will not render.
 - If your storage endpoint is private or internal, set `IMAGE_HOSTING_PUBLIC_URL_BASE` to the public CDN/domain that serves the uploaded files.
 
+## Wiki Agent
+
+The wiki agent answers questions only from published wiki content and links back to the relevant articles.
+
+Set these server-side environment variables before using it:
+
+```bash
+OPENAI_API_KEY=your-openai-api-key
+
+# Optional. Defaults to gpt-4.1-mini.
+OPENAI_RESPONSES_MODEL=gpt-4.1-mini
+
+# Optional. Defaults to text-embedding-3-small.
+OPENAI_EMBEDDING_MODEL=text-embedding-3-small
+
+# Optional when you proxy OpenAI through a compatible gateway.
+OPENAI_API_BASE_URL=https://api.openai.com/v1
+```
+
+After adding the variables, backfill embeddings for existing published articles:
+
+```bash
+npm run agent:index
+```
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:
