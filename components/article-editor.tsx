@@ -322,12 +322,10 @@ export function ArticleEditor({
               </span>
             </div>
             <div className="flex-1 p-8 overflow-auto">
-              <div className="markdown-body">
-                <MarkdownRenderer
-                  linkToSectionLabel={t.common.linkToSection}
-                  markdown={markdown || t.admin.articleEditor.previewFallback}
-                />
-              </div>
+              <MarkdownRenderer
+                linkToSectionLabel={t.common.linkToSection}
+                markdown={markdown || t.admin.articleEditor.previewFallback}
+              />
             </div>
           </div>
         </div>

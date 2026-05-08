@@ -94,7 +94,7 @@ export function AppSidebar({
   const secondaryNav = [
     {
       title: t.common.viewWiki,
-      url: localizeHref(locale, "/wiki"),
+      url: localizeHref(locale, "/wiki/home"),
       icon: View,
     },
   ];

@@ -183,7 +183,7 @@ export function MarkdownRenderer({
   ];
 
   return (
-    <div className="markdown-body">
+    <div className="markdown-body prose prose-slate dark:prose-invert max-w-none">
       <ReactMarkdown
         components={markdownComponents as Components}
         rehypePlugins={rehypePlugins as ReactMarkdownOptions["rehypePlugins"]}

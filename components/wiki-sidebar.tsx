@@ -66,7 +66,7 @@ export function WikiSidebar({
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild className="hover:bg-transparent group">
               <Link href={localizeHref(locale, "/wiki")}>
-                <div className="flex aspect-square size-9 items-center justify-center rounded-xl bg-primary shadow-lg shadow-primary/20 transition-transform group-hover:scale-105 group-active:scale-95">
+                <div className="flex aspect-square size-8 items-center justify-center rounded-xl bg-primary transition-transform">
                   <FileText className="size-5 text-primary-foreground" />
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight ml-2">
@@ -77,22 +77,22 @@ export function WikiSidebar({
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
-        
+
         <div className="px-2 mt-4 group-data-[collapsible=icon]:hidden">
           <div className="relative group/search">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground transition-colors group-focus-within/search:text-primary" />
-            <SidebarInput 
-              placeholder={t.wiki.searchPlaceholder} 
+            <SidebarInput
+              placeholder={t.wiki.searchPlaceholder}
               className="pl-9 h-10 rounded-xl bg-background/50 border-border/50 focus:bg-background transition-all focus-visible:ring-primary/20"
             />
           </div>
         </div>
       </SidebarHeader>
 
-      <SidebarContent className="px-2">
+      <SidebarContent>
         {isAdmin && (
           <SidebarGroup>
-            <SidebarGroupLabel className="px-2 text-[10px] uppercase tracking-widest font-bold opacity-40 group-data-[collapsible=icon]:hidden">{t.wiki.management}</SidebarGroupLabel>
+            <SidebarGroupLabel className="text-[10px] uppercase tracking-widest font-bold opacity-40 group-data-[collapsible=icon]:hidden">{t.wiki.management}</SidebarGroupLabel>
             <SidebarMenu>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild tooltip={t.common.dashboard} isActive={pathname.startsWith(`/${locale}/admin`)}>
@@ -107,7 +107,7 @@ export function WikiSidebar({
         )}
 
         <SidebarGroup>
-          <SidebarGroupLabel className="px-2 text-[10px] uppercase tracking-widest font-bold opacity-40 group-data-[collapsible=icon]:hidden">{t.common.articles}</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-[10px] uppercase tracking-widest font-bold opacity-40 group-data-[collapsible=icon]:hidden">{t.common.articles}</SidebarGroupLabel>
           <SidebarMenu>
             <TreeNav node={tree} currentPath={currentWikiPath} />
           </SidebarMenu>
@@ -138,7 +138,7 @@ export function WikiSidebar({
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
-        
+
         {user ? (
           <NavUser user={user} />
         ) : (
@@ -210,7 +210,7 @@ function TreeItem({ node, currentPath }: { node: WikiTreeNode; currentPath: stri
             </SidebarMenuButton>
           </CollapsibleTrigger>
         )}
-        
+
         {hasArticle ? (
           <CollapsibleTrigger asChild>
             <SidebarMenuAction className="left-auto right-1 data-[state=open]:rotate-90 rounded-md transition-transform hover:bg-sidebar-accent">
