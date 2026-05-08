@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { createAgentRouteResponse } from "@/lib/agent-route";
+import { streamAgentAnswer } from "@/lib/agent-openai";
 import { zh } from "@/lib/i18n/dictionaries/zh";
 
 test("agent route streams model output with sources", async () => {
@@ -127,4 +128,47 @@ test("agent route ignores empty assistant placeholder messages", async () => {
   const text = await response.text();
 
   assert.match(text, /服务大厅补办/);
+});
+
+test("streamAgentAnswer formats user and assistant history for the Responses API", async () => {
+  const originalFetch = globalThis.fetch;
+
+  globalThis.fetch = (async (_input, init) => {
+    const body = JSON.parse(String(init?.body));
+
+    assert.deepEqual(body.input, [
+      {
+        role: "user",
+        content: [{ type: "input_text", text: "校园卡怎么补办？" }],
+      },
+      {
+        role: "assistant",
+        content: [{ type: "output_text", text: "可以去服务大厅补办。" }],
+      },
+    ]);
+
+    return new Response("data: [DONE]\n\n", {
+      status: 200,
+      headers: {
+        "Content-Type": "text/event-stream; charset=utf-8",
+      },
+    });
+  }) as typeof fetch;
+
+  try {
+    process.env.OPENAI_API_KEY = "test-key";
+
+    await streamAgentAnswer({
+      locale: "zh",
+      context: [],
+      messages: [
+        { role: "user", content: "校园卡怎么补办？" },
+        { role: "assistant", content: "可以去服务大厅补办。" },
+      ],
+      onDelta() {},
+    });
+  } finally {
+    globalThis.fetch = originalFetch;
+    delete process.env.OPENAI_API_KEY;
+  }
 });
