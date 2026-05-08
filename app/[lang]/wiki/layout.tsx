@@ -45,10 +45,10 @@ export default async function WikiLayout({
     <SidebarProvider>
       <WikiSidebar tree={tree} user={session?.user} isAdmin={isAdmin} />
       <SidebarInset className="bg-background/50 backdrop-blur-sm min-h-svh">
-        <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12 border-b border-border/5 px-4 sticky top-0 z-20 bg-background/50 backdrop-blur-md">
-          <div className="flex items-center gap-2">
+        <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12 border-b border-border/5 px-4 sticky top-0 z-20 bg-background/50 backdrop-blur-md">
+          <div className="flex items-center gap-2 justify-center">
             <SidebarTrigger className="-ml-1" />
-            <Separator orientation="vertical" className="mr-2 h-4" />
+            <Separator orientation="vertical" className="mr-2" />
             <Breadcrumb>
               <BreadcrumbList>
                 <BreadcrumbItem className="hidden md:block">
