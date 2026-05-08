@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { startTransition, useEffect, useMemo, useRef, useState } from "react";
 import { Loader2, RefreshCcw, Send, Sparkles } from "lucide-react";
+import { MarkdownRenderer } from "@/components/markdown-renderer";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -234,9 +235,23 @@ export function WikiAgent() {
                     : "rounded-[1.75rem] rounded-bl-md border border-border/50 bg-card/70 px-5 py-4 shadow-sm"
                 }
               >
-                <p className="whitespace-pre-wrap text-sm leading-7">
-                  {message.content || (isLoading && message.role === "assistant" ? t.agent.thinking : "")}
-                </p>
+                {message.role === "assistant" ? (
+                  message.content ? (
+                    <MarkdownRenderer
+                      className="prose-sm prose-p:my-2 prose-headings:mb-3 prose-headings:mt-5 prose-ul:my-2 prose-ol:my-2 prose-li:my-1 prose-pre:my-3 prose-code:text-inherit"
+                      linkToSectionLabel={t.common.linkToSection}
+                      markdown={message.content}
+                    />
+                  ) : (
+                    <p className="whitespace-pre-wrap text-sm leading-7">
+                      {isLoading ? t.agent.thinking : ""}
+                    </p>
+                  )
+                ) : (
+                  <p className="whitespace-pre-wrap text-sm leading-7">
+                    {message.content}
+                  </p>
+                )}
               </div>
 
               {message.role === "assistant" && message.sources && message.sources.length > 0 ? (

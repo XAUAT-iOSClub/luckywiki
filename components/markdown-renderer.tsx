@@ -18,6 +18,7 @@ import rehypeSlug from "rehype-slug";
 import rehypeAutolinkHeadings from "rehype-autolink-headings";
 import { markdownComponentRenderers } from "@/components/markdown-custom-components";
 import { rehypeMdxJsxElements } from "@/lib/markdown-mdx-elements";
+import { cn } from "@/lib/utils";
 import { visit } from "unist-util-visit";
 
 const remarkRehypeOptions = {
@@ -157,9 +158,11 @@ const markdownComponents = markdownComponentRenderers as Record<
 export function MarkdownRenderer({
   markdown,
   linkToSectionLabel = "Link to section",
+  className,
 }: {
   markdown: string;
   linkToSectionLabel?: string;
+  className?: string;
 }) {
   const rehypePlugins: NonNullable<ReactMarkdownOptions["rehypePlugins"]> = [
     rehypeExtractMermaid,
@@ -183,7 +186,12 @@ export function MarkdownRenderer({
   ];
 
   return (
-    <div className="markdown-body prose prose-slate dark:prose-invert max-w-none">
+    <div
+      className={cn(
+        "markdown-body prose prose-slate dark:prose-invert max-w-none",
+        className,
+      )}
+    >
       <ReactMarkdown
         components={markdownComponents as Components}
         rehypePlugins={rehypePlugins as ReactMarkdownOptions["rehypePlugins"]}
