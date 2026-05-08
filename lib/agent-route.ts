@@ -33,7 +33,8 @@ export async function createAgentRouteResponse(
     }) => Promise<void>;
   },
 ) {
-  const payload = agentRequestSchema.safeParse(await request.json());
+  const rawPayload = sanitizeAgentRequestPayload(await request.json());
+  const payload = agentRequestSchema.safeParse(rawPayload);
 
   if (!payload.success) {
     return NextResponse.json(
@@ -119,6 +120,28 @@ export async function createAgentRouteResponse(
       "Content-Type": "text/event-stream; charset=utf-8",
     },
   });
+}
+
+function sanitizeAgentRequestPayload(payload: unknown) {
+  if (!payload || typeof payload !== "object") {
+    return payload;
+  }
+
+  const rawMessages = Array.isArray((payload as { messages?: unknown[] }).messages)
+    ? (payload as { messages: unknown[] }).messages
+    : [];
+
+  return {
+    ...(payload as Record<string, unknown>),
+    messages: rawMessages.filter((message) => {
+      if (!message || typeof message !== "object") {
+        return false;
+      }
+
+      const content = "content" in message ? message.content : "";
+      return typeof content === "string" && content.trim().length > 0;
+    }),
+  };
 }
 
 function dedupeSources(chunks: Pick<RetrievedAgentChunk, "path" | "title">[]) {

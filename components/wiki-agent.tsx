@@ -95,7 +95,11 @@ export function WikiAgent() {
         body: JSON.stringify({
           locale,
           messages: nextMessages
-            .filter((message) => message.role === "user" || message.role === "assistant")
+            .filter(
+              (message) =>
+                (message.role === "user" || message.role === "assistant") &&
+                message.content.trim().length > 0,
+            )
             .map((message) => ({
               role: message.role,
               content: message.content,
