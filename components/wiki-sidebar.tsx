@@ -154,7 +154,9 @@ export function WikiSidebar({
         <SidebarMenu className="group-data-[collapsible=icon]:hidden">
           <SidebarMenuItem>
             <div className="px-1">
-              <LocaleSwitcher className="w-full justify-center" />
+              <React.Suspense fallback={null}>
+                <LocaleSwitcher className="w-full justify-center" />
+              </React.Suspense>
             </div>
           </SidebarMenuItem>
           <SidebarMenuItem>

@@ -143,14 +143,20 @@ export function AppSidebar({
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={navMain} />
-        <NavMain items={secondaryNav} />
+        <React.Suspense fallback={null}>
+          <NavMain items={navMain} />
+        </React.Suspense>
+        <React.Suspense fallback={null}>
+          <NavMain items={secondaryNav} />
+        </React.Suspense>
       </SidebarContent>
       <SidebarFooter>
         <SidebarMenu>
           <SidebarMenuItem>
             <div className="px-2">
-              <LocaleSwitcher className="w-full justify-center" />
+              <React.Suspense fallback={null}>
+                <LocaleSwitcher className="w-full justify-center" />
+              </React.Suspense>
             </div>
           </SidebarMenuItem>
           <SidebarMenuItem>

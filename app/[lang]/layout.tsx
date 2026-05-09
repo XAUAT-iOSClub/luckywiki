@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { Geist, Geist_Mono } from "next/font/google";
 import { notFound } from "next/navigation";
 import "../globals.css";
@@ -73,7 +74,9 @@ export default async function RootLayout({
       suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col">
-        <TopRouteProgress />
+        <Suspense fallback={null}>
+          <TopRouteProgress />
+        </Suspense>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"

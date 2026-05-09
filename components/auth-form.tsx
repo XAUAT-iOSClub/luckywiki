@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { authClient } from "@/lib/auth-client";
@@ -77,7 +77,9 @@ export function AuthForm({ locale, mode, nextPath }: AuthFormProps) {
   return (
     <div className="flex w-full flex-col items-center gap-6">
       <div className="flex w-full justify-end">
-        <LocaleSwitcher />
+        <Suspense fallback={null}>
+          <LocaleSwitcher />
+        </Suspense>
       </div>
       <Link href={localizeHref(locale, "/wiki")} className="flex items-center gap-2 group transition-transform hover:scale-105 active:scale-95">
         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary shadow-lg shadow-primary/20 ring-1 ring-white/10">
