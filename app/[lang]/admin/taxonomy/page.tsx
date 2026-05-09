@@ -7,6 +7,7 @@ import { formatDateTime, formatNumber, formatTemplate } from "@/lib/i18n/format"
 import { getDictionary } from "@/lib/i18n/get-dictionary";
 import { hasLocale, localizeHref } from "@/lib/i18n/config";
 import { notFound } from "next/navigation";
+import { requireRootSession } from "@/lib/session";
 
 type Params = Promise<{ lang: string }>;
 
@@ -20,6 +21,8 @@ export default async function AdminTaxonomyPage({
   if (!hasLocale(lang)) {
     notFound();
   }
+
+  await requireRootSession(lang, localizeHref(lang, "/admin/articles"));
 
   const [taxonomy, dictionary] = await Promise.all([
     listAdminTaxonomy(),

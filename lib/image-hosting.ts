@@ -63,6 +63,12 @@ type UploadedImage = {
   url: string;
 };
 
+type UploadableImageFile = Pick<Blob, "arrayBuffer"> & {
+  name: string;
+  size: number;
+  type: string;
+};
+
 export class ImageUploadError extends Error {
   code: ImageUploadErrorCode;
   status: number;
@@ -138,7 +144,7 @@ export function resolveImagePublicUrl(config: ImageHostingConfig, key: string) {
   return `${config.endpoint.replace(/\/+$/u, "")}/${config.bucket}/${normalizedKey}`;
 }
 
-export async function uploadImageFile(file: File): Promise<UploadedImage> {
+export async function uploadImageFile(file: UploadableImageFile): Promise<UploadedImage> {
   validateImageFile(file);
 
   const config = getImageHostingConfig();
@@ -148,7 +154,10 @@ export async function uploadImageFile(file: File): Promise<UploadedImage> {
 
   try {
     if (config.provider === "vercel-blob") {
-      const uploadedBlob = await put(key, file, {
+      const uploadBody = new Blob([await file.arrayBuffer()], {
+        type: file.type,
+      });
+      const uploadedBlob = await put(key, uploadBody, {
         access: "public",
         addRandomSuffix: false,
         cacheControlMaxAge: 31536000,
@@ -187,7 +196,7 @@ export async function uploadImageFile(file: File): Promise<UploadedImage> {
   };
 }
 
-function validateImageFile(file: File) {
+function validateImageFile(file: UploadableImageFile) {
   if (!allowedImageMimeTypes.has(file.type)) {
     throw new ImageUploadError(
       "INVALID_FILE_TYPE",

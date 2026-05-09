@@ -18,7 +18,7 @@ import { listPublishedArticleTreeData } from "@/lib/articles";
 import type { Locale } from "@/lib/i18n/config";
 import { hasLocale, localizeHref } from "@/lib/i18n/config";
 import { getDictionary } from "@/lib/i18n/get-dictionary";
-import { canManageWiki } from "@/lib/permissions";
+import { canAccessAdminShell } from "@/lib/permissions";
 import { getCurrentSession } from "@/lib/session";
 import { buildWikiTree } from "@/lib/wiki-tree";
 
@@ -43,7 +43,7 @@ export async function WikiShell({
   ]);
 
   const tree = buildWikiTree(treeArticles);
-  const isAdmin = canManageWiki(session?.user ?? null);
+  const isAdmin = canAccessAdminShell(session?.user ?? null);
   const breadcrumbLabel =
     section === "agent" ? dictionary.agent.breadcrumb : dictionary.wiki.articlesBreadcrumb;
 

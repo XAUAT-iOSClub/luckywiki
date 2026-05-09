@@ -3,7 +3,7 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { AdminHeader } from "@/components/admin-header";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { hasLocale } from "@/lib/i18n/config";
-import { requireRootSession } from "@/lib/session";
+import { requireAuthorSession } from "@/lib/session";
 
 type Params = Promise<{ lang: string }>;
 
@@ -20,11 +20,12 @@ export default async function AdminLayout({
     notFound();
   }
 
-  const session = await requireRootSession(lang);
+  const session = await requireAuthorSession(lang);
   const user = {
     name: session.user.name,
     email: session.user.email,
     image: session.user.image,
+    role: session.user.role,
   };
 
   return (

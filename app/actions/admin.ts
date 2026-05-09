@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { ArticleStatus, CommentStatus } from "@/generated/prisma/enums";
+import { ArticleStatus, CommentStatus, Role } from "@/generated/prisma/enums";
 import type { Locale } from "@/lib/i18n/config";
 import { locales, localizeHref } from "@/lib/i18n/config";
 import { safeSyncArticleEmbeddingsForArticleId } from "@/lib/agent-index";
@@ -10,7 +10,8 @@ import { getDictionary } from "@/lib/i18n/get-dictionary";
 import { prisma } from "@/lib/prisma";
 import { buildWikiHref, canonicalizePath } from "@/lib/wiki-path";
 import { revalidateLocalizedPath } from "@/lib/i18n/revalidate";
-import { requireRootSession } from "@/lib/session";
+import { canChangeUserRole } from "@/lib/permissions";
+import { requireAuthorSession, requireRootSession } from "@/lib/session";
 
 export type FormActionState = {
   error?: string;
@@ -23,7 +24,7 @@ export async function createArticleAction(
   formData: FormData,
 ): Promise<FormActionState> {
   const [session, dictionary] = await Promise.all([
-    requireRootSession(locale),
+    requireAuthorSession(locale),
     getDictionary(locale),
   ]);
   const parsed = parseArticleForm(formData, dictionary);
@@ -63,7 +64,7 @@ export async function updateArticleAction(
 ): Promise<FormActionState> {
   const [dictionary] = await Promise.all([
     getDictionary(locale),
-    requireRootSession(locale),
+    requireAuthorSession(locale),
   ]);
   const parsed = parseArticleForm(formData, dictionary);
 
@@ -174,7 +175,7 @@ export async function setArticleStatusAction(
   articleId: string,
   status: ArticleStatus,
 ) {
-  await requireRootSession(locale);
+  await requireAuthorSession(locale);
 
   const existing = await prisma.article.findUnique({
     where: {
@@ -207,6 +208,38 @@ export async function setArticleStatusAction(
   revalidateLocalizedPath("/admin");
   revalidateLocalizedPath("/admin/articles");
   revalidateLocalizedPath("/admin/taxonomy");
+}
+
+export async function setUserRoleAction(
+  locale: Locale,
+  userId: string,
+  targetRole: Role,
+) {
+  await requireRootSession(locale, localizeHref(locale, "/admin/articles"));
+
+  const [targetUser, rootUsersCount] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, role: true },
+    }),
+    prisma.user.count({
+      where: {
+        role: Role.ROOT,
+      },
+    }),
+  ]);
+
+  if (!targetUser || !canChangeUserRole(targetUser.role, targetRole, rootUsersCount)) {
+    return;
+  }
+
+  await prisma.user.update({
+    where: { id: userId },
+    data: { role: targetRole },
+  });
+
+  revalidateLocalizedPath("/admin");
+  revalidateLocalizedPath("/admin/users");
 }
 
 function parseArticleForm(

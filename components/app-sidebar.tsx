@@ -12,6 +12,7 @@ import {
   Users,
   View,
 } from "lucide-react";
+import { Role } from "@/generated/prisma/enums";
 
 import { NavMain } from "@/components/nav-main";
 import { NavUser } from "@/components/nav-user";
@@ -35,62 +36,85 @@ export function AppSidebar({
   user,
   ...props
 }: React.ComponentProps<typeof Sidebar> & {
-  user: { name: string; email: string; image?: string | null };
+  user: { name: string; email: string; image?: string | null; role?: string | null };
 }) {
   const { setTheme, theme } = useTheme();
   const locale = useLocale();
   const t = useT();
-  const navMain = [
-    {
-      title: t.common.dashboard,
-      url: localizeHref(locale, "/admin"),
-      icon: LayoutDashboard,
-    },
-    {
-      title: t.common.articles,
-      url: localizeHref(locale, "/admin/articles"),
-      icon: FileText,
-      items: [
+  const isRoot = user.role === Role.ROOT;
+  const navMain = isRoot
+    ? [
+        {
+          title: t.common.dashboard,
+          url: localizeHref(locale, "/admin"),
+          icon: LayoutDashboard,
+        },
         {
           title: t.common.articles,
           url: localizeHref(locale, "/admin/articles"),
+          icon: FileText,
+          items: [
+            {
+              title: t.common.articles,
+              url: localizeHref(locale, "/admin/articles"),
+            },
+            {
+              title: t.common.draft,
+              url: localizeHref(locale, "/admin/articles?status=DRAFT"),
+            },
+            {
+              title: t.common.published,
+              url: localizeHref(locale, "/admin/articles?status=PUBLISHED"),
+            },
+          ],
         },
         {
-          title: t.common.draft,
-          url: localizeHref(locale, "/admin/articles?status=DRAFT"),
+          title: t.common.comments,
+          url: localizeHref(locale, "/admin/comments"),
+          icon: MessageSquare,
+          items: [
+            {
+              title: t.common.pending,
+              url: localizeHref(locale, "/admin/comments?status=PENDING"),
+            },
+            {
+              title: t.common.approved,
+              url: localizeHref(locale, "/admin/comments?status=APPROVED"),
+            },
+          ],
         },
         {
-          title: t.common.published,
-          url: localizeHref(locale, "/admin/articles?status=PUBLISHED"),
-        },
-      ],
-    },
-    {
-      title: t.common.comments,
-      url: localizeHref(locale, "/admin/comments"),
-      icon: MessageSquare,
-      items: [
-        {
-          title: t.common.pending,
-          url: localizeHref(locale, "/admin/comments?status=PENDING"),
+          title: t.common.taxonomy,
+          url: localizeHref(locale, "/admin/taxonomy"),
+          icon: FolderTree,
         },
         {
-          title: t.common.approved,
-          url: localizeHref(locale, "/admin/comments?status=APPROVED"),
+          title: t.common.contributors,
+          url: localizeHref(locale, "/admin/users"),
+          icon: Users,
         },
-      ],
-    },
-    {
-      title: t.common.taxonomy,
-      url: localizeHref(locale, "/admin/taxonomy"),
-      icon: FolderTree,
-    },
-    {
-      title: t.common.contributors,
-      url: localizeHref(locale, "/admin/users"),
-      icon: Users,
-    },
-  ];
+      ]
+    : [
+        {
+          title: t.common.articles,
+          url: localizeHref(locale, "/admin/articles"),
+          icon: FileText,
+          items: [
+            {
+              title: t.common.articles,
+              url: localizeHref(locale, "/admin/articles"),
+            },
+            {
+              title: t.common.draft,
+              url: localizeHref(locale, "/admin/articles?status=DRAFT"),
+            },
+            {
+              title: t.common.published,
+              url: localizeHref(locale, "/admin/articles?status=PUBLISHED"),
+            },
+          ],
+        },
+      ];
   const secondaryNav = [
     {
       title: t.common.viewWiki,

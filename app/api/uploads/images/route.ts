@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { isRootUser } from "@/lib/permissions";
+import { canWriteArticles } from "@/lib/permissions";
 import { getCurrentSession } from "@/lib/session";
 import {
   buildImageMarkdown,
@@ -10,7 +10,7 @@ import {
 export async function POST(request: Request) {
   const session = await getCurrentSession();
 
-  if (!session || !isRootUser(session.user)) {
+  if (!session || !canWriteArticles(session.user)) {
     return NextResponse.json(
       {
         code: "UNAUTHORIZED",

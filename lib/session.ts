@@ -3,7 +3,11 @@ import { redirect } from "next/navigation";
 import type { Locale } from "@/lib/i18n/config";
 import { localizeHref } from "@/lib/i18n/config";
 import { auth } from "@/lib/auth";
-import { canComment, isRootUser } from "@/lib/permissions";
+import {
+  canAccessAdminShell,
+  canComment,
+  canManageUsers,
+} from "@/lib/permissions";
 
 export async function getCurrentSession() {
   return auth.api.getSession({
@@ -11,7 +15,7 @@ export async function getCurrentSession() {
   });
 }
 
-export async function requireRootSession(locale: Locale) {
+export async function requireAuthorSession(locale: Locale) {
   const session = await getCurrentSession();
 
   if (!session) {
@@ -20,8 +24,27 @@ export async function requireRootSession(locale: Locale) {
     );
   }
 
-  if (!isRootUser(session.user)) {
+  if (!canAccessAdminShell(session.user)) {
     redirect(localizeHref(locale, "/wiki"));
+  }
+
+  return session;
+}
+
+export async function requireRootSession(
+  locale: Locale,
+  unauthorizedRedirectPath = localizeHref(locale, "/wiki"),
+) {
+  const session = await getCurrentSession();
+
+  if (!session) {
+    redirect(
+      `${localizeHref(locale, "/auth/sign-in")}?next=${encodeURIComponent(localizeHref(locale, "/admin"))}`,
+    );
+  }
+
+  if (!canManageUsers(session.user)) {
+    redirect(unauthorizedRedirectPath);
   }
 
   return session;

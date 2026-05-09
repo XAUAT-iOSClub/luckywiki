@@ -825,7 +825,7 @@ function stripOuterTag(source: string, tagName: string) {
     .replace(new RegExp(`</${tagName}>$`, "i"), "");
 }
 
-function convertInlineHtml(source: string) {
+function convertInlineHtml(source: string): string {
   return decodeHtmlEntities(
     source
       .replace(/<br\s*\/?>/gi, "\n")

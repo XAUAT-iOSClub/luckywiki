@@ -129,6 +129,11 @@ export const getAdminDashboardData = cache(async () => {
       }),
       prisma.user.count({
         where: {
+          role: Role.AUTHOR,
+        },
+      }),
+      prisma.user.count({
+        where: {
           emailVerified: true,
         },
       }),
@@ -168,7 +173,8 @@ export const getAdminDashboardData = cache(async () => {
       sections: sections.length,
       users: userStats[0],
       rootUsers: userStats[1],
-      verifiedUsers: userStats[2],
+      authorUsers: userStats[2],
+      verifiedUsers: userStats[3],
     },
     recentArticles: articles.slice(0, 6),
     pendingComments,
