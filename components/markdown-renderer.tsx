@@ -171,6 +171,18 @@ function remarkFixTabsLabels(markdown: string) {
   };
 }
 
+function remarkSafeCustomSyntax() {
+  const plugin = createCustomSyntaxRemarkPlugin();
+
+  return (tree: unknown, file: unknown) => {
+    try {
+      return plugin(tree as never, file as never);
+    } catch (error) {
+      console.error("Markdown custom syntax render error:", error);
+    }
+  };
+}
+
 function rehypeExtractMermaid() {
   return (tree: import("hast").Root) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -325,7 +337,7 @@ export function MarkdownRenderer({
   ];
   const remarkPlugins: NonNullable<ReactMarkdownOptions["remarkPlugins"]> = [
     remarkAlert,
-    createCustomSyntaxRemarkPlugin,
+    remarkSafeCustomSyntax,
     [remarkFixTabsLabels, markdown],
     [remarkGfm, { singleTilde: false }],
     remarkMath,

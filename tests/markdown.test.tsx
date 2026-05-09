@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import { renderToStaticMarkup } from "react-dom/server";
 import { I18nProvider } from "@/lib/i18n/provider";
 import { en } from "@/lib/i18n/dictionaries/en";
@@ -132,4 +133,50 @@ tabs: ["社团官网", "iOS 社团AI", "建大Wiki/百科"]
   assert.match(html, /iOS 社团AI/);
   assert.match(html, /建大Wiki\/百科/);
   assert.doesNotMatch(html, /Tab 1/);
+});
+
+test("markdown renderer can render the 社团总览 article with multiple tabs blocks", async () => {
+  const { MarkdownRenderer } = await import("@/components/markdown-renderer");
+  const markdown = await readFile(
+    new URL("../articles/社团简介/社团总览.md", import.meta.url),
+    "utf8",
+  );
+
+  assert.doesNotThrow(() => {
+    renderToStaticMarkup(
+      <I18nProvider dictionary={en} locale="en">
+        <MarkdownRenderer markdown={markdown} />
+      </I18nProvider>,
+    );
+  });
+});
+
+test("markdown renderer degrades gracefully when custom tabs syntax is malformed", async () => {
+  const { MarkdownRenderer } = await import("@/components/markdown-renderer");
+
+  assert.doesNotThrow(() => {
+    const html = renderToStaticMarkup(
+      <I18nProvider dictionary={en} locale="en">
+        <MarkdownRenderer
+          markdown={`
+## Before
+
+::tabs
+tabs: ["One", "Two"]
+
+---
+First panel
+
+::tabs
+tabs: ["Nested start without close"]
+
+Regular paragraph after the broken block.
+`}
+        />
+      </I18nProvider>,
+    );
+
+    assert.match(html, /Before/);
+    assert.match(html, /Regular paragraph after the broken block\./);
+  });
 });
