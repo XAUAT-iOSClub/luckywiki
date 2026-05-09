@@ -15,8 +15,8 @@ importers:
         specifier: ^6.0.2
         version: 6.0.2(react@19.2.4)
       '@luckyfishes/markdown-core':
-        specifier: 0.2.1
-        version: 0.2.1
+        specifier: 0.2.2
+        version: 0.2.2
       '@prisma/adapter-pg':
         specifier: ^7.8.0
         version: 7.8.0
@@ -1109,8 +1109,8 @@ packages:
   '@kurkle/color@0.3.4':
     resolution: {integrity: sha512-M5UknZPHRu3DEDWoipU6sE8PdkZ6Z/S+v4dD+Ke8IaNlpdSQah50lz1KtcFBa2vsdOnwbbnxJwVM4wty6udA5w==}
 
-  '@luckyfishes/markdown-core@0.2.1':
-    resolution: {integrity: sha512-/CoCH0u5EVSgxCYOOWyV0srHIHUx3rAYoGfDLgODHrSudd5bH4nKr7ActkRcrho03xDMXtA3mMhZS+Bjl49TJw==}
+  '@luckyfishes/markdown-core@0.2.2':
+    resolution: {integrity: sha512-XZCWlIZU88eQJL3RAGwEXXSdCnkM99hTNqqBeOOB428tz9BSAbp+upvPucTfvh/BtHQhvgLqODITCA4e5c5HIw==}
 
   '@mermaid-js/parser@1.1.0':
     resolution: {integrity: sha512-gxK9ZX2+Fex5zu8LhRQoMeMPEHbc73UKZ0FQ54YrQtUxE1VVhMwzeNtKRPAu5aXks4FasbMe4xB4bWrmq6Jlxw==}
@@ -7399,7 +7399,7 @@ snapshots:
 
   '@kurkle/color@0.3.4': {}
 
-  '@luckyfishes/markdown-core@0.2.1':
+  '@luckyfishes/markdown-core@0.2.2':
     dependencies:
       github-slugger: 2.0.0
       gray-matter: 4.0.3

@@ -207,6 +207,36 @@ function rehypeExtractMermaid() {
   };
 }
 
+function rehypeNormalizeAnchors() {
+  return (tree: import("hast").Root) => {
+    visit(tree, "element", (node: any, _index, parent: any) => {
+      const properties = node?.properties;
+
+      if (typeof properties?.id === "string") {
+        properties.id = properties.id.replace(
+          /^user-content-user-content-/,
+          "user-content-",
+        );
+      }
+
+      if (typeof properties?.href === "string") {
+        properties.href = properties.href.replace(
+          /^#user-content-user-content-/,
+          "#user-content-",
+        );
+      }
+
+      if (
+        node?.tagName === "a" &&
+        /^h[1-6]$/.test(parent?.tagName ?? "") &&
+        typeof parent?.properties?.id === "string"
+      ) {
+        properties.href = `#${parent.properties.id}`;
+      }
+    });
+  };
+}
+
 function remarkAlert() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return (tree: any) => {
@@ -332,6 +362,7 @@ export function MarkdownRenderer({
       },
     ],
     [rehypeSanitize, sanitizeSchema],
+    rehypeNormalizeAnchors,
     rehypeHighlight,
     rehypeKatex,
   ];

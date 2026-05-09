@@ -180,3 +180,51 @@ Regular paragraph after the broken block.
     assert.match(html, /Regular paragraph after the broken block\./);
   });
 });
+
+test("markdown renderer keeps footnotes referenced inside tabs and preserves link targets", async () => {
+  const { MarkdownRenderer } = await import("@/components/markdown-renderer");
+  const html = renderToStaticMarkup(
+    <I18nProvider dictionary={en} locale="en">
+      <MarkdownRenderer
+        markdown={`
+Outside footnote[^outside]
+
+::tabs
+tabs: ["One", "Two"]
+
+---
+Inside first tab[^tab-one]
+
+---
+Inside second tab[^tab-two]
+::
+
+[^outside]: outside note
+[^tab-one]: first tab note
+[^tab-two]: second tab note
+`}
+      />
+    </I18nProvider>,
+  );
+
+  assert.match(html, /id="user-content-fnref-outside"/);
+  assert.match(html, /id="user-content-fnref-tab-one"/);
+  assert.match(html, /id="user-content-fn-outside"/);
+  assert.match(html, /id="user-content-fn-tab-one"/);
+  assert.match(html, /id="user-content-fn-tab-two"/);
+  assert.match(html, /href="#user-content-fn-outside"/);
+  assert.match(html, /href="#user-content-fnref-tab-two"/);
+  assert.doesNotMatch(html, /user-content-user-content-/);
+});
+
+test("markdown renderer aligns heading anchor hrefs with generated ids", async () => {
+  const { MarkdownRenderer } = await import("@/components/markdown-renderer");
+  const html = renderToStaticMarkup(
+    <I18nProvider dictionary={en} locale="en">
+      <MarkdownRenderer markdown={"# Title\n\n## Section"} />
+    </I18nProvider>,
+  );
+
+  assert.match(html, /<h1 id="user-content-title">Title<a class="" aria-label="Link to section" href="#user-content-title">/);
+  assert.match(html, /<h2 id="user-content-section">Section<a class="" aria-label="Link to section" href="#user-content-section">/);
+});
