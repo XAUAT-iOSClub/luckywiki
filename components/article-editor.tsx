@@ -3,7 +3,17 @@
 import type { ChangeEvent, ClipboardEvent } from "react";
 import { useActionState, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ImageUp, Loader2, Eye, Edit3, Hash, Link2, FileText, User } from "lucide-react";
+import {
+  ImageUp,
+  Loader2,
+  Eye,
+  Edit3,
+  Hash,
+  Link2,
+  FileText,
+  Type,
+  User,
+} from "lucide-react";
 import { ArticleStatus } from "@/generated/prisma/enums";
 import { MarkdownRenderer } from "@/components/markdown-renderer";
 import { SubmitButton } from "@/components/submit-button";
@@ -46,6 +56,7 @@ export function ArticleEditor({
   const router = useRouter();
   const [state, formAction] = useActionState(action, initialState);
   const t = useT();
+  const [title, setTitle] = useState(initialValues?.title ?? "");
   const [path, setPath] = useState(initialValues?.path ?? "");
   const [description, setDescription] = useState(initialValues?.description ?? "");
   const [tags, setTags] = useState(initialValues?.tags.join(", ") ?? "");
@@ -165,7 +176,28 @@ export function ArticleEditor({
   return (
     <form action={formAction} className="flex flex-col gap-8">
       {/* Top Metadata Bar - Horizontal Layout */}
-      <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 p-6 rounded-[2rem] border border-border/40 bg-white/40 dark:bg-zinc-900/40 backdrop-blur-xl shadow-sm">
+      <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 p-6 rounded-[2rem] border border-border/40 bg-white/40 dark:bg-zinc-900/40 backdrop-blur-xl shadow-sm">
+        <div className="flex flex-col gap-1.5 md:col-span-2 lg:col-span-1">
+          <Label
+            htmlFor="title"
+            className="ml-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/70"
+          >
+            {t.common.title}
+          </Label>
+          <div className="relative">
+            <Type className="absolute left-3 top-1/2 size-3 -translate-y-1/2 text-muted-foreground/50" />
+            <Input
+              required
+              id="title"
+              name="title"
+              onChange={(event) => setTitle(event.target.value)}
+              placeholder={t.common.title}
+              value={title}
+              className="h-9 rounded-xl border-border/50 bg-background/50 pl-8 text-xs"
+            />
+          </div>
+        </div>
+
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="status" className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/70 ml-1">
             {t.common.status}
