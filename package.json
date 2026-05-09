@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "test": "tsx --test tests/**/*.test.ts tests/**/*.test.tsx",
+    "articles:migrate": "tsx scripts/migrate-articles-markdown.ts",
     "articles:import-images": "tsx scripts/import-article-images.ts",
     "articles:import": "tsx scripts/import-articles.ts",
     "agent:index": "tsx scripts/reindex-agent.ts",
