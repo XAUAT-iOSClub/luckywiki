@@ -169,11 +169,11 @@
   }
 
   .surface-panel {
-    @apply rounded-[2.5rem] border border-border/40 bg-white/70 p-8 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.08)] backdrop-blur-2xl transition-all duration-300;
+    @apply md:rounded-[2.5rem]! md:border md:border-border/40 md:bg-white/70 md:p-8 md:shadow-[0_32px_64px_-16px_rgba(0,0,0,0.08)] backdrop-blur-2xl transition-all duration-300;
   }
 
   .dark .surface-panel {
-    @apply border-white/5 bg-zinc-900/50 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.4)];
+    @apply md:border-white/5 md:bg-zinc-900/50 md:shadow-[0_32px_64px_-16px_rgba(0,0,0,0.4)];
   }
 
   .apple-blur {

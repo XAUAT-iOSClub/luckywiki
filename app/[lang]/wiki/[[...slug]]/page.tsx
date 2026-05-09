@@ -83,33 +83,21 @@ export default async function WikiArticlePage({
   const articleHref = buildWikiHref(article.path, lang);
   const publishedDate = article.publishedAt
     ? formatDate(lang, article.publishedAt, {
-        month: "long",
-        day: "numeric",
-        year: "numeric",
-      })
+      month: "long",
+      day: "numeric",
+      year: "numeric",
+    })
     : null;
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-10 md:px-8 lg:px-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="flex flex-col gap-10">
         <header className="space-y-6 max-w-5xl">
-          <div className="space-y-4">
-            <Badge variant="secondary" className="rounded-full px-3 py-1 text-[10px] uppercase tracking-widest font-bold bg-primary/10 text-primary border-none">
-              {dictionary.wiki.articleBadge}
-            </Badge>
-            <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-balance text-foreground">
-              {article.title}
-            </h1>
-          </div>
+          <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-balance text-foreground">
+            {article.title}
+          </h1>
 
           <div className="flex flex-wrap items-center gap-6 text-sm text-muted-foreground">
-            <div className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted/50">
-                <User className="h-4 w-4" />
-              </div>
-              <span className="font-medium">{article.author.name}</span>
-            </div>
-
             {publishedDate ? (
               <div className="flex items-center gap-2">
                 <Calendar className="h-4 w-4" />
@@ -117,16 +105,19 @@ export default async function WikiArticlePage({
               </div>
             ) : null}
 
-            <div className="flex items-center gap-2">
-              <Hash className="h-4 w-4" />
-              <code className="bg-muted/50 px-2 py-0.5 rounded text-xs">{article.path || dictionary.common.root}</code>
-            </div>
+            {article.tags.length > 0 ? (
+              article.tags.map((tag) => (
+                <Badge key={tag} variant="secondary">
+                  {tag}
+                </Badge>
+              ))
+            ) : null}
           </div>
         </header>
 
         <div className="grid grid-cols-1 gap-10 lg:grid-cols-[1fr_250px]">
           <div className="min-w-0">
-            <article className="surface-panel !p-8 md:!p-12 !rounded-[2.5rem] shadow-xl shadow-black/5 dark:shadow-black/20 border-border/40 overflow-hidden">
+            <article className="surface-panel md:p-12! md:shadow-xl shadow-black/5 dark:shadow-black/20 border-border/40 overflow-hidden">
               <MarkdownRenderer
                 linkToSectionLabel={dictionary.common.linkToSection}
                 markdown={article.markdown}
