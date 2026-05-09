@@ -1,4 +1,5 @@
 import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { put } from "@vercel/blob";
 
 const defaultMaxImageUploadBytes = 5 * 1024 * 1024;
 const defaultAltText = "image";
@@ -40,6 +41,16 @@ export type ImageHostingConfig = {
   region: string;
   secretAccessKey: string;
 };
+
+type ImageHostingProviderConfig =
+  | {
+      pathPrefix?: string;
+      provider: "vercel-blob";
+      token: string;
+    }
+  | ({
+      provider: "s3";
+    } & ImageHostingConfig);
 
 type BuildImageObjectKeyOptions = {
   id?: string;
@@ -134,9 +145,24 @@ export async function uploadImageFile(file: File): Promise<UploadedImage> {
   const key = buildImageObjectKey(file.name, file.type, {
     pathPrefix: config.pathPrefix,
   });
-  const client = getS3Client(config);
 
   try {
+    if (config.provider === "vercel-blob") {
+      const uploadedBlob = await put(key, file, {
+        access: "public",
+        addRandomSuffix: false,
+        cacheControlMaxAge: 31536000,
+        contentType: file.type,
+        token: config.token,
+      });
+
+      return {
+        key: uploadedBlob.pathname,
+        url: uploadedBlob.url,
+      };
+    }
+
+    const client = getS3Client(config);
     await client.send(
       new PutObjectCommand({
         Body: Buffer.from(await file.arrayBuffer()),
@@ -180,13 +206,24 @@ function validateImageFile(file: File) {
   }
 }
 
-function getImageHostingConfig(): ImageHostingConfig {
+function getImageHostingConfig(): ImageHostingProviderConfig {
+  const vercelBlobToken = normalizeOptionalEnv("BLOB_READ_WRITE_TOKEN");
+
+  if (vercelBlobToken) {
+    return {
+      pathPrefix: normalizeOptionalEnv("IMAGE_HOSTING_PATH_PREFIX"),
+      provider: "vercel-blob",
+      token: vercelBlobToken,
+    };
+  }
+
   return {
     accessKeyId: getRequiredEnv("IMAGE_HOSTING_ACCESS_KEY_ID"),
     bucket: getRequiredEnv("IMAGE_HOSTING_BUCKET"),
     endpoint: normalizeOptionalEnv("IMAGE_HOSTING_ENDPOINT"),
     pathPrefix: normalizeOptionalEnv("IMAGE_HOSTING_PATH_PREFIX"),
     publicUrlBase: normalizeOptionalEnv("IMAGE_HOSTING_PUBLIC_URL_BASE"),
+    provider: "s3",
     region: getRequiredEnv("IMAGE_HOSTING_REGION"),
     secretAccessKey: getRequiredEnv("IMAGE_HOSTING_SECRET_ACCESS_KEY"),
   };
@@ -198,7 +235,7 @@ function getRequiredEnv(name: string) {
   if (!value) {
     throw new ImageUploadError(
       "UPLOAD_NOT_CONFIGURED",
-      `Missing required image hosting environment variable: ${name}.`,
+      "Image hosting is not configured. Set BLOB_READ_WRITE_TOKEN for Vercel Blob, or configure the IMAGE_HOSTING_* variables for an S3-compatible provider.",
       500,
     );
   }

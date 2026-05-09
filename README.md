@@ -22,9 +22,25 @@ This project uses [`next/font`](https://nextjs.org/docs/app/building-your-applic
 
 ## Image Hosting
 
-The admin article editor can upload images to an S3-compatible image host and insert the Markdown image link automatically.
+The admin article editor can upload images and insert the Markdown image link automatically.
 
-Set these server-side environment variables before using it:
+### Vercel Blob
+
+If you use Vercel Blob, set this server-side environment variable:
+
+```bash
+BLOB_READ_WRITE_TOKEN=vercel_blob_rw_xxx
+
+# Optional object key prefix inside the blob store.
+IMAGE_HOSTING_PATH_PREFIX=wiki-assets
+
+# Optional upload size limit in bytes. Defaults to 5242880 (5 MB).
+IMAGE_UPLOAD_MAX_BYTES=5242880
+```
+
+### S3-Compatible Providers
+
+If you use AWS S3, Cloudflare R2, MinIO, or another S3-compatible provider, set these variables instead:
 
 ```bash
 IMAGE_HOSTING_BUCKET=your-bucket
@@ -48,7 +64,8 @@ IMAGE_UPLOAD_MAX_BYTES=5242880
 Notes:
 
 - Uploads are restricted to root admins in the LuckyWiki admin area.
-- The bucket or CDN origin must be publicly readable, otherwise uploaded Markdown image URLs will not render.
+- Vercel Blob uses `BLOB_READ_WRITE_TOKEN` and does not need the S3-style `IMAGE_HOSTING_*` credentials.
+- S3-compatible buckets or CDN origins must be publicly readable, otherwise uploaded Markdown image URLs will not render.
 - If your storage endpoint is private or internal, set `IMAGE_HOSTING_PUBLIC_URL_BASE` to the public CDN/domain that serves the uploaded files.
 
 ## Wiki Agent
