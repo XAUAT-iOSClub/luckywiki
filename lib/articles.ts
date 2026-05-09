@@ -1,8 +1,7 @@
-import { cache } from "react";
 import { ArticleStatus, CommentStatus } from "@/generated/prisma/enums";
 import { prisma } from "@/lib/prisma";
 
-export const listPublishedArticleTreeData = cache(async () => {
+export async function listPublishedArticleTreeData() {
   return prisma.article.findMany({
     where: {
       status: ArticleStatus.PUBLISHED,
@@ -15,9 +14,9 @@ export const listPublishedArticleTreeData = cache(async () => {
       path: "asc",
     },
   });
-});
+}
 
-export const getPublishedArticleByPath = cache(async (path: string) => {
+export async function getPublishedArticleByPath(path: string) {
   return prisma.article.findFirst({
     where: {
       path,
@@ -46,7 +45,7 @@ export const getPublishedArticleByPath = cache(async (path: string) => {
       },
     },
   });
-});
+}
 
 export async function listAdminArticles(options?: {
   page?: number;

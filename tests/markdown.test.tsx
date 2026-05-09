@@ -104,3 +104,32 @@ Card content
   assert.match(html, /data-mdx-name="Card"/);
   assert.match(html, /custom-class/);
 });
+
+test("markdown renderer preserves explicit tabs labels", async () => {
+  const { MarkdownRenderer } = await import("@/components/markdown-renderer");
+  const html = renderToStaticMarkup(
+    <I18nProvider dictionary={en} locale="en">
+      <MarkdownRenderer
+        markdown={`
+::tabs
+tabs: ["社团官网", "iOS 社团AI", "建大Wiki/百科"]
+
+---
+第一屏
+
+---
+第二屏
+
+---
+第三屏
+::
+`}
+      />
+    </I18nProvider>,
+  );
+
+  assert.match(html, /社团官网/);
+  assert.match(html, /iOS 社团AI/);
+  assert.match(html, /建大Wiki\/百科/);
+  assert.doesNotMatch(html, /Tab 1/);
+});

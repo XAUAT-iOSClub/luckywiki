@@ -24,13 +24,152 @@ import { visit } from "unist-util-visit";
 const remarkRehypeOptions = {
   passThrough: ["mdxJsxFlowElement", "mdxJsxTextElement"] as never[],
 };
-const remarkPlugins: NonNullable<ReactMarkdownOptions["remarkPlugins"]> = [
-  remarkAlert,
-  createCustomSyntaxRemarkPlugin,
-  [remarkGfm, { singleTilde: false }],
-  remarkMath,
-  remarkSuperSub,
-];
+
+function extractTabsLabelBlocks(markdown: string) {
+  const blocks: string[][] = [];
+  const lines = markdown.split(/\r?\n/);
+  let index = 0;
+
+  while (index < lines.length) {
+    const line = lines[index]?.trim() ?? "";
+
+    if (line !== "::tabs") {
+      index += 1;
+      continue;
+    }
+
+    index += 1;
+    const yamlLines: string[] = [];
+
+    while (index < lines.length) {
+      const current = lines[index]?.trim() ?? "";
+
+      if (current === "---" || current === "::") {
+        break;
+      }
+
+      yamlLines.push(lines[index] ?? "");
+      index += 1;
+    }
+
+    blocks.push(parseTabsLabelsFromYaml(yamlLines.join("\n")));
+
+    while (index < lines.length && (lines[index]?.trim() ?? "") !== "::") {
+      index += 1;
+    }
+
+    if ((lines[index]?.trim() ?? "") === "::") {
+      index += 1;
+    }
+  }
+
+  return blocks;
+}
+
+function parseTabsLabelsFromYaml(yamlSource: string) {
+  const labels: string[] = [];
+  const lines = yamlSource.split(/\r?\n/);
+  let inTabsList = false;
+
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+
+    if (!line) {
+      continue;
+    }
+
+    if (line.startsWith("tabs:")) {
+      const inlineArrayMatch = line.match(/^tabs:\s*\[(.*)\]\s*$/);
+
+      if (inlineArrayMatch) {
+        const values = inlineArrayMatch[1] ?? "";
+        const matches =
+          values.match(/"((?:[^"\\]|\\.)*)"|'((?:[^'\\]|\\.)*)'|([^,]+)/g) ?? [];
+
+        for (const match of matches) {
+          const value = match
+            .trim()
+            .replace(/^['"]|['"]$/g, "")
+            .trim();
+          if (value) {
+            labels.push(value);
+          }
+        }
+
+        inTabsList = false;
+        continue;
+      }
+
+      inTabsList = true;
+      continue;
+    }
+
+    if (inTabsList && /^-\s+/.test(line)) {
+      const value = line.replace(/^-\s+/, "").replace(/^['"]|['"]$/g, "").trim();
+      if (value) {
+        labels.push(value);
+      }
+      continue;
+    }
+
+    if (inTabsList && /^[A-Za-z][\w-]*:/.test(line)) {
+      inTabsList = false;
+    }
+  }
+
+  return labels;
+}
+
+function remarkFixTabsLabels(markdown: string) {
+  const tabLabelBlocks = extractTabsLabelBlocks(markdown);
+
+  return (tree: unknown) => {
+    if (!tree || typeof tree !== "object") {
+      return;
+    }
+
+    let blockIndex = 0;
+
+    visit(tree as Parameters<typeof visit>[0], "mdxJsxFlowElement", (node: any) => {
+      if (node?.name !== "Tabs") {
+        return;
+      }
+
+      const labels = tabLabelBlocks[blockIndex] ?? [];
+      blockIndex += 1;
+
+      if (labels.length === 0) {
+        return;
+      }
+
+      let triggerIndex = 0;
+
+      const walk = (current: any) => {
+        if (!current || triggerIndex >= labels.length) {
+          return;
+        }
+
+        if (
+          current.type === "mdxJsxFlowElement" &&
+          current.name === "TabsTrigger"
+        ) {
+          const label = labels[triggerIndex];
+          if (label) {
+            current.children = [{ type: "text", value: label }];
+          }
+          triggerIndex += 1;
+          return;
+        }
+
+        if (Array.isArray(current.children)) {
+          current.children.forEach(walk);
+        }
+      };
+
+      walk(node);
+    });
+  };
+}
 
 function rehypeExtractMermaid() {
   return (tree: import("hast").Root) => {
@@ -183,6 +322,14 @@ export function MarkdownRenderer({
     [rehypeSanitize, sanitizeSchema],
     rehypeHighlight,
     rehypeKatex,
+  ];
+  const remarkPlugins: NonNullable<ReactMarkdownOptions["remarkPlugins"]> = [
+    remarkAlert,
+    createCustomSyntaxRemarkPlugin,
+    [remarkFixTabsLabels, markdown],
+    [remarkGfm, { singleTilde: false }],
+    remarkMath,
+    remarkSuperSub,
   ];
 
   return (
