@@ -68,6 +68,17 @@ Notes:
 - S3-compatible buckets or CDN origins must be publicly readable, otherwise uploaded Markdown image URLs will not render.
 - If your storage endpoint is private or internal, set `IMAGE_HOSTING_PUBLIC_URL_BASE` to the public CDN/domain that serves the uploaded files.
 
+## Article Image Import
+
+When importing Markdown articles from disk, run the image pass first so local image references are converted to WebP, uploaded, and rewritten in place:
+
+```bash
+npm run articles:import-images -- articles
+npm run articles:import -- articles
+```
+
+Use `--dry-run` on either command to preview without writing files.
+
 ## Wiki Agent
 
 The wiki agent answers questions only from published wiki content and links back to the relevant articles.
