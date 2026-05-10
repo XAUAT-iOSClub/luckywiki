@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { startTransition, useEffect, useMemo, useRef, useState } from "react";
-import { Loader2, RefreshCcw, Send, Sparkles } from "lucide-react";
+import { Cpu, Loader2, RefreshCcw, Send, Sparkles } from "lucide-react";
 import { MarkdownRenderer } from "@/components/markdown-renderer";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { buildWikiHref } from "@/lib/wiki/path";
 import { useLocale, useT } from "@/lib/i18n/provider";
+import type { AgentToolCallEvent } from "@/types/agent";
 
 type AgentSource = {
   path: string;
@@ -20,6 +21,7 @@ type AgentMessage = {
   role: "user" | "assistant";
   content: string;
   sources?: AgentSource[];
+  toolCalls?: AgentToolCallEvent[];
 };
 
 const storageKeyPrefix = "luckywiki-agent:";
@@ -80,6 +82,7 @@ export function WikiAgent() {
         role: "assistant" as const,
         content: "",
         sources: [],
+        toolCalls: [],
       },
     ];
 
@@ -135,6 +138,20 @@ export function WikiAgent() {
                   ? {
                       ...message,
                       content: message.content + delta,
+                    }
+                  : message,
+              ),
+            );
+          });
+        },
+        onToolCall: (event) => {
+          startTransition(() => {
+            setMessages((current) =>
+              current.map((message) =>
+                message.id === assistantId
+                  ? {
+                      ...message,
+                      toolCalls: [...(message.toolCalls ?? []), event],
                     }
                   : message,
               ),
@@ -254,6 +271,20 @@ export function WikiAgent() {
                 )}
               </div>
 
+              {message.role === "assistant" && message.toolCalls && message.toolCalls.length > 0 ? (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {message.toolCalls.map((call, index) => (
+                    <span
+                      key={`${call.name}-${index}`}
+                      className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/5 px-3 py-1.5 text-xs font-medium text-primary"
+                    >
+                      <Cpu className="h-3.5 w-3.5" />
+                      {call.summary ? `${call.label}: ${call.summary}` : call.label}
+                    </span>
+                  ))}
+                </div>
+              ) : null}
+
               {message.role === "assistant" && message.sources && message.sources.length > 0 ? (
                 <div className="mt-3 flex flex-wrap gap-2">
                   {message.sources.map((source) => (
@@ -336,6 +367,7 @@ async function readAgentEventStream(
     onDelta: (delta: string) => void;
     onMessage: (message: string) => void;
     onError: (message: string) => void;
+    onToolCall?: (event: AgentToolCallEvent) => void;
   },
 ) {
   const reader = stream.getReader();
@@ -372,6 +404,9 @@ async function readAgentEventStream(
         text?: string;
         message?: string;
         sources?: AgentSource[];
+        name?: string;
+        label?: string;
+        summary?: string;
       };
 
       if (eventName === "sources") {
@@ -384,6 +419,14 @@ async function readAgentEventStream(
 
       if (eventName === "message" && payload.text) {
         handlers.onMessage(payload.text);
+      }
+
+      if (eventName === "tool" && payload.name && payload.label) {
+        handlers.onToolCall?.({
+          name: payload.name,
+          label: payload.label,
+          summary: payload.summary ?? "",
+        });
       }
 
       if (eventName === "error") {

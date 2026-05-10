@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import type { Locale } from "@/lib/i18n/config";
 import type { Dictionary } from "@/lib/i18n/get-dictionary";
-import type { AgentChatMessage, AgentSource, RetrievedAgentChunk } from "@/types/agent";
+import type { AgentChatMessage, AgentSource, AgentToolCallEvent, RetrievedAgentChunk } from "@/types/agent";
 
 const agentRequestSchema = z.object({
   locale: z.enum(["zh", "en"]),
@@ -28,6 +28,7 @@ export async function createAgentRouteResponse(
       context: RetrievedAgentChunk[];
       messages: AgentChatMessage[];
       onDelta: (delta: string) => void;
+      onToolCall?: (event: AgentToolCallEvent) => void;
       signal?: AbortSignal;
     }) => Promise<void>;
   },
@@ -83,6 +84,9 @@ export async function createAgentRouteResponse(
           messages,
           onDelta(delta) {
             sendEvent("delta", { text: delta });
+          },
+          onToolCall(event) {
+            sendEvent("tool", event);
           },
           signal: request.signal,
         });

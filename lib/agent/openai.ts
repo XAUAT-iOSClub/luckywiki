@@ -1,9 +1,9 @@
 import { ChatOpenAI } from "@langchain/openai";
 import { createAgent as createLangChainAgent } from "langchain";
-import type { AgentChatMessage, StreamAgentAnswerInput } from "@/types/agent";
+import type { AgentChatMessage, AgentToolCallEvent, StreamAgentAnswerInput } from "@/types/agent";
 import { createWikiAgentTools } from "@/lib/agent/tools";
 
-export type { AgentChatMessage, StreamAgentAnswerInput } from "@/types/agent";
+export type { AgentChatMessage, AgentToolCallEvent, StreamAgentAnswerInput } from "@/types/agent";
 
 const defaultApiBaseUrl = "https://api.openai.com/v1";
 const defaultResponsesModel = "gpt-4.1-mini";
@@ -52,6 +52,93 @@ export async function embedTexts(texts: string[], signal?: AbortSignal) {
   return payload.data.map((entry) => entry.embedding);
 }
 
+const TOOL_LABELS: Record<string, string> = {
+  search_wiki_knowledge: "搜索 Wiki 知识库",
+  get_wiki_article_details: "获取文章详情",
+  search_wiki_paths: "搜索 Wiki 路径",
+  list_recent_wiki_articles: "列出最近更新",
+  get_related_wiki_articles: "查找相关文章",
+  list_wiki_categories: "浏览 Wiki 分类",
+};
+
+function buildToolCallSummary(name: string, content: string): string {
+  try {
+    const data = JSON.parse(content) as Record<string, unknown>;
+
+    switch (name) {
+      case "search_wiki_knowledge": {
+        const chunks = Array.isArray(data.chunks) ? data.chunks : [];
+        const sources = Array.isArray(data.sources) ? data.sources : [];
+        const count = chunks.length || sources.length;
+
+        return count > 0 ? `找到 ${count} 篇相关文章` : "未找到相关文章";
+      }
+      case "get_wiki_article_details":
+        if (data.found && data.article && typeof data.article === "object") {
+          const article = data.article as { title?: string };
+
+          return `获取文章: ${article.title ?? String(data.path ?? "")}`;
+        }
+
+        return `未找到文章: ${String(data.path ?? "")}`;
+      case "search_wiki_paths": {
+        const matches = Array.isArray(data.matches) ? data.matches : [];
+
+        return `找到 ${matches.length} 个匹配路径`;
+      }
+      case "list_recent_wiki_articles": {
+        const articles = Array.isArray(data.articles) ? data.articles : [];
+
+        return `列出 ${articles.length} 篇最近文章`;
+      }
+      case "get_related_wiki_articles": {
+        const articles = Array.isArray(data.articles) ? data.articles : [];
+
+        return `找到 ${articles.length} 篇相关文章`;
+      }
+      case "list_wiki_categories": {
+        const categories = Array.isArray(data.categories) ? data.categories : [];
+
+        return `列出 ${categories.length} 个分类`;
+      }
+      default:
+        return "";
+    }
+  } catch {
+    return "";
+  }
+}
+
+function extractToolCallInfo(chunk: unknown): AgentToolCallEvent | null {
+  if (Array.isArray(chunk)) {
+    for (const item of chunk) {
+      const info = extractToolCallInfo(item);
+
+      if (info) {
+        return info;
+      }
+    }
+
+    return null;
+  }
+
+  if (!chunk || typeof chunk !== "object") {
+    return null;
+  }
+
+  const obj = chunk as Record<string, unknown>;
+
+  if (typeof obj.tool_call_id === "string" && typeof obj.name === "string") {
+    const label = TOOL_LABELS[obj.name] ?? obj.name;
+    const content = typeof obj.content === "string" ? obj.content : "";
+    const summary = buildToolCallSummary(obj.name, content);
+
+    return { name: obj.name, label, summary };
+  }
+
+  return null;
+}
+
 export async function streamAgentAnswer(
   input: StreamAgentAnswerInput,
   runtime: WikiAgentRuntime = defaultWikiAgentRuntime,
@@ -72,6 +159,13 @@ export async function streamAgentAnswer(
   );
 
   for await (const chunk of stream) {
+    const toolInfo = extractToolCallInfo(chunk);
+
+    if (toolInfo) {
+      input.onToolCall?.(toolInfo);
+      continue;
+    }
+
     const text = extractTextChunk(chunk);
 
     if (text) {
@@ -179,10 +273,11 @@ function extractTextChunk(chunk: unknown): string {
     return "";
   }
 
-  const value = chunk as {
-    content?: unknown;
-    text?: unknown;
-  };
+  const value = chunk as Record<string, unknown>;
+
+  if (typeof value.tool_call_id === "string") {
+    return "";
+  }
 
   if (typeof value.text === "string") {
     return value.text;

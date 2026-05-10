@@ -16,6 +16,12 @@ export type RetrievedAgentChunk = AgentSource & {
   score: number;
 };
 
+export type AgentToolCallEvent = {
+  name: string;
+  label: string;
+  summary: string;
+};
+
 export type StreamAgentAnswerInput = {
   locale: AgentLocale;
   context: Array<{
@@ -26,5 +32,6 @@ export type StreamAgentAnswerInput = {
   }>;
   messages: AgentChatMessage[];
   onDelta: (delta: string) => void;
+  onToolCall?: (event: AgentToolCallEvent) => void;
   signal?: AbortSignal;
 };
