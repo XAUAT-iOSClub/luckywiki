@@ -2,7 +2,7 @@ import "dotenv/config";
 import {
   importArticleImagesFromDirectory,
   parseArticleImageImportCliArgs,
-} from "../lib/article-image-import";
+} from "../lib/articles/image-import";
 
 async function main() {
   const options = parseArticleImageImportCliArgs(process.argv.slice(2));

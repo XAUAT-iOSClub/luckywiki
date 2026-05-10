@@ -1,6 +1,6 @@
 import "dotenv/config";
 import { prisma } from "../lib/prisma";
-import { reindexAllPublishedArticleEmbeddings } from "../lib/agent-index";
+import { reindexAllPublishedArticleEmbeddings } from "../lib/agent/index";
 
 async function main() {
   const results = await reindexAllPublishedArticleEmbeddings();

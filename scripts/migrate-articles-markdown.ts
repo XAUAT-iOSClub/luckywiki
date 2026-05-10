@@ -1,4 +1,4 @@
-import { migrateArticlesDirectory } from "../lib/article-markdown-migrate";
+import { migrateArticlesDirectory } from "../lib/articles/markdown-migrate";
 
 async function main() {
   const directory = process.argv[2] ?? "articles";

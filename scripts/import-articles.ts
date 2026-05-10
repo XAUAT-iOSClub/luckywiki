@@ -1,12 +1,12 @@
 import "dotenv/config";
-import { reindexAllPublishedArticleEmbeddings } from "../lib/agent-index";
+import { reindexAllPublishedArticleEmbeddings } from "../lib/agent/index";
 import { prisma } from "../lib/prisma";
 import {
   importArticlesFromDirectory,
   parseImportCliArgs,
   type CreateImportArticleInput,
   type UpdateImportArticleInput,
-} from "../lib/article-import";
+} from "../lib/articles/import";
 
 async function main() {
   const options = parseImportCliArgs(process.argv.slice(2));

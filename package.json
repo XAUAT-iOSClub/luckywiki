@@ -11,6 +11,7 @@
     "articles:migrate": "tsx scripts/migrate-articles-markdown.ts",
     "articles:import-images": "tsx scripts/import-article-images.ts",
     "articles:import": "tsx scripts/import-articles.ts",
+    "articles:transform-links": "tsx scripts/transform-internal-links.ts articles",
     "agent:index": "tsx scripts/reindex-agent.ts",
     "db:seed": "tsx prisma/seed.ts",
     "postinstall": "prisma generate"
