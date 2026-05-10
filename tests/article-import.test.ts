@@ -5,7 +5,7 @@ import {
   fallbackTitleForPath,
   mapRelativeFileToArticlePath,
   resolveImportArticle,
-} from "@/lib/article-import";
+} from "@/lib/articles/import";
 
 test("maps root index, nested index, and regular markdown files to wiki paths", () => {
   assert.equal(mapRelativeFileToArticlePath("index.md"), "");

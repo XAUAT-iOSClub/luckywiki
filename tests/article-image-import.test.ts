@@ -5,12 +5,12 @@ import os from "node:os";
 import path from "node:path";
 import sharp from "sharp";
 import { ArticleStatus } from "@/generated/prisma/enums";
-import { importArticlesFromDirectory } from "@/lib/article-import";
+import { importArticlesFromDirectory } from "@/lib/articles/import";
 import {
   importArticleImagesFromDirectory,
   parseArticleImageImportCliArgs,
   rewriteMarkdownImages,
-} from "@/lib/article-image-import";
+} from "@/lib/articles/image-import";
 
 test("rewrites local markdown images and deduplicates uploads", async () => {
   const tempDir = await createTempArticleDirectory();

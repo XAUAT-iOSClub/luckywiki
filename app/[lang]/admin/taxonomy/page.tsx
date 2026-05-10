@@ -7,7 +7,7 @@ import { formatDateTime, formatNumber, formatTemplate } from "@/lib/i18n/format"
 import { getDictionary } from "@/lib/i18n/get-dictionary";
 import { hasLocale, localizeHref } from "@/lib/i18n/config";
 import { notFound } from "next/navigation";
-import { requireRootSession } from "@/lib/session";
+import { requireRootSession } from "@/lib/auth/session";
 
 type Params = Promise<{ lang: string }>;
 

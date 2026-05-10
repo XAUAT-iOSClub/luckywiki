@@ -3,7 +3,7 @@ import { ArticleStatus } from "@/generated/prisma/enums";
 import {
   type AgentChunkRepository,
   syncArticleEmbeddingsWithRepository,
-} from "@/lib/agent-index-core";
+} from "@/lib/agent/index-core";
 
 export async function syncArticleEmbeddingsForArticleId(articleId: string) {
   const article = await prisma.article.findUnique({

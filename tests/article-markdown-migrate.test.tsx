@@ -8,7 +8,7 @@ import {
   migrateArticlesDirectory,
   migrateHtmlArticle,
   migrateMarkdownArticle,
-} from "@/lib/article-markdown-migrate";
+} from "@/lib/articles/markdown-migrate";
 import { I18nProvider } from "@/lib/i18n/provider";
 import { en } from "@/lib/i18n/dictionaries/en";
 

@@ -1,20 +1,10 @@
 import { ArticleStatus } from "@/generated/prisma/enums";
-import { rankChunksBySimilarity } from "@/lib/agent-chunks";
-import { embedTexts } from "@/lib/agent-openai";
+import { rankChunksBySimilarity } from "@/lib/agent/chunks";
+import { embedTexts } from "@/lib/agent/openai";
 import { prisma } from "@/lib/prisma";
+import type { AgentSource, RetrievedAgentChunk } from "@/types/agent";
 
 const minimumRelevantScore = 0.35;
-
-export type AgentSource = {
-  path: string;
-  title: string;
-};
-
-export type RetrievedAgentChunk = AgentSource & {
-  heading: string | null;
-  content: string;
-  score: number;
-};
 
 export async function retrieveRelevantAgentChunks(query: string) {
   const [queryEmbedding] = await embedTexts([query]);

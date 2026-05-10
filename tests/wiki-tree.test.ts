@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { buildWikiTree } from "@/lib/wiki-tree";
+import { buildWikiTree } from "@/lib/wiki/tree";
 
 test("builds a virtual tree from paths", () => {
   const tree = buildWikiTree([

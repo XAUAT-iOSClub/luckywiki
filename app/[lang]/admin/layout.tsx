@@ -3,7 +3,7 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { AdminHeader } from "@/components/admin-header";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { hasLocale } from "@/lib/i18n/config";
-import { requireAuthorSession } from "@/lib/session";
+import { requireAuthorSession } from "@/lib/auth/session";
 
 type Params = Promise<{ lang: string }>;
 

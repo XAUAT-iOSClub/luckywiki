@@ -7,7 +7,7 @@ import { MarkdownRenderer } from "@/components/markdown-renderer";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { buildWikiHref } from "@/lib/wiki-path";
+import { buildWikiHref } from "@/lib/wiki/path";
 import { useLocale, useT } from "@/lib/i18n/provider";
 
 type AgentSource = {

@@ -9,7 +9,7 @@ import {
   type CreateImportArticleInput,
   type ExistingImportArticle,
   type UpdateImportArticleInput,
-} from "@/lib/article-import";
+} from "@/lib/articles/import";
 
 test("dry-run reports planned creates without writing to the repository", async () => {
   const tempDir = await createTempArticleDirectory();

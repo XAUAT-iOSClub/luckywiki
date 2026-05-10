@@ -1,4 +1,4 @@
-import { splitPath } from "@/lib/wiki-path";
+import { splitPath } from "@/lib/wiki/path";
 
 export type TreeArticle = {
   path: string;

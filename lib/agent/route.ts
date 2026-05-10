@@ -2,8 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import type { Locale } from "@/lib/i18n/config";
 import type { Dictionary } from "@/lib/i18n/get-dictionary";
-import type { AgentChatMessage } from "@/lib/agent-types";
-import type { AgentSource, RetrievedAgentChunk } from "@/lib/agent-search";
+import type { AgentChatMessage, AgentSource, RetrievedAgentChunk } from "@/types/agent";
 
 const agentRequestSchema = z.object({
   locale: z.enum(["zh", "en"]),

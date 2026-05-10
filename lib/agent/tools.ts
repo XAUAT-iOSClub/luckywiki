@@ -1,15 +1,14 @@
 import { tool } from "langchain";
 import { z } from "zod";
 import { ArticleStatus } from "@/generated/prisma/enums";
-import { buildArticleChunks } from "@/lib/agent-chunks";
-import type { AgentSource } from "@/lib/agent-search";
+import { buildArticleChunks } from "@/lib/agent/chunks";
 import {
   findSuggestedAgentSources,
   retrieveRelevantAgentChunks,
-  type RetrievedAgentChunk,
-} from "@/lib/agent-search";
+} from "@/lib/agent/search";
 import { prisma } from "@/lib/prisma";
 import { extractMarkdownDescription } from "@/lib/text";
+import type { AgentSource, RetrievedAgentChunk } from "@/types/agent";
 
 type PublishedArticleRecord = {
   id: string;

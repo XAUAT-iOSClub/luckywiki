@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { ArticleStatus } from "@/generated/prisma/enums";
-import { syncArticleEmbeddingsWithRepository } from "@/lib/agent-index-core";
+import { syncArticleEmbeddingsWithRepository } from "@/lib/agent/index-core";
 
 test("syncArticleEmbeddingsWithRepository replaces article chunks after markdown changes", async () => {
   const records = new Map<string, { content: string }[]>();

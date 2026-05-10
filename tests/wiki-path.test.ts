@@ -4,7 +4,7 @@ import {
   buildWikiHref,
   canonicalizePath,
   canonicalizeSlugSegments,
-} from "@/lib/wiki-path";
+} from "@/lib/wiki/path";
 
 test("canonicalizes mixed-case and Chinese paths", () => {
   assert.equal(canonicalizePath("/指南/Next-16/入门/"), "指南/next-16/入门");

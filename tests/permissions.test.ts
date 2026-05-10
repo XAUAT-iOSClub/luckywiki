@@ -10,7 +10,7 @@ import {
   canWriteArticles,
   isAuthorUser,
   isRootUser,
-} from "@/lib/permissions";
+} from "@/lib/auth/permissions";
 
 test("root users retain all privileged capabilities", () => {
   const root = { role: Role.ROOT, emailVerified: true };

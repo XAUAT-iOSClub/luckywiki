@@ -13,12 +13,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArticleStatus } from "@/generated/prisma/enums";
 import { getAdminDashboardData } from "@/lib/admin";
-import { buildWikiHref } from "@/lib/wiki-path";
+import { buildWikiHref } from "@/lib/wiki/path";
 import { formatDateTime, formatNumber, formatTemplate } from "@/lib/i18n/format";
 import { getDictionary } from "@/lib/i18n/get-dictionary";
 import { hasLocale, localizeHref } from "@/lib/i18n/config";
 import { notFound } from "next/navigation";
-import { requireRootSession } from "@/lib/session";
+import { requireRootSession } from "@/lib/auth/session";
 
 type Params = Promise<{ lang: string }>;
 

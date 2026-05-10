@@ -1,6 +1,6 @@
 import { ArticleStatus } from "@/generated/prisma/enums";
-import { buildArticleChunks, type ChunkableArticle } from "@/lib/agent-chunks";
-import { embedTexts, isAgentConfigured } from "@/lib/agent-openai";
+import { buildArticleChunks, type ChunkableArticle } from "@/lib/agent/chunks";
+import { embedTexts, isAgentConfigured } from "@/lib/agent/openai";
 
 export type AgentChunkRecord = {
   chunkIndex: number;

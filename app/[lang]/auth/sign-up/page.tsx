@@ -1,6 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { AuthForm } from "@/components/auth-form";
-import { getCurrentSession } from "@/lib/session";
+import { getCurrentSession } from "@/lib/auth/session";
 import { hasLocale, localizeHref } from "@/lib/i18n/config";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;

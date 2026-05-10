@@ -7,7 +7,7 @@ import {
   listWikiCategories,
   searchWikiKnowledge,
   searchWikiPaths,
-} from "@/lib/agent-tools";
+} from "@/lib/agent/tools";
 
 test("searchWikiKnowledge prefers semantic results when available", async () => {
   const result = await searchWikiKnowledge("校园卡", {

@@ -5,7 +5,7 @@ import { ArticleStatus } from "@/generated/prisma/enums";
 import { setArticleStatusAction } from "@/app/actions/admin";
 import { listAdminTaxonomy } from "@/lib/admin";
 import { listAdminArticles } from "@/lib/articles";
-import { buildWikiHref } from "@/lib/wiki-path";
+import { buildWikiHref } from "@/lib/wiki/path";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";

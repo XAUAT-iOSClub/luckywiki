@@ -12,9 +12,9 @@ import { getPublishedArticleByPath } from "@/lib/articles";
 import { getDictionary } from "@/lib/i18n/get-dictionary";
 import { formatDate, formatNumber, formatTemplate } from "@/lib/i18n/format";
 import { hasLocale, localizeHref } from "@/lib/i18n/config";
-import { buildWikiHref, canonicalizeSlugSegments } from "@/lib/wiki-path";
-import { canComment } from "@/lib/permissions";
-import { getCurrentSession } from "@/lib/session";
+import { buildWikiHref, canonicalizeSlugSegments } from "@/lib/wiki/path";
+import { canComment } from "@/lib/auth/permissions";
+import { getCurrentSession } from "@/lib/auth/session";
 import { extractMarkdownDescription } from "@/lib/text";
 
 type Params = Promise<{ lang: string; slug?: string[] }>;

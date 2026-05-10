@@ -5,7 +5,7 @@ import {
   buildArticleChunks,
   cosineSimilarity,
   rankChunksBySimilarity,
-} from "@/lib/agent-chunks";
+} from "@/lib/agent/chunks";
 
 test("buildArticleChunks splits markdown by heading and preserves readable content", () => {
   const chunks = buildArticleChunks({

@@ -1,9 +1,9 @@
 import { ChatOpenAI } from "@langchain/openai";
 import { createAgent as createLangChainAgent } from "langchain";
-import type { AgentChatMessage, StreamAgentAnswerInput } from "@/lib/agent-types";
-import { createWikiAgentTools } from "@/lib/agent-tools";
+import type { AgentChatMessage, StreamAgentAnswerInput } from "@/types/agent";
+import { createWikiAgentTools } from "@/lib/agent/tools";
 
-export type { AgentChatMessage, StreamAgentAnswerInput } from "@/lib/agent-types";
+export type { AgentChatMessage, StreamAgentAnswerInput } from "@/types/agent";
 
 const defaultApiBaseUrl = "https://api.openai.com/v1";
 const defaultResponsesModel = "gpt-4.1-mini";

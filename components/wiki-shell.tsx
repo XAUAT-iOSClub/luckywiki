@@ -18,9 +18,9 @@ import { listPublishedArticleTreeData } from "@/lib/articles";
 import type { Locale } from "@/lib/i18n/config";
 import { hasLocale, localizeHref } from "@/lib/i18n/config";
 import { getDictionary } from "@/lib/i18n/get-dictionary";
-import { canAccessAdminShell } from "@/lib/permissions";
-import { getCurrentSession } from "@/lib/session";
-import { buildWikiTree } from "@/lib/wiki-tree";
+import { canAccessAdminShell } from "@/lib/auth/permissions";
+import { getCurrentSession } from "@/lib/auth/session";
+import { buildWikiTree } from "@/lib/wiki/tree";
 
 export async function WikiShell({
   lang,

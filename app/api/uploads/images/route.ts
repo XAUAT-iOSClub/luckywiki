@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { canWriteArticles } from "@/lib/permissions";
-import { getCurrentSession } from "@/lib/session";
+import { canWriteArticles } from "@/lib/auth/permissions";
+import { getCurrentSession } from "@/lib/auth/session";
 import {
   buildImageMarkdown,
   ImageUploadError,

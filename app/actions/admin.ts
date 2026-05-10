@@ -5,13 +5,13 @@ import { z } from "zod";
 import { ArticleStatus, CommentStatus, Role } from "@/generated/prisma/enums";
 import type { Locale } from "@/lib/i18n/config";
 import { locales, localizeHref } from "@/lib/i18n/config";
-import { safeSyncArticleEmbeddingsForArticleId } from "@/lib/agent-index";
+import { safeSyncArticleEmbeddingsForArticleId } from "@/lib/agent/index";
 import { getDictionary } from "@/lib/i18n/get-dictionary";
 import { prisma } from "@/lib/prisma";
-import { buildWikiHref, canonicalizePath } from "@/lib/wiki-path";
+import { buildWikiHref, canonicalizePath } from "@/lib/wiki/path";
 import { revalidateLocalizedPath } from "@/lib/i18n/revalidate";
-import { canChangeUserRole } from "@/lib/permissions";
-import { requireAuthorSession, requireRootSession } from "@/lib/session";
+import { canChangeUserRole } from "@/lib/auth/permissions";
+import { requireAuthorSession, requireRootSession } from "@/lib/auth/session";
 
 export type FormActionState = {
   error?: string;

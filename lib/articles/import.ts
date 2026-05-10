@@ -2,7 +2,7 @@ import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import matter from "gray-matter";
 import { ArticleStatus } from "@/generated/prisma/enums";
-import { canonicalizePath } from "@/lib/wiki-path";
+import { canonicalizePath } from "@/lib/wiki/path";
 
 const markdownExtension = ".md";
 const defaultRootEmail = "root@luckywiki.local";

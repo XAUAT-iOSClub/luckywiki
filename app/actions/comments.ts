@@ -5,7 +5,7 @@ import { z } from "zod";
 import type { Locale } from "@/lib/i18n/config";
 import { getDictionary } from "@/lib/i18n/get-dictionary";
 import { prisma } from "@/lib/prisma";
-import { requireVerifiedSession } from "@/lib/session";
+import { requireVerifiedSession } from "@/lib/auth/session";
 
 export type CommentActionState = {
   error?: string;

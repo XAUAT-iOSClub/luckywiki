@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createAgentRouteResponse } from "@/lib/agent-route";
+import { createAgentRouteResponse } from "@/lib/agent/route";
 import { zh } from "@/lib/i18n/dictionaries/zh";
 
 test("agent route streams model output with sources", async () => {

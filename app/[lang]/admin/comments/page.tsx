@@ -2,12 +2,12 @@ import Link from "next/link";
 import { CommentStatus } from "@/generated/prisma/enums";
 import { approveCommentAction, rejectCommentAction } from "@/app/actions/admin";
 import { listCommentsForModeration } from "@/lib/comments";
-import { buildWikiHref } from "@/lib/wiki-path";
+import { buildWikiHref } from "@/lib/wiki/path";
 import { formatDateTime, formatTemplate } from "@/lib/i18n/format";
 import { getDictionary } from "@/lib/i18n/get-dictionary";
 import { hasLocale, localizeHref } from "@/lib/i18n/config";
 import { notFound } from "next/navigation";
-import { requireRootSession } from "@/lib/session";
+import { requireRootSession } from "@/lib/auth/session";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 type Params = Promise<{ lang: string }>;

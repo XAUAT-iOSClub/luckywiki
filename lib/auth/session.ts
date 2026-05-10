@@ -7,7 +7,7 @@ import {
   canAccessAdminShell,
   canComment,
   canManageUsers,
-} from "@/lib/permissions";
+} from "@/lib/auth/permissions";
 
 export async function getCurrentSession() {
   return auth.api.getSession({

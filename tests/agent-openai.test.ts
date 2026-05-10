@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { streamAgentAnswer, type WikiAgentRuntime } from "@/lib/agent-openai";
+import { streamAgentAnswer, type WikiAgentRuntime } from "@/lib/agent/openai";
 
 test("streamAgentAnswer forwards messages into the agent runtime and streams deltas", async () => {
   const deltas: string[] = [];

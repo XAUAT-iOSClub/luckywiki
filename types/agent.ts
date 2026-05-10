@@ -5,6 +5,17 @@ export type AgentChatMessage = {
   content: string;
 };
 
+export type AgentSource = {
+  path: string;
+  title: string;
+};
+
+export type RetrievedAgentChunk = AgentSource & {
+  heading: string | null;
+  content: string;
+  score: number;
+};
+
 export type StreamAgentAnswerInput = {
   locale: AgentLocale;
   context: Array<{
