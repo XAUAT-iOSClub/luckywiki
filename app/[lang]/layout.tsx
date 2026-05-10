@@ -15,6 +15,7 @@ import {
   locales,
 } from "@/lib/i18n/config";
 import { I18nProvider } from "@/lib/i18n/provider";
+import { Analytics } from "@vercel/analytics/next"
 
 const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
 
@@ -87,6 +88,7 @@ export default async function RootLayout({
             <TooltipProvider>{children}</TooltipProvider>
           </I18nProvider>
         </ThemeProvider>
+        <Analytics />
       </body>
     </html>
   );
