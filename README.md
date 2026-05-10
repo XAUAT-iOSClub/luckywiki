@@ -82,6 +82,7 @@ Use `--dry-run` on either command to preview without writing files.
 ## Wiki Agent
 
 The wiki agent answers questions only from published wiki content and links back to the relevant articles.
+It now uses a LangGraph-based runtime with read-only tools for semantic search, article lookup, related articles, recent updates, and path/category navigation.
 
 Set these server-side environment variables before using it:
 

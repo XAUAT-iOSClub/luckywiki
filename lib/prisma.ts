@@ -21,11 +21,7 @@ const CLOSED_CONNECTION_PATTERNS = [
   "connection was closed",
 ];
 
-if (!connectionString) {
-  throw new Error("DATABASE_URL is not set");
-}
-
-const adapter = new PrismaPg({ connectionString });
+const adapter = connectionString ? new PrismaPg({ connectionString }) : null;
 
 function includesClosedConnectionMessage(value: string) {
   const normalized = value.toLowerCase();
@@ -64,7 +60,11 @@ export function shouldReconnectPrisma(operation: string, error: unknown) {
   return READ_OPERATIONS.has(operation) && errorContainsClosedConnectionMessage(error);
 }
 
-function createPrismaClient() {
+function createPrismaClient(): PrismaClient {
+  if (!adapter) {
+    return createUnavailablePrismaClient();
+  }
+
   const client = new PrismaClient({ adapter });
 
   return client.$extends({
@@ -86,7 +86,26 @@ function createPrismaClient() {
         },
       },
     },
-  });
+  }) as unknown as PrismaClient;
+}
+
+function createUnavailablePrismaClient(): PrismaClient {
+  const fail = () => {
+    throw new Error("DATABASE_URL is not set");
+  };
+
+  const handler: ProxyHandler<typeof fail> = {
+    get() {
+      return proxy;
+    },
+    apply() {
+      fail();
+    },
+  };
+
+  const proxy = new Proxy(fail, handler) as unknown as PrismaClient;
+
+  return proxy;
 }
 
 const globalForPrisma = globalThis as unknown as {

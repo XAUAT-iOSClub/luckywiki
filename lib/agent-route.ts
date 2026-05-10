@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import type { Locale } from "@/lib/i18n/config";
 import type { Dictionary } from "@/lib/i18n/get-dictionary";
-import type { AgentChatMessage } from "@/lib/agent-openai";
+import type { AgentChatMessage } from "@/lib/agent-types";
 import type { AgentSource, RetrievedAgentChunk } from "@/lib/agent-search";
 
 const agentRequestSchema = z.object({
@@ -59,7 +59,10 @@ export async function createAgentRouteResponse(
   }
 
   const chunks = await deps.retrieveRelevantChunks(latestMessage.content);
-  const sources = dedupeSources(chunks);
+  const sources =
+    chunks.length > 0
+      ? dedupeSources(chunks)
+      : await deps.findSuggestedSources(latestMessage.content);
 
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
@@ -73,20 +76,6 @@ export async function createAgentRouteResponse(
       sendEvent("sources", {
         sources,
       });
-
-      if (chunks.length === 0) {
-        const suggestions = await deps.findSuggestedSources(latestMessage.content);
-        const message =
-          suggestions.length > 0
-            ? formatNoMatchMessage(locale, dictionary, true)
-            : formatNoMatchMessage(locale, dictionary, false);
-
-        sendEvent("sources", { sources: suggestions });
-        sendEvent("message", { text: message });
-        sendEvent("done", {});
-        controller.close();
-        return;
-      }
 
       try {
         await deps.streamAnswer({
@@ -104,9 +93,7 @@ export async function createAgentRouteResponse(
       } catch (error) {
         sendEvent("error", {
           message:
-            error instanceof Error
-              ? error.message
-              : dictionary.agent.errors.generic,
+            error instanceof Error ? error.message : dictionary.agent.errors.generic,
         });
         controller.close();
       }
@@ -148,20 +135,4 @@ function dedupeSources(chunks: Pick<RetrievedAgentChunk, "path" | "title">[]) {
   return Array.from(
     new Map(chunks.map((chunk) => [chunk.path, { path: chunk.path, title: chunk.title }])).values(),
   );
-}
-
-function formatNoMatchMessage(
-  locale: Locale,
-  dictionary: Dictionary,
-  hasSuggestions: boolean,
-) {
-  if (locale === "zh") {
-    return hasSuggestions
-      ? dictionary.agent.noMatchWithSuggestions
-      : dictionary.agent.noMatch;
-  }
-
-  return hasSuggestions
-    ? dictionary.agent.noMatchWithSuggestions
-    : dictionary.agent.noMatch;
 }

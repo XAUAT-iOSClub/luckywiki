@@ -1,23 +1,25 @@
+import { ChatOpenAI } from "@langchain/openai";
+import { createAgent as createLangChainAgent } from "langchain";
+import type { AgentChatMessage, StreamAgentAnswerInput } from "@/lib/agent-types";
+import { createWikiAgentTools } from "@/lib/agent-tools";
+
+export type { AgentChatMessage, StreamAgentAnswerInput } from "@/lib/agent-types";
+
 const defaultApiBaseUrl = "https://api.openai.com/v1";
-const defaultEmbeddingModel = "text-embedding-3-small";
 const defaultResponsesModel = "gpt-4.1-mini";
 
-export type AgentChatMessage = {
-  role: "user" | "assistant";
-  content: string;
+export type WikiAgentRuntime = {
+  createAgent: (input: {
+    locale: StreamAgentAnswerInput["locale"];
+    context: StreamAgentAnswerInput["context"];
+  }) => Promise<WikiAgentLike> | WikiAgentLike;
 };
 
-export type StreamAgentAnswerInput = {
-  locale: "zh" | "en";
-  context: Array<{
-    title: string;
-    path: string;
-    heading: string | null;
-    content: string;
-  }>;
-  messages: AgentChatMessage[];
-  onDelta: (delta: string) => void;
-  signal?: AbortSignal;
+type WikiAgentLike = {
+  stream: (
+    state: { messages: AgentChatMessage[] },
+    config: { streamMode: "messages"; signal?: AbortSignal },
+  ) => Promise<AsyncIterable<unknown>>;
 };
 
 export function isAgentConfigured(env: NodeJS.ProcessEnv = process.env) {
@@ -33,7 +35,7 @@ export async function embedTexts(texts: string[], signal?: AbortSignal) {
     method: "POST",
     headers: getOpenAiHeaders(),
     body: JSON.stringify({
-      model: process.env.OPENAI_EMBEDDING_MODEL ?? defaultEmbeddingModel,
+      model: process.env.OPENAI_EMBEDDING_MODEL ?? "text-embedding-3-small",
       input: texts,
     }),
     signal,
@@ -50,62 +52,78 @@ export async function embedTexts(texts: string[], signal?: AbortSignal) {
   return payload.data.map((entry) => entry.embedding);
 }
 
-export async function streamAgentAnswer({
-  locale,
-  context,
-  messages,
-  onDelta,
-  signal,
-}: StreamAgentAnswerInput) {
-  const response = await fetch(buildOpenAiUrl("/responses"), {
-    method: "POST",
-    headers: getOpenAiHeaders(),
-    body: JSON.stringify({
-      model: process.env.OPENAI_RESPONSES_MODEL ?? defaultResponsesModel,
-      stream: true,
-      instructions: buildSystemPrompt(locale, context),
-      input: messages.map((message) => ({
-        role: message.role,
-        content: [
-          {
-            type: message.role === "assistant" ? "output_text" : "input_text",
-            text: message.content,
-          },
-        ],
-      })),
-    }),
-    signal,
+export async function streamAgentAnswer(
+  input: StreamAgentAnswerInput,
+  runtime: WikiAgentRuntime = defaultWikiAgentRuntime,
+) {
+  const agent = await runtime.createAgent({
+    locale: input.locale,
+    context: input.context,
   });
 
-  if (!response.ok) {
-    throw new Error(`OpenAI responses request failed: ${await response.text()}`);
-  }
+  const stream = await agent.stream(
+    {
+      messages: input.messages,
+    },
+    {
+      streamMode: "messages",
+      signal: input.signal,
+    },
+  );
 
-  if (!response.body) {
-    throw new Error("OpenAI responses request returned an empty body.");
-  }
+  for await (const chunk of stream) {
+    const text = extractTextChunk(chunk);
 
-  await consumeEventStream(response.body, onDelta);
+    if (text) {
+      input.onDelta(text);
+    }
+  }
+}
+
+export const defaultWikiAgentRuntime: WikiAgentRuntime = {
+  createAgent({ locale, context }) {
+    return createLangChainAgent({
+      model: createWikiChatModel(),
+      tools: createWikiAgentTools(),
+      systemPrompt: buildSystemPrompt(locale, context),
+    });
+  },
+};
+
+function createWikiChatModel() {
+  const baseURL = process.env.OPENAI_API_BASE_URL ?? defaultApiBaseUrl;
+
+  return new ChatOpenAI({
+    model: process.env.OPENAI_RESPONSES_MODEL ?? defaultResponsesModel,
+    temperature: 0.2,
+    streamUsage: false,
+    useResponsesApi: true,
+    configuration: {
+      baseURL,
+    },
+  });
 }
 
 function buildSystemPrompt(
-  locale: "zh" | "en",
+  locale: StreamAgentAnswerInput["locale"],
   context: StreamAgentAnswerInput["context"],
 ) {
-  const contextText = context
-    .map(
-      (entry, index) =>
-        `[${index + 1}] ${entry.title} (${entry.path})${entry.heading ? ` / ${entry.heading}` : ""}\n${entry.content}`,
-    )
-    .join("\n\n");
+  const contextText = context.length
+    ? context
+        .map(
+          (entry, index) =>
+            `[${index + 1}] ${entry.title} (${entry.path})${entry.heading ? ` / ${entry.heading}` : ""}\n${entry.content}`,
+        )
+        .join("\n\n")
+    : "No direct wiki chunks were retrieved for this turn.";
 
   if (locale === "zh") {
     return [
       "你是 LuckyWiki 的问答助手。",
-      "只能根据提供的 Wiki 上下文回答，不能编造，也不能补充通用常识。",
-      "如果上下文不足，就明确说没有在 Wiki 中找到足够信息，并建议用户查看来源文章。",
+      "只能根据当前已发布的 Wiki 内容和你可调用的只读工具回答，不能编造，也不能使用站外常识补全。",
+      "如果当前上下文不足，先使用工具继续查找相关文章；如果仍然不足，就明确说明 Wiki 中没有足够信息。",
       "回答使用简体中文，语气自然、简洁、直接。",
-      "优先引用上下文里的具体细节，不要提及向量、embedding 或系统提示。",
+      "尽量在回答里提到相关文章的标题或路径，方便用户继续阅读原文。",
       "",
       "可用 Wiki 上下文：",
       contextText,
@@ -114,10 +132,10 @@ function buildSystemPrompt(
 
   return [
     "You are the LuckyWiki assistant.",
-    "Answer only from the provided wiki context. Do not invent facts or fill gaps with general knowledge.",
-    "If the context is insufficient, clearly say the wiki does not contain enough information and point the user to the linked source articles.",
+    "Answer only from currently published wiki content and the read-only tools available to you. Do not invent facts or fill gaps with outside knowledge.",
+    "If the current context is insufficient, first use tools to look up relevant articles; if it is still insufficient, clearly say the wiki does not contain enough information.",
     "Reply in English with a concise, direct tone.",
-    "Prefer concrete details from the context and never mention embeddings, retrieval, or system prompts.",
+    "Prefer mentioning article titles or paths so the user can continue reading the original source.",
     "",
     "Available wiki context:",
     contextText,
@@ -144,62 +162,61 @@ function getOpenAiHeaders() {
   };
 }
 
-async function consumeEventStream(
-  stream: ReadableStream<Uint8Array>,
-  onDelta: (delta: string) => void,
-) {
-  const reader = stream.getReader();
-  const decoder = new TextDecoder();
-  let buffer = "";
-
-  while (true) {
-    const { done, value } = await reader.read();
-
-    if (done) {
-      break;
-    }
-
-    buffer += decoder.decode(value, { stream: true });
-    const events = buffer.split("\n\n");
-    buffer = events.pop() ?? "";
-
-    for (const event of events) {
-      const parsed = parseServerSentEvent(event);
-
-      if (!parsed) {
-        continue;
-      }
-
-      if (parsed === "[DONE]") {
-        return;
-      }
-
-      const payload = JSON.parse(parsed) as {
-        type?: string;
-        delta?: string;
-        error?: { message?: string };
-      };
-
-      if (payload.type === "response.output_text.delta" && payload.delta) {
-        onDelta(payload.delta);
-      }
-
-      if (payload.type === "error") {
-        throw new Error(payload.error?.message ?? "OpenAI stream failed.");
-      }
-    }
-  }
-}
-
-function parseServerSentEvent(event: string) {
-  const dataLines = event
-    .split("\n")
-    .filter((line) => line.startsWith("data:"))
-    .map((line) => line.slice("data:".length).trim());
-
-  if (dataLines.length === 0) {
-    return null;
+function extractTextChunk(chunk: unknown): string {
+  if (!chunk) {
+    return "";
   }
 
-  return dataLines.join("\n");
+  if (Array.isArray(chunk)) {
+    return chunk.map(extractTextChunk).join("");
+  }
+
+  if (typeof chunk === "string") {
+    return chunk;
+  }
+
+  if (typeof chunk !== "object") {
+    return "";
+  }
+
+  const value = chunk as {
+    content?: unknown;
+    text?: unknown;
+  };
+
+  if (typeof value.text === "string") {
+    return value.text;
+  }
+
+  if (typeof value.content === "string") {
+    return value.content;
+  }
+
+  if (Array.isArray(value.content)) {
+    return value.content
+      .map((block) => {
+        if (!block || typeof block !== "object") {
+          return "";
+        }
+
+        const blockValue = block as {
+          type?: string;
+          text?: unknown;
+          content?: unknown;
+        };
+
+        if (typeof blockValue.text === "string") {
+          return blockValue.text;
+        }
+
+        if (typeof blockValue.content === "string") {
+          return blockValue.content;
+        }
+
+        return typeof blockValue.type === "string" ? "" : "";
+      })
+      .join("");
+  }
+
+  return "";
 }
