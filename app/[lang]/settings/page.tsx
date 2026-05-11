@@ -51,26 +51,27 @@ export default async function SettingsPage({
     headers: requestHeaders,
   });
 
-  const configuredAccounts: ConfiguredAccount[] = [
-    providerFlags.githubEnabled
-      ? {
-          provider: "github" as const,
-          providerId: "github",
-          label: "GitHub",
-          connected: linkedAccounts.some((account) => account.providerId === "github"),
-          accountId: linkedAccounts.find((account) => account.providerId === "github")?.accountId,
-        }
-      : null,
-    providerFlags.oidcEnabled
-      ? {
-          provider: "oidc" as const,
-          providerId: oidcProviderId,
-          label: providerFlags.oidcProviderName,
-          connected: linkedAccounts.some((account) => account.providerId === oidcProviderId),
-          accountId: linkedAccounts.find((account) => account.providerId === oidcProviderId)?.accountId,
-        }
-      : null,
-  ].filter((account): account is ConfiguredAccount => account !== null);
+  const configuredAccounts: ConfiguredAccount[] = [];
+
+  if (providerFlags.githubEnabled) {
+    configuredAccounts.push({
+      provider: "github",
+      providerId: "github",
+      label: "GitHub",
+      connected: linkedAccounts.some((account) => account.providerId === "github"),
+      accountId: linkedAccounts.find((account) => account.providerId === "github")?.accountId,
+    });
+  }
+
+  if (providerFlags.oidcEnabled) {
+    configuredAccounts.push({
+      provider: "oidc",
+      providerId: oidcProviderId,
+      label: providerFlags.oidcProviderName,
+      connected: linkedAccounts.some((account) => account.providerId === oidcProviderId),
+      accountId: linkedAccounts.find((account) => account.providerId === oidcProviderId)?.accountId,
+    });
+  }
 
   const errorCode = getSingleSearchParam(resolvedSearchParams, "error");
   const initialConnectionError =
