@@ -8,29 +8,51 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { BookOpen, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+import { BookOpen, Loader2, AlertCircle, CheckCircle2, GitGraph, Shield } from "lucide-react";
 import type { Locale } from "@/lib/i18n/config";
 import { localizeHref } from "@/lib/i18n/config";
 import { useT } from "@/lib/i18n/provider";
 import { LocaleSwitcher } from "@/components/locale-switcher";
+import type { AuthProviderFlags } from "@/lib/auth/provider-config";
+import { oidcProviderId } from "@/lib/auth/provider-config";
+import { getAuthErrorMessage } from "@/lib/auth/client-errors";
 
 type AuthFormProps = {
   locale: Locale;
   mode: "sign-in" | "sign-up";
   nextPath: string;
+  providers: AuthProviderFlags;
+  initialErrorCode?: string;
 };
 
-export function AuthForm({ locale, mode, nextPath }: AuthFormProps) {
+export function AuthForm({
+  locale,
+  mode,
+  nextPath,
+  providers,
+  initialErrorCode,
+}: AuthFormProps) {
   const router = useRouter();
   const t = useT();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [pending, setPending] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [oauthPending, setOauthPending] = useState<"github" | "oidc" | null>(null);
+  const [error, setError] = useState<string | null>(
+    getAuthErrorMessage(t, initialErrorCode),
+  );
   const [notice, setNotice] = useState<string | null>(null);
-
   const isSignUp = mode === "sign-up";
+  const hasSocialProviders = providers.githubEnabled || providers.oidcEnabled;
+  const oidcProviderLabel = t.auth.continueWithProvider.replace(
+    "{provider}",
+    providers.oidcProviderName,
+  );
+  const errorCallbackURL = `${
+    isSignUp ? localizeHref(locale, "/auth/sign-up") : localizeHref(locale, "/auth/sign-in")
+  }?next=${encodeURIComponent(nextPath)}`;
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -74,6 +96,32 @@ export function AuthForm({ locale, mode, nextPath }: AuthFormProps) {
     }
   }
 
+  async function handleSocialSignIn(provider: "github" | "oidc") {
+    setOauthPending(provider);
+    setError(null);
+    setNotice(null);
+
+    try {
+      if (provider === "github") {
+        await authClient.signIn.social({
+          provider: "github",
+          callbackURL: nextPath,
+          errorCallbackURL,
+        });
+        return;
+      }
+
+      await authClient.signIn.oauth2({
+        providerId: oidcProviderId,
+        callbackURL: nextPath,
+        errorCallbackURL,
+      });
+    } catch {
+      setError(t.auth.socialSignInError);
+      setOauthPending(null);
+    }
+  }
+
   return (
     <div className="flex w-full flex-col items-center gap-6">
       <div className="flex w-full justify-end">
@@ -100,6 +148,63 @@ export function AuthForm({ locale, mode, nextPath }: AuthFormProps) {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {hasSocialProviders && (
+            <div className="mb-6 space-y-4">
+              <div className="grid gap-3">
+                {providers.githubEnabled && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="lg"
+                    className="w-full rounded-xl border-border/50 bg-background/60 py-6"
+                    disabled={pending || oauthPending !== null}
+                    onClick={() => handleSocialSignIn("github")}
+                  >
+                    {oauthPending === "github" ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        {t.common.working}
+                      </>
+                    ) : (
+                      <>
+                        <GitGraph className="mr-2 h-4 w-4" />
+                        {t.auth.continueWithGitHub}
+                      </>
+                    )}
+                  </Button>
+                )}
+                {providers.oidcEnabled && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="lg"
+                    className="w-full rounded-xl border-border/50 bg-background/60 py-6"
+                    disabled={pending || oauthPending !== null}
+                    onClick={() => handleSocialSignIn("oidc")}
+                  >
+                    {oauthPending === "oidc" ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        {t.common.working}
+                      </>
+                    ) : (
+                      <>
+                        <Shield className="mr-2 h-4 w-4" />
+                        {oidcProviderLabel}
+                      </>
+                    )}
+                  </Button>
+                )}
+              </div>
+              <div className="flex items-center gap-3">
+                <Separator className="flex-1" />
+                <span className="text-xs text-muted-foreground">
+                  {t.auth.orContinueWith}
+                </span>
+                <Separator className="flex-1" />
+              </div>
+            </div>
+          )}
           <form onSubmit={handleSubmit} className="space-y-4">
             {isSignUp && (
               <div className="space-y-2">
@@ -166,7 +271,7 @@ export function AuthForm({ locale, mode, nextPath }: AuthFormProps) {
             <Button 
               type="submit" 
               className="w-full rounded-xl py-6 text-sm font-semibold shadow-lg shadow-primary/20 transition-all hover:translate-y-[-1px] active:translate-y-[0px]" 
-              disabled={pending}
+              disabled={pending || oauthPending !== null}
             >
               {pending ? (
                 <>

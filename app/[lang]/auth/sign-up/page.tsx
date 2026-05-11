@@ -1,5 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { AuthForm } from "@/components/auth-form";
+import { getAuthProviderFlags } from "@/lib/auth/provider-config";
 import { getCurrentSession } from "@/lib/auth/session";
 import { hasLocale, localizeHref } from "@/lib/i18n/config";
 
@@ -14,22 +15,33 @@ export default async function SignUpPage({
   searchParams: SearchParams;
 }) {
   const { lang } = await params;
+  const resolvedSearchParams = await searchParams;
 
   if (!hasLocale(lang)) {
     notFound();
   }
 
   const session = await getCurrentSession();
+  const providers = getAuthProviderFlags();
   const nextPath = resolveNextPath(
-    getSingleSearchParam(await searchParams, "next"),
+    getSingleSearchParam(resolvedSearchParams, "next"),
     lang,
   );
+  const errorCode = getSingleSearchParam(resolvedSearchParams, "error");
 
   if (session) {
     redirect(nextPath);
   }
 
-  return <AuthForm locale={lang} mode="sign-up" nextPath={nextPath} />;
+  return (
+    <AuthForm
+      locale={lang}
+      mode="sign-up"
+      nextPath={nextPath}
+      providers={providers}
+      initialErrorCode={errorCode}
+    />
+  );
 }
 
 function getSingleSearchParam(

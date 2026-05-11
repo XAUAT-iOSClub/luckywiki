@@ -20,6 +20,40 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## Authentication
+
+LuckyWiki supports email/password sign-in by default. You can also enable GitHub and a custom OIDC provider.
+
+Set these server-side environment variables to enable the optional providers:
+
+```bash
+BETTER_AUTH_URL=http://localhost:3000
+BETTER_AUTH_SECRET=change-me
+
+# GitHub login
+GITHUB_CLIENT_ID=your-github-client-id
+GITHUB_CLIENT_SECRET=your-github-client-secret
+
+# Custom OIDC login
+OIDC_DISCOVERY_URL=https://issuer.example/.well-known/openid-configuration
+OIDC_CLIENT_ID=your-oidc-client-id
+OIDC_CLIENT_SECRET=your-oidc-client-secret
+
+# Optional. Defaults to "SSO" in the UI.
+OIDC_PROVIDER_NAME=Campus SSO
+```
+
+Provider callback URLs:
+
+- GitHub: `/api/auth/callback/github`
+- OIDC: `/api/auth/oauth2/callback/oidc`
+
+Notes:
+
+- Email/password remains available even when GitHub or OIDC are disabled.
+- GitHub and OIDC buttons only appear when the required provider environment variables are fully configured.
+- Third-party accounts are linked automatically only when the provider returns a verified email address that matches an existing user.
+
 ## Image Hosting
 
 The admin article editor can upload images and insert the Markdown image link automatically.

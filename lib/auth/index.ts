@@ -1,8 +1,13 @@
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { nextCookies } from "better-auth/next-js";
+import { genericOAuth } from "better-auth/plugins";
 import { prisma } from "@/lib/prisma";
 import { sendVerificationEmail } from "@/lib/email";
+import {
+  getGitHubProviderConfig,
+  getOidcProviderConfig,
+} from "@/lib/auth/provider-config";
 
 const authBaseUrl =
   process.env.BETTER_AUTH_URL ??
@@ -22,6 +27,9 @@ const userAdditionalFields = {
   },
 } as const;
 
+const githubProvider = getGitHubProviderConfig();
+const oidcProvider = getOidcProviderConfig();
+
 export const auth = betterAuth({
   database: prismaAdapter(prisma, {
     provider: "postgresql",
@@ -31,6 +39,17 @@ export const auth = betterAuth({
   trustedOrigins: [authBaseUrl],
   user: {
     additionalFields: userAdditionalFields,
+  },
+  socialProviders: githubProvider
+    ? {
+        github: githubProvider,
+      }
+    : {},
+  account: {
+    accountLinking: {
+      enabled: true,
+      allowDifferentEmails: false,
+    },
   },
   emailAndPassword: {
     enabled: true,
@@ -66,5 +85,8 @@ export const auth = betterAuth({
       });
     },
   },
-  plugins: [nextCookies()],
+  plugins: [
+    nextCookies(),
+    ...(oidcProvider ? [genericOAuth({ config: [oidcProvider] })] : []),
+  ],
 });
