@@ -62,6 +62,7 @@ export function WikiSidebar({
   const deferredSearchQuery = React.useDeferredValue(searchQuery);
   const currentWikiPath = getWikiPathFromPathname(pathname);
   const isAgentRoute = pathname === localizeHref(locale, "/agent");
+  const isSettingsRoute = pathname === localizeHref(locale, "/settings");
   const normalizedSearchQuery = normalizeSearchQuery(deferredSearchQuery);
   const filteredTree = normalizedSearchQuery
     ? filterWikiTree(tree, normalizedSearchQuery)
@@ -170,9 +171,16 @@ export function WikiSidebar({
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <SidebarMenuButton tooltip={t.common.settings} className="rounded-xl">
-              <Settings className="size-4" />
-              <span className="font-medium">{t.common.settings}</span>
+            <SidebarMenuButton
+              asChild
+              tooltip={t.common.settings}
+              className="rounded-xl"
+              isActive={isSettingsRoute}
+            >
+              <Link href={localizeHref(locale, "/settings")}>
+                <Settings className="size-4" />
+                <span className="font-medium">{t.common.settings}</span>
+              </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

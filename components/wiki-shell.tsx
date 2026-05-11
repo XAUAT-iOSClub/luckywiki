@@ -28,7 +28,7 @@ export async function WikiShell({
   children,
 }: {
   lang: string;
-  section: "articles" | "agent";
+  section: "articles" | "agent" | "settings";
   children: React.ReactNode;
 }) {
   if (!hasLocale(lang)) {
@@ -45,7 +45,11 @@ export async function WikiShell({
   const tree = buildWikiTree(treeArticles);
   const isAdmin = canAccessAdminShell(session?.user ?? null);
   const breadcrumbLabel =
-    section === "agent" ? dictionary.agent.breadcrumb : dictionary.wiki.articlesBreadcrumb;
+    section === "agent"
+      ? dictionary.agent.breadcrumb
+      : section === "settings"
+        ? dictionary.common.settings
+        : dictionary.wiki.articlesBreadcrumb;
 
   return (
     <SidebarProvider>

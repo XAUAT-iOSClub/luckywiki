@@ -1,8 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import {
   ChevronsUpDown,
   LogOut,
+  Settings,
 } from "lucide-react";
 
 import {
@@ -92,10 +94,16 @@ export function NavUser({
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleSignOut}>
-                <LogOut className="mr-2 h-4 w-4" />
-                {t.common.signOut}
-              </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href={localizeHref(locale, "/settings")}>
+                <Settings className="mr-2 h-4 w-4" />
+                {t.common.settings}
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={handleSignOut}>
+              <LogOut className="mr-2 h-4 w-4" />
+              {t.common.signOut}
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </SidebarMenuItem>

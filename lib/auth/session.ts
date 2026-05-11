@@ -15,14 +15,20 @@ export async function getCurrentSession() {
   });
 }
 
-export async function requireAuthorSession(locale: Locale) {
+export async function requireSession(locale: Locale, nextPath: string) {
   const session = await getCurrentSession();
 
   if (!session) {
     redirect(
-      `${localizeHref(locale, "/auth/sign-in")}?next=${encodeURIComponent(localizeHref(locale, "/admin"))}`,
+      `${localizeHref(locale, "/auth/sign-in")}?next=${encodeURIComponent(nextPath)}`,
     );
   }
+
+  return session;
+}
+
+export async function requireAuthorSession(locale: Locale) {
+  const session = await requireSession(locale, localizeHref(locale, "/admin"));
 
   if (!canAccessAdminShell(session.user)) {
     redirect(localizeHref(locale, "/wiki"));
@@ -35,13 +41,7 @@ export async function requireRootSession(
   locale: Locale,
   unauthorizedRedirectPath = localizeHref(locale, "/wiki"),
 ) {
-  const session = await getCurrentSession();
-
-  if (!session) {
-    redirect(
-      `${localizeHref(locale, "/auth/sign-in")}?next=${encodeURIComponent(localizeHref(locale, "/admin"))}`,
-    );
-  }
+  const session = await requireSession(locale, localizeHref(locale, "/admin"));
 
   if (!canManageUsers(session.user)) {
     redirect(unauthorizedRedirectPath);
@@ -51,13 +51,7 @@ export async function requireRootSession(
 }
 
 export async function requireVerifiedSession(locale: Locale, nextPath: string) {
-  const session = await getCurrentSession();
-
-  if (!session) {
-    redirect(
-      `${localizeHref(locale, "/auth/sign-in")}?next=${encodeURIComponent(nextPath)}`,
-    );
-  }
+  const session = await requireSession(locale, nextPath);
 
   if (!canComment(session.user)) {
     redirect(`${localizeHref(locale, "/auth/verify-email")}?status=required`);
