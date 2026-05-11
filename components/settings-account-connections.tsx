@@ -1,8 +1,9 @@
 "use client";
 
+import type { ComponentProps } from "react";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { AlertCircle, CheckCircle2, Github, Loader2, Shield } from "lucide-react";
+import { AlertCircle, CheckCircle2, Loader2, Shield } from "lucide-react";
 import type { SettingsActionState } from "@/app/actions/settings";
 import { Button } from "@/components/ui/button";
 import type { Locale } from "@/lib/i18n/config";
@@ -30,6 +31,19 @@ type SettingsAccountConnectionsProps = {
   ) => Promise<SettingsActionState>;
   initialError?: string | null;
 };
+
+function GitHubIcon(props: ComponentProps<"svg">) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      aria-hidden="true"
+      {...props}
+    >
+      <path d="M12 1.5a10.5 10.5 0 0 0-3.32 20.46c.53.1.72-.23.72-.51v-1.82c-2.94.64-3.56-1.25-3.56-1.25-.48-1.22-1.17-1.54-1.17-1.54-.96-.66.07-.65.07-.65 1.06.08 1.62 1.09 1.62 1.09.95 1.62 2.48 1.15 3.08.88.1-.68.37-1.15.67-1.42-2.35-.27-4.82-1.17-4.82-5.22 0-1.15.41-2.09 1.08-2.83-.11-.26-.47-1.34.1-2.79 0 0 .88-.28 2.89 1.08A10.1 10.1 0 0 1 12 6.84c.9 0 1.8.12 2.64.35 2-1.36 2.88-1.08 2.88-1.08.57 1.45.21 2.53.1 2.79.68.74 1.08 1.68 1.08 2.83 0 4.06-2.47 4.95-4.83 5.21.38.33.72.99.72 2v2.97c0 .28.19.62.73.51A10.5 10.5 0 0 0 12 1.5Z" />
+    </svg>
+  );
+}
 
 export function SettingsAccountConnections({
   accounts,
@@ -118,7 +132,7 @@ export function SettingsAccountConnections({
               <div className="flex items-start gap-3">
                 <div className="rounded-xl bg-muted p-2">
                   {account.provider === "github" ? (
-                    <Github className="size-5" />
+                    <GitHubIcon className="size-5" />
                   ) : (
                     <Shield className="size-5" />
                   )}
