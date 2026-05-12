@@ -97,6 +97,46 @@ export function ArticleEditor({
   const [mode, setMode] = useState<"edit" | "preview" | "split">("split");
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const markdownRef = useRef<HTMLTextAreaElement | null>(null);
+  const editorContainerRef = useRef<HTMLDivElement | null>(null);
+  const previewContainerRef = useRef<HTMLDivElement | null>(null);
+  const isSyncingRef = useRef(false);
+
+  // Sync scroll between editor and preview
+  const handleScroll = (source: "editor" | "preview") => {
+    if (mode !== "split" || isSyncingRef.current) {
+      return;
+    }
+
+    const editor = editorContainerRef.current;
+    const preview = previewContainerRef.current;
+
+    if (!editor || !preview) {
+      return;
+    }
+
+    isSyncingRef.current = true;
+
+    if (source === "editor") {
+      const scrollableHeight = editor.scrollHeight - editor.clientHeight;
+      if (scrollableHeight > 0) {
+        const percentage = editor.scrollTop / scrollableHeight;
+        preview.scrollTop = percentage * (preview.scrollHeight - preview.clientHeight);
+      }
+    } else {
+      const scrollableHeight = preview.scrollHeight - preview.clientHeight;
+      if (scrollableHeight > 0) {
+        const percentage = preview.scrollTop / scrollableHeight;
+        editor.scrollTop = percentage * (editor.scrollHeight - editor.clientHeight);
+      }
+    }
+
+    // Reset sync flag in the next frame to allow the triggered scroll event to be ignored
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        isSyncingRef.current = false;
+      });
+    });
+  };
 
   const imageUploadMessages = {
     FILE_TOO_LARGE: t.admin.articleEditor.uploadErrors.fileTooLarge,
@@ -483,32 +523,42 @@ export function ArticleEditor({
             mode === "edit" && "lg:col-span-2"
           )}>
             <div className="flex-1 flex flex-col min-h-0">
-              <Textarea
-                className="flex-1 font-mono text-sm leading-relaxed border-none focus-visible:ring-0 bg-transparent resize-none p-6 lg:p-10 selection:bg-primary/20"
-                onPaste={handleMarkdownPaste}
-                name="markdown"
-                ref={markdownRef}
-                onChange={(event) => setMarkdown(event.target.value)}
-                placeholder={t.admin.articleEditor.markdownPlaceholder}
-                value={markdown}
-              />
-              <div className="px-6 py-3 border-t border-border/10 flex items-center justify-between shrink-0 bg-white/5 dark:bg-black/5">
-                <p className="text-[10px] text-muted-foreground/50 italic">
-                  {t.admin.articleEditor.imageUploadHint}
-                </p>
-                <span className="text-[10px] font-mono text-muted-foreground/40 uppercase tracking-wider">
-                  {markdown.length} chars
-                </span>
+                <div 
+                  ref={editorContainerRef}
+                  onScroll={() => handleScroll("editor")}
+                  className="flex-1 overflow-auto"
+                >
+                  <Textarea
+                    className="w-full h-auto min-h-full font-mono text-sm leading-relaxed border-none focus-visible:ring-0 bg-transparent resize-none p-6 lg:p-10 selection:bg-primary/20 overflow-hidden"
+                    onPaste={handleMarkdownPaste}
+                    name="markdown"
+                    ref={markdownRef}
+                    onChange={(event) => setMarkdown(event.target.value)}
+                    placeholder={t.admin.articleEditor.markdownPlaceholder}
+                    value={markdown}
+                  />
+                </div>
+                <div className="px-6 py-3 border-t border-border/10 flex items-center justify-between shrink-0 bg-white/5 dark:bg-black/5">
+                  <p className="text-[10px] text-muted-foreground/50 italic">
+                    {t.admin.articleEditor.imageUploadHint}
+                  </p>
+                  <span className="text-[10px] font-mono text-muted-foreground/40 uppercase tracking-wider">
+                    {markdown.length} chars
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Preview Side */}
-          <div className={cn(
-            "flex flex-col min-h-0 bg-slate-50/30 dark:bg-zinc-950/20 overflow-auto",
-            mode === "edit" && "hidden",
-            mode === "preview" && "lg:col-span-2"
-          )}>
+            {/* Preview Side */}
+            <div 
+              ref={previewContainerRef}
+              onScroll={() => handleScroll("preview")}
+              className={cn(
+                "flex flex-col min-h-0 bg-slate-50/30 dark:bg-zinc-950/20 overflow-auto",
+                mode === "edit" && "hidden",
+                mode === "preview" && "lg:col-span-2"
+              )}
+            >
             <div className="flex-1 p-8 lg:p-16">
               <div className="max-w-3xl mx-auto">
                 <div className="mb-12 border-b border-border/20 pb-8">
