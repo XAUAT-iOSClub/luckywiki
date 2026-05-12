@@ -496,13 +496,13 @@ export function ArticleEditor({
               <DrawerTrigger asChild>
                 <Button variant="ghost" size="sm" className="h-9 px-4 rounded-full text-[10px] font-bold uppercase tracking-tight hover:bg-primary/5 hover:text-primary transition-all active:scale-95">
                   <Settings2 className="size-3.5 mr-2" />
-                  <span className="hidden sm:inline">{t.admin.articleSettings}</span>
+                  <span className="hidden sm:inline">{t.admin.articleEditor.articleSettings}</span>
                 </Button>
               </DrawerTrigger>
               <DrawerContent className="w-full sm:max-w-md border-l border-border/40 backdrop-blur-3xl bg-white/80 dark:bg-zinc-950/80 shadow-2xl">
                 <DrawerHeader className="mb-8">
-                  <DrawerTitle className="text-2xl font-bold tracking-tight">{t.admin.articleSettings}</DrawerTitle>
-                  <DrawerDescription>{t.admin.articleSettingsDescription}</DrawerDescription>
+                  <DrawerTitle className="text-2xl font-bold tracking-tight">{t.admin.articleEditor.articleSettings}</DrawerTitle>
+                  <DrawerDescription>{t.admin.articleEditor.articleSettingsDescription}</DrawerDescription>
                 </DrawerHeader>
                 <div className="flex flex-col gap-8 pb-10 overflow-y-auto max-h-[calc(100vh-12rem)] px-6">
                   <div className="space-y-3">

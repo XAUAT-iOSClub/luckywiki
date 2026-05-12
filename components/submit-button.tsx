@@ -7,16 +7,18 @@ import { Button } from "@/components/ui/button";
 
 export function SubmitButton({
   children,
+  className,
 }: Readonly<{
   children: React.ReactNode;
+  className?: string;
 }>) {
   const { pending } = useFormStatus();
   const t = useT();
 
   return (
-    <Button 
-      className="rounded-2xl h-11 px-8 font-semibold shadow-lg shadow-primary/20 transition-all hover:translate-y-[-1px] active:translate-y-[0px]" 
-      disabled={pending} 
+    <Button
+      className={className ?? "rounded-2xl h-11 px-8 font-semibold shadow-lg shadow-primary/20 transition-all hover:translate-y-[-1px] active:translate-y-[0px]"}
+      disabled={pending}
       type="submit"
     >
       {pending ? (
