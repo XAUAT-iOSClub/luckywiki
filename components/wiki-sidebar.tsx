@@ -36,7 +36,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { useTheme } from "next-themes";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { NavUser } from "@/components/nav-user";
 import { isNodeExpanded, type WikiTreeNode } from "@/lib/wiki/tree";
 import { cn } from "@/lib/utils";
@@ -56,6 +56,7 @@ export function WikiSidebar({
 }) {
   const { setTheme, theme } = useTheme();
   const pathname = usePathname();
+  const router = useRouter();
   const locale = useLocale();
   const t = useT();
   const [searchQuery, setSearchQuery] = React.useState("");
@@ -95,6 +96,14 @@ export function WikiSidebar({
               aria-label={t.common.search}
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" && searchQuery.trim()) {
+                  event.preventDefault();
+                  router.push(
+                    localizeHref(locale, `/search?q=${encodeURIComponent(searchQuery.trim())}`),
+                  );
+                }
+              }}
               placeholder={t.wiki.searchPlaceholder}
               className="pl-9 h-10 rounded-xl bg-background/50 border-border/50 focus:bg-background transition-all focus-visible:ring-primary/20"
             />

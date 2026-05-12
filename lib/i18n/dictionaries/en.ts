@@ -100,6 +100,17 @@ export const en = {
     title: "This wiki page does not exist yet.",
     description: "The path may be unpublished, mistyped, or still waiting for its first article.",
   },
+  search: {
+    title: "Search",
+    description: "Search across all published wiki articles.",
+    inputPlaceholder: "Search articles by title, content, or tags...",
+    resultsFor: 'Results for "{query}"',
+    noQuery: "Enter a search term to find articles across the wiki.",
+    noResults: "No articles matched your search.",
+    noResultsHint: "Try different keywords or shorter terms.",
+    resultCount: "{count} result(s)",
+    showingPage: "Page {current} of {total}",
+  },
   wiki: {
     knowledgeBase: "Knowledge Base",
     searchPlaceholder: "Search...",

@@ -100,6 +100,17 @@ export const zh = {
     title: "这个 Wiki 页面还不存在。",
     description: "这个路径可能尚未发布、输入有误，或还在等待第一篇文章。",
   },
+  search: {
+    title: "搜索",
+    description: "搜索所有已发布的 Wiki 文章。",
+    inputPlaceholder: "搜索文章标题、内容或标签...",
+    resultsFor: '"{query}" 的搜索结果',
+    noQuery: "输入关键词，即可搜索 Wiki 中的文章。",
+    noResults: "没有找到匹配的文章。",
+    noResultsHint: "试试更换关键词或使用更短的搜索词。",
+    resultCount: "{count} 条结果",
+    showingPage: "第 {current} / {total} 页",
+  },
   wiki: {
     knowledgeBase: "知识库",
     searchPlaceholder: "搜索...",
