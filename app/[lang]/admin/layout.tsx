@@ -33,8 +33,8 @@ export default async function AdminLayout({
       <AppSidebar user={user} />
       <SidebarInset>
         <AdminHeader />
-        <div className="flex flex-1 flex-col gap-4 p-4 md:p-8 md:pt-6">
-          <div className="mx-auto w-full max-w-6xl">{children}</div>
+        <div className="flex flex-1 flex-col min-h-0 gap-4 p-4 md:p-8 md:pt-6 admin-layout-container">
+          <div className="mx-auto w-full max-w-6xl flex-1 flex flex-col min-h-0 admin-layout-content">{children}</div>
         </div>
       </SidebarInset>
     </SidebarProvider>

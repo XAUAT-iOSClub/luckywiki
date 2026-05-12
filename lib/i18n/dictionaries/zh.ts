@@ -335,6 +335,8 @@ export const zh = {
       imageUploadHint: "支持选择图片或直接在编辑框里粘贴截图，上传成功后会自动插入 Markdown 图片链接。",
       markdownPlaceholder: "# 开始写作...",
       previewFallback: "_还没有可预览的内容。_",
+      articleSettings: "文章设置",
+      articleSettingsDescription: "配置文章的元数据、路径和发布状态。",
       uploadErrors: {
         unauthorized: "你没有上传图片的权限。",
         missingFile: "没有检测到要上传的图片。",

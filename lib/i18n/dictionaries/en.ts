@@ -335,6 +335,8 @@ export const en = {
       imageUploadHint: "Choose an image or paste a screenshot into the editor to upload it and insert a Markdown image link automatically.",
       markdownPlaceholder: "# Start writing...",
       previewFallback: "_Nothing to preview yet._",
+      articleSettings: "Article Settings",
+      articleSettingsDescription: "Configure metadata, path, and publishing status for this article.",
       uploadErrors: {
         unauthorized: "You do not have permission to upload images.",
         missingFile: "No image was found in the upload request.",

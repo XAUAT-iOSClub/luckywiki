@@ -20,16 +20,12 @@ export default async function NewArticlePage({
   const dictionary = await getDictionary(lang);
 
   return (
-    <section className="surface-panel space-y-6">
-      <div>
-        <p className="eyebrow">{dictionary.admin.newArticleEyebrow}</p>
-        <h2 className="text-2xl font-semibold">{dictionary.admin.newArticleTitle}</h2>
-      </div>
+    <div className="flex flex-col flex-1 min-h-0">
       <ArticleEditor
         action={createArticleAction.bind(null, lang)}
         initialState={{}}
         submitLabel={dictionary.admin.createArticle}
       />
-    </section>
+    </div>
   );
 }
