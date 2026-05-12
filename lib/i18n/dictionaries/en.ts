@@ -4,6 +4,10 @@ export const en = {
     description: "A markdown-first knowledge base with path-based hierarchy and moderated comments.",
     wiki: "Wiki",
     missingArticle: "Missing article",
+    seo: {
+      siteName: "LuckyWiki",
+      publisher: "LuckyWiki",
+    },
   },
   common: {
     appName: "LuckyWiki",

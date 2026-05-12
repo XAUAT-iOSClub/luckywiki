@@ -4,6 +4,10 @@ export const zh = {
     description: "一个以 Markdown 为核心、按路径组织内容并支持评论审核的知识库。",
     wiki: "Wiki",
     missingArticle: "文章不存在",
+    seo: {
+      siteName: "LuckyWiki",
+      publisher: "LuckyWiki",
+    },
   },
   common: {
     appName: "LuckyWiki",

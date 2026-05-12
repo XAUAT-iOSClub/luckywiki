@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,6 +10,7 @@ import { auth } from "@/lib/auth";
 import { getAuthProviderFlags, oidcProviderId } from "@/lib/auth/provider-config";
 import { getDictionary } from "@/lib/i18n/get-dictionary";
 import { hasLocale, localizeHref } from "@/lib/i18n/config";
+import { buildPageMetadata } from "@/lib/metadata";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 type Params = Promise<{ lang: string }>;
@@ -19,6 +21,29 @@ type ConfiguredAccount = {
   connected: boolean;
   accountId?: string;
 };
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Params;
+}): Promise<Metadata> {
+  const { lang } = await params;
+
+  if (!hasLocale(lang)) {
+    notFound();
+  }
+
+  const dictionary = await getDictionary(lang);
+
+  return buildPageMetadata(
+    {
+      title: dictionary.settings.title,
+      description: dictionary.settings.description,
+      path: localizeHref(lang, "/settings"),
+    },
+    lang,
+  );
+}
 
 export default async function SettingsPage({
   params,

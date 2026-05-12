@@ -106,8 +106,8 @@ export async function updateArticleAction(
   }
 }
 
-export async function listArticlePathsAction() {
-  await requireAuthorSession();
+export async function listArticlePathsAction(locale: "zh" | "en") {
+  await requireAuthorSession(locale);
   
   return prisma.article.findMany({
     select: {

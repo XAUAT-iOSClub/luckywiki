@@ -23,7 +23,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { WikiTreeNode, buildWikiTree } from "@/lib/wiki/tree";
 import { cn } from "@/lib/utils";
-import { useT } from "@/lib/i18n/provider";
+import { useT, useLocale } from "@/lib/i18n/provider";
 import { listArticlePathsAction } from "@/app/actions/admin";
 
 type PathPickerProps = {
@@ -40,6 +40,7 @@ export function PathPicker({
   currentPath,
 }: PathPickerProps) {
   const t = useT();
+  const locale = useLocale();
   const [tree, setTree] = React.useState<WikiTreeNode | null>(null);
   const [searchQuery, setSearchQuery] = React.useState("");
   const [isLoading, setIsLoading] = React.useState(false);
@@ -50,7 +51,7 @@ export function PathPicker({
       
       setIsLoading(true);
       try {
-        const articles = await listArticlePathsAction();
+        const articles = await listArticlePathsAction(locale);
         setTree(buildWikiTree(articles));
       } finally {
         setIsLoading(false);

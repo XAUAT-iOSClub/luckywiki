@@ -15,13 +15,20 @@ import {
   locales,
 } from "@/lib/i18n/config";
 import { I18nProvider } from "@/lib/i18n/provider";
+import { getMetadataBase } from "@/lib/site";
+import { WebSiteJsonLd } from "@/lib/structured-data";
 import { Analytics } from "@vercel/analytics/next"
 
-const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
+const geist = Geist({
+  subsets: ["latin"],
+  variable: "--font-sans",
+  display: "swap",
+});
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+  display: "swap",
 });
 
 type LayoutParams = Promise<{ lang: string }>;
@@ -44,11 +51,21 @@ export async function generateMetadata({
   const dictionary = await getDictionary(lang);
 
   return {
+    metadataBase: getMetadataBase(),
     title: {
       default: dictionary.metadata.title,
       template: `%s | ${dictionary.metadata.title}`,
     },
     description: dictionary.metadata.description,
+    generator: "Next.js",
+    creator: "LuckyWiki",
+    robots: {
+      index: true,
+      follow: true,
+    },
+    icons: {
+      icon: "/favicon.ico",
+    },
   };
 }
 
@@ -87,6 +104,7 @@ export default async function RootLayout({
           <I18nProvider dictionary={dictionary} locale={locale}>
             <TooltipProvider>{children}</TooltipProvider>
           </I18nProvider>
+          <WebSiteJsonLd locale={locale} />
         </ThemeProvider>
         <Analytics />
       </body>

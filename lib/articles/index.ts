@@ -9,6 +9,8 @@ export async function listPublishedArticleTreeData() {
     select: {
       path: true,
       title: true,
+      publishedAt: true,
+      updatedAt: true,
     },
     orderBy: {
       path: "asc",

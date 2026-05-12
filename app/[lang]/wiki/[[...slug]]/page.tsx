@@ -15,7 +15,8 @@ import { hasLocale, localizeHref } from "@/lib/i18n/config";
 import { buildWikiHref, canonicalizeSlugSegments } from "@/lib/wiki/path";
 import { canComment } from "@/lib/auth/permissions";
 import { getCurrentSession } from "@/lib/auth/session";
-import { extractMarkdownDescription } from "@/lib/text";
+import { buildArticleMetadata } from "@/lib/metadata";
+import { ArticleJsonLd, BreadcrumbListJsonLd } from "@/lib/structured-data";
 
 type Params = Promise<{ lang: string; slug?: string[] }>;
 
@@ -33,23 +34,29 @@ export async function generateMetadata({
   const path = safeCanonicalize(slug);
 
   if (path === null) {
-    return {
-      title: (await getDictionary(lang)).metadata.wiki,
-    };
+    const dictionary = await getDictionary(lang);
+    return { title: dictionary.metadata.wiki };
   }
 
   const article = await getPublishedArticleByPath(path);
 
   if (!article) {
-    return {
-      title: (await getDictionary(lang)).metadata.missingArticle,
-    };
+    const dictionary = await getDictionary(lang);
+    return { title: dictionary.metadata.missingArticle };
   }
 
-  return {
-    title: article.title,
-    description: extractMarkdownDescription(article.markdown),
-  };
+  return buildArticleMetadata(
+    {
+      title: article.title,
+      markdown: article.markdown,
+      path: article.path,
+      tags: article.tags,
+      publishedAt: article.publishedAt,
+      updatedAt: article.updatedAt,
+      authorName: article.author.name,
+    },
+    lang,
+  );
 }
 
 export default async function WikiArticlePage({
@@ -206,6 +213,20 @@ export default async function WikiArticlePage({
           </aside>
         </div>
       </div>
+
+      <ArticleJsonLd
+        article={{
+          title: article.title,
+          markdown: article.markdown,
+          path: article.path,
+          publishedAt: article.publishedAt,
+          updatedAt: article.updatedAt,
+          authorName: article.author.name,
+          tags: article.tags,
+        }}
+        locale={lang}
+      />
+      <BreadcrumbListJsonLd path={article.path} locale={lang} />
     </div>
   );
 }

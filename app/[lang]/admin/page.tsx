@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -21,6 +22,13 @@ import { notFound } from "next/navigation";
 import { requireRootSession } from "@/lib/auth/session";
 
 type Params = Promise<{ lang: string }>;
+
+export async function generateMetadata(): Promise<Metadata> {
+  return {
+    title: "Admin",
+    robots: { index: false, follow: false },
+  };
+}
 
 export default async function AdminHomePage({
   params,

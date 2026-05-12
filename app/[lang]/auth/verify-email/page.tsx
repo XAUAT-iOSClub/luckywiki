@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getCurrentSession } from "@/lib/auth/session";
@@ -6,6 +7,13 @@ import { hasLocale, localizeHref } from "@/lib/i18n/config";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 type Params = Promise<{ lang: string }>;
+
+export function generateMetadata(): Metadata {
+  return {
+    title: "Verify Email",
+    robots: { index: false, follow: false },
+  };
+}
 
 export default async function VerifyEmailPage({
   params,
