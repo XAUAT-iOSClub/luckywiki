@@ -25,9 +25,11 @@ import {
   Minus,
   Settings2,
   Layout,
+  FolderOpen,
 } from "lucide-react";
 import { ArticleStatus } from "@/generated/prisma/enums";
 import { MarkdownRenderer } from "@/components/markdown-renderer";
+import { PathPicker } from "@/components/path-picker";
 import { SubmitButton } from "@/components/submit-button";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -93,6 +95,7 @@ export function ArticleEditor({
   const [status, setStatus] = useState<ArticleStatus>(
     initialValues?.status ?? ArticleStatus.DRAFT,
   );
+  const [isPathPickerOpen, setIsPathPickerOpen] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [mode, setMode] = useState<"edit" | "preview" | "split">("split");
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -300,6 +303,13 @@ export function ArticleEditor({
     } finally {
       setIsUploadingImage(false);
     }
+  }
+
+  function handlePathSelect(selectedPath: string) {
+    const segments = path.split("/").filter(Boolean);
+    const currentSlug = segments[segments.length - 1] || "";
+    const newPath = selectedPath ? `${selectedPath}/${currentSlug}` : currentSlug;
+    setPath(newPath);
   }
 
   async function handleImageInputChange(event: ChangeEvent<HTMLInputElement>) {
@@ -533,15 +543,27 @@ export function ArticleEditor({
                     <Label htmlFor="drawer-path" className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/80 ml-1">
                       {t.common.path}
                     </Label>
-                    <div className="relative group">
-                      <Link2 className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-muted-foreground/40 group-focus-within:text-primary transition-colors" />
-                      <Input
-                        id="drawer-path"
-                        onChange={(event) => setPath(event.target.value)}
-                        placeholder={t.admin.articleEditor.pathPlaceholder}
-                        value={path}
-                        className="h-12 pl-11 rounded-2xl bg-background/50 border-border/40 shadow-sm focus-visible:ring-primary/20 transition-all"
-                      />
+                    <div className="relative group flex gap-2">
+                      <div className="relative flex-1">
+                        <Link2 className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-muted-foreground/40 group-focus-within:text-primary transition-colors" />
+                        <Input
+                          id="drawer-path"
+                          onChange={(event) => setPath(event.target.value)}
+                          placeholder={t.admin.articleEditor.pathPlaceholder}
+                          value={path}
+                          className="h-12 pl-11 rounded-2xl bg-background/50 border-border/40 shadow-sm focus-visible:ring-primary/20 transition-all"
+                        />
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        onClick={() => setIsPathPickerOpen(true)}
+                        className="h-12 w-12 rounded-2xl shrink-0 border-border/40 bg-background/50 hover:bg-muted transition-all"
+                        title={t.admin.articleEditor.pathPicker.pickParent}
+                      >
+                        <FolderOpen className="size-4" />
+                      </Button>
                     </div>
                   </div>
 
@@ -703,6 +725,12 @@ export function ArticleEditor({
           height: 100% !important;
         }
       `}</style>
+      <PathPicker
+        open={isPathPickerOpen}
+        onOpenChange={setIsPathPickerOpen}
+        onSelect={handlePathSelect}
+        currentPath={path.split("/").slice(0, -1).join("/")}
+      />
     </form>
   );
 }

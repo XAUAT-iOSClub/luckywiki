@@ -337,6 +337,13 @@ export const en = {
       previewFallback: "_Nothing to preview yet._",
       articleSettings: "Article Settings",
       articleSettingsDescription: "Configure metadata, path, and publishing status for this article.",
+      pathPicker: {
+        title: "Select Parent Folder",
+        description: "Choose a folder from the existing wiki structure as the parent for this article.",
+        select: "Select",
+        pickParent: "Pick Parent",
+        root: "Wiki Root",
+      },
       uploadErrors: {
         unauthorized: "You do not have permission to upload images.",
         missingFile: "No image was found in the upload request.",

@@ -106,6 +106,20 @@ export async function updateArticleAction(
   }
 }
 
+export async function listArticlePathsAction() {
+  await requireAuthorSession();
+  
+  return prisma.article.findMany({
+    select: {
+      path: true,
+      title: true,
+    },
+    orderBy: {
+      path: "asc",
+    },
+  });
+}
+
 export async function approveCommentAction(locale: Locale, commentId: string) {
   const session = await requireRootSession(locale);
   const comment = await prisma.comment.findUnique({

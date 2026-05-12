@@ -337,6 +337,13 @@ export const zh = {
       previewFallback: "_还没有可预览的内容。_",
       articleSettings: "文章设置",
       articleSettingsDescription: "配置文章的元数据、路径和发布状态。",
+      pathPicker: {
+        title: "选择父级文件夹",
+        description: "从现有 Wiki 结构中选择一个文件夹作为此文章的父级。",
+        select: "选择",
+        pickParent: "选择父级",
+        root: "Wiki 根目录",
+      },
       uploadErrors: {
         unauthorized: "你没有上传图片的权限。",
         missingFile: "没有检测到要上传的图片。",
