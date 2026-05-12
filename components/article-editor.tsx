@@ -109,28 +109,113 @@ export function ArticleEditor({
 
     const editor = editorContainerRef.current;
     const preview = previewContainerRef.current;
+    const textarea = markdownRef.current;
 
-    if (!editor || !preview) {
+    if (!editor || !preview || !textarea) {
       return;
     }
 
     isSyncingRef.current = true;
 
     if (source === "editor") {
-      const scrollableHeight = editor.scrollHeight - editor.clientHeight;
-      if (scrollableHeight > 0) {
-        const percentage = editor.scrollTop / scrollableHeight;
-        preview.scrollTop = percentage * (preview.scrollHeight - preview.clientHeight);
+      const lines = markdown.split("\n");
+      const totalLines = lines.length || 1;
+      const editorScrollTop = editor.scrollTop;
+      const editorScrollHeight = editor.scrollHeight;
+      const editorClientHeight = editor.clientHeight;
+
+      if (editorScrollTop <= 5) {
+        preview.scrollTo({ top: 0, behavior: "auto" });
+      } else if (editorScrollTop + editorClientHeight >= editorScrollHeight - 5) {
+        preview.scrollTo({ top: preview.scrollHeight - preview.clientHeight, behavior: "auto" });
+      } else {
+        const lineHeight = editorScrollHeight / totalLines;
+        const currentLine = Math.floor(editorScrollTop / lineHeight) + 1;
+
+        const previewElements = preview.querySelectorAll("[data-line]");
+        let targetElement: HTMLElement | null = null;
+        let prevElement: HTMLElement | null = null;
+
+        for (let i = 0; i < previewElements.length; i++) {
+          const el = previewElements[i] as HTMLElement;
+          const line = parseInt(el.getAttribute("data-line") || "0", 10);
+          if (line >= currentLine) {
+            targetElement = el;
+            break;
+          }
+          prevElement = el;
+        }
+
+        if (targetElement) {
+          const targetLine = parseInt(targetElement.getAttribute("data-line") || "0", 10);
+          const prevLine = prevElement ? parseInt(prevElement.getAttribute("data-line") || "0", 10) : 1;
+          
+          const containerRect = preview.getBoundingClientRect();
+          const targetRect = targetElement.getBoundingClientRect();
+          const targetTop = targetRect.top - containerRect.top + preview.scrollTop;
+          
+          let offset = 0;
+          if (targetLine !== prevLine && prevElement) {
+            const prevRect = prevElement.getBoundingClientRect();
+            const prevTop = prevRect.top - containerRect.top + preview.scrollTop;
+            const ratio = (currentLine - prevLine) / (targetLine - prevLine);
+            offset = prevTop + ratio * (targetTop - prevTop);
+          } else {
+            offset = targetTop;
+          }
+          
+          preview.scrollTop = offset - 40;
+        }
       }
     } else {
-      const scrollableHeight = preview.scrollHeight - preview.clientHeight;
-      if (scrollableHeight > 0) {
-        const percentage = preview.scrollTop / scrollableHeight;
-        editor.scrollTop = percentage * (editor.scrollHeight - editor.clientHeight);
+      const previewScrollTop = preview.scrollTop;
+      const previewScrollHeight = preview.scrollHeight;
+      const previewClientHeight = preview.clientHeight;
+
+      if (previewScrollTop <= 5) {
+        editor.scrollTop = 0;
+      } else if (previewScrollTop + previewClientHeight >= previewScrollHeight - 5) {
+        editor.scrollTop = editor.scrollHeight - editor.clientHeight;
+      } else {
+        const previewElements = preview.querySelectorAll("[data-line]");
+        let topElement: HTMLElement | null = null;
+        let bottomElement: HTMLElement | null = null;
+
+        for (let i = 0; i < previewElements.length; i++) {
+          const el = previewElements[i] as HTMLElement;
+          const containerRect = preview.getBoundingClientRect();
+          const elRect = el.getBoundingClientRect();
+          const elTop = elRect.top - containerRect.top;
+          
+          if (elTop >= 0) {
+            bottomElement = el;
+            break;
+          }
+          topElement = el;
+        }
+
+        const editorScrollHeight = editor.scrollHeight;
+        const totalLines = markdown.split("\n").length || 1;
+        const lineHeight = editorScrollHeight / totalLines;
+
+        if (bottomElement) {
+          const topLine = topElement ? parseInt(topElement.getAttribute("data-line") || "1", 10) : 1;
+          const bottomLine = parseInt(bottomElement.getAttribute("data-line") || "1", 10);
+          
+          const containerRect = preview.getBoundingClientRect();
+          const topRect = topElement ? topElement.getBoundingClientRect() : { top: containerRect.top };
+          const bottomRect = bottomElement.getBoundingClientRect();
+          
+          const topPos = topRect.top - containerRect.top;
+          const bottomPos = bottomRect.top - containerRect.top;
+          
+          const ratio = bottomPos !== topPos ? (0 - topPos) / (bottomPos - topPos) : 0;
+          const targetLine = topLine + ratio * (bottomLine - topLine);
+          editor.scrollTop = (targetLine - 1) * lineHeight;
+        }
       }
     }
 
-    // Reset sync flag in the next frame to allow the triggered scroll event to be ignored
     window.requestAnimationFrame(() => {
       window.requestAnimationFrame(() => {
         isSyncingRef.current = false;
@@ -243,7 +328,7 @@ export function ArticleEditor({
   }
 
   return (
-    <form action={formAction} className="flex flex-col flex-1 min-h-0 relative">
+    <form action={formAction} className="flex flex-col h-[calc(100vh-4rem)] lg:h-[calc(100vh-5rem)] relative overflow-hidden">
       {/* Hidden inputs for metadata to be included in form submission */}
       <input type="hidden" name="title" value={title} />
       <input type="hidden" name="path" value={path} />
@@ -253,7 +338,7 @@ export function ArticleEditor({
       <input type="hidden" name="description" value={description} />
 
       {/* Main Working Area: Editor & Preview */}
-      <section className="flex-1 flex flex-col min-h-0 rounded-[2.5rem] border border-border/40 bg-white/60 dark:bg-zinc-900/60 shadow-2xl overflow-hidden backdrop-blur-2xl">
+      <section className="flex-1 flex flex-col min-h-0 rounded-t-[2.5rem] lg:rounded-[2.5rem] border border-border/40 bg-white/60 dark:bg-zinc-900/60 shadow-2xl overflow-hidden backdrop-blur-2xl">
         {/* Unified Header Toolbar */}
         <div className="flex flex-wrap items-center justify-between gap-4 p-3 border-b border-border/20 bg-white/60 dark:bg-black/60 backdrop-blur-xl shrink-0 sticky top-0 z-40">
           {/* Left: Tools */}
@@ -554,7 +639,7 @@ export function ArticleEditor({
               ref={previewContainerRef}
               onScroll={() => handleScroll("preview")}
               className={cn(
-                "flex flex-col min-h-0 bg-slate-50/30 dark:bg-zinc-950/20 overflow-auto",
+                "flex flex-col min-h-0 bg-slate-50/30 dark:bg-zinc-950/20 overflow-auto relative",
                 mode === "edit" && "hidden",
                 mode === "preview" && "lg:col-span-2"
               )}
@@ -588,10 +673,15 @@ export function ArticleEditor({
 
       <style jsx global>{`
         /* Attempt to make the layout more immersive by removing outer scroll and padding where possible */
+        html, body {
+          overflow: hidden !important;
+          height: 100% !important;
+        }
+
         .admin-layout-container {
           padding: 0 !important;
           gap: 0 !important;
-          height: calc(100vh - 4rem) !important;
+          height: 100vh !important;
           overflow: hidden !important;
         }
         
@@ -599,11 +689,12 @@ export function ArticleEditor({
           max-width: none !important;
           height: 100% !important;
           padding: 1.5rem !important;
+          overflow: hidden !important;
         }
 
         @media (min-width: 1024px) {
           .admin-layout-content {
-            padding: 2.5rem !important;
+            padding: 2rem !important;
           }
         }
         

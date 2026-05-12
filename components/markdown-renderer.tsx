@@ -25,6 +25,17 @@ const remarkRehypeOptions = {
   passThrough: ["mdxJsxFlowElement", "mdxJsxTextElement"] as never[],
 };
 
+function rehypeAddSourceLine() {
+  return (tree: any) => {
+    visit(tree, "element", (node: any) => {
+      if (node.position?.start?.line) {
+        node.properties = node.properties || {};
+        node.properties["data-line"] = node.position.start.line;
+      }
+    });
+  };
+}
+
 function extractTabsLabelBlocks(markdown: string) {
   const blocks: string[][] = [];
   const lines = markdown.split(/\r?\n/);
@@ -365,6 +376,7 @@ export function MarkdownRenderer({
     rehypeNormalizeAnchors,
     rehypeHighlight,
     rehypeKatex,
+    rehypeAddSourceLine,
   ];
   const remarkPlugins: NonNullable<ReactMarkdownOptions["remarkPlugins"]> = [
     remarkAlert,
