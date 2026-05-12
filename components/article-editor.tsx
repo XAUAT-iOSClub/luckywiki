@@ -356,69 +356,69 @@ export function ArticleEditor({
             <Menubar className="h-9 rounded-full px-2 border-border/50 bg-background/50 backdrop-blur-sm">
               <MenubarMenu>
                 <MenubarTrigger className="h-7 px-3 text-[10px] font-bold uppercase tracking-tight rounded-full">
-                  <Heading1 className="size-3.5 mr-1.5" /> {t.common.title}
+                  <Heading1 className="size-3.5 mr-1.5" /> {t.admin.articleEditor.menubar.headings}
                 </MenubarTrigger>
                 <MenubarContent className="rounded-xl">
                   <MenubarItem onClick={() => insertMarkdownAtCursor("# ")} className="text-xs">
-                    <Heading1 className="size-4 mr-2" /> Heading 1
+                    <Heading1 className="size-4 mr-2" /> {t.admin.articleEditor.menubar.heading1}
                   </MenubarItem>
                   <MenubarItem onClick={() => insertMarkdownAtCursor("## ")} className="text-xs">
-                    <Heading2 className="size-4 mr-2" /> Heading 2
+                    <Heading2 className="size-4 mr-2" /> {t.admin.articleEditor.menubar.heading2}
                   </MenubarItem>
                   <MenubarItem onClick={() => insertMarkdownAtCursor("### ")} className="text-xs">
-                    <Heading3 className="size-4 mr-2" /> Heading 3
+                    <Heading3 className="size-4 mr-2" /> {t.admin.articleEditor.menubar.heading3}
                   </MenubarItem>
                 </MenubarContent>
               </MenubarMenu>
 
               <MenubarMenu>
                 <MenubarTrigger className="h-7 px-3 text-[10px] font-bold uppercase tracking-tight rounded-full">
-                  Format
+                  {t.admin.articleEditor.menubar.format}
                 </MenubarTrigger>
                 <MenubarContent className="rounded-xl">
                   <MenubarItem onClick={() => insertMarkdownAtCursor("**Bold Text**")} className="text-xs">
-                    <Bold className="size-4 mr-2" /> Bold
+                    <Bold className="size-4 mr-2" /> {t.admin.articleEditor.menubar.bold}
                   </MenubarItem>
                   <MenubarItem onClick={() => insertMarkdownAtCursor("*Italic Text*")} className="text-xs">
-                    <Italic className="size-4 mr-2" /> Italic
+                    <Italic className="size-4 mr-2" /> {t.admin.articleEditor.menubar.italic}
                   </MenubarItem>
                   <MenubarSeparator />
                   <MenubarItem onClick={() => insertMarkdownAtCursor("> Quote")} className="text-xs">
-                    <Quote className="size-4 mr-2" /> Blockquote
+                    <Quote className="size-4 mr-2" /> {t.admin.articleEditor.menubar.blockquote}
                   </MenubarItem>
                   <MenubarItem onClick={() => insertMarkdownAtCursor("---")} className="text-xs">
-                    <Minus className="size-4 mr-2" /> Separator
+                    <Minus className="size-4 mr-2" /> {t.admin.articleEditor.menubar.separator}
                   </MenubarItem>
                 </MenubarContent>
               </MenubarMenu>
 
               <MenubarMenu>
                 <MenubarTrigger className="h-7 px-3 text-[10px] font-bold uppercase tracking-tight rounded-full">
-                  List
+                  {t.admin.articleEditor.menubar.list}
                 </MenubarTrigger>
                 <MenubarContent className="rounded-xl">
                   <MenubarItem onClick={() => insertMarkdownAtCursor("- Item")} className="text-xs">
-                    <List className="size-4 mr-2" /> Bullet List
+                    <List className="size-4 mr-2" /> {t.admin.articleEditor.menubar.bulletList}
                   </MenubarItem>
                   <MenubarItem onClick={() => insertMarkdownAtCursor("1. Item")} className="text-xs">
-                    <ListOrdered className="size-4 mr-2" /> Numbered List
+                    <ListOrdered className="size-4 mr-2" /> {t.admin.articleEditor.menubar.numberedList}
                   </MenubarItem>
                 </MenubarContent>
               </MenubarMenu>
 
               <MenubarMenu>
                 <MenubarTrigger className="h-7 px-3 text-[10px] font-bold uppercase tracking-tight rounded-full">
-                  Insert
+                  {t.admin.articleEditor.menubar.insert}
                 </MenubarTrigger>
                 <MenubarContent className="rounded-xl">
                   <MenubarItem onClick={() => insertMarkdownAtCursor("```\nCode Block\n```")} className="text-xs">
-                    <Code className="size-4 mr-2" /> Code Block
+                    <Code className="size-4 mr-2" /> {t.admin.articleEditor.menubar.codeBlock}
                   </MenubarItem>
                   <MenubarItem onClick={() => insertMarkdownAtCursor("| Header | Header |\n| --- | --- |\n| Cell | Cell |")} className="text-xs">
-                    <TableIcon className="size-4 mr-2" /> Table
+                    <TableIcon className="size-4 mr-2" /> {t.admin.articleEditor.menubar.table}
                   </MenubarItem>
                   <MenubarItem onClick={() => insertMarkdownAtCursor("[Link Text](url)")} className="text-xs">
-                    <Link2 className="size-4 mr-2" /> Link
+                    <Link2 className="size-4 mr-2" /> {t.admin.articleEditor.menubar.link}
                   </MenubarItem>
                 </MenubarContent>
               </MenubarMenu>
