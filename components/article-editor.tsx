@@ -13,6 +13,17 @@ import {
   FileText,
   Type,
   User,
+  Bold,
+  Italic,
+  Heading1,
+  Heading2,
+  Heading3,
+  List,
+  ListOrdered,
+  Code,
+  Quote,
+  Table as TableIcon,
+  Minus,
 } from "lucide-react";
 import { ArticleStatus } from "@/generated/prisma/enums";
 import { MarkdownRenderer } from "@/components/markdown-renderer";
@@ -28,6 +39,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Menubar,
+  MenubarContent,
+  MenubarItem,
+  MenubarMenu,
+  MenubarSeparator,
+  MenubarTrigger,
+} from "@/components/ui/menubar";
 import type { FormActionState } from "@/app/actions/admin";
 import { useT } from "@/lib/i18n/provider";
 import { cn } from "@/lib/utils";
@@ -291,34 +310,107 @@ export function ArticleEditor({
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-0 lg:divide-x divide-border/20 rounded-[2.5rem] border border-border/40 bg-white/60 dark:bg-zinc-900/60 shadow-2xl shadow-black/5 overflow-hidden backdrop-blur-2xl">
           {/* Markdown Editor Side */}
           <div className="flex flex-col min-h-[700px]">
-            <div className="flex items-center justify-between p-4 border-b border-border/20 bg-white/20 dark:bg-black/10">
+            <div className="sticky top-0 z-10 flex items-center justify-between p-4 border-b border-border/20 bg-white/40 dark:bg-black/40 backdrop-blur-md">
               <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/60 flex items-center gap-2">
                 <Edit3 className="size-3" />
                 Markdown
               </span>
-              <div className="flex items-center gap-2">
-                <input
-                  ref={fileInputRef}
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleImageInputChange}
-                  type="file"
-                />
-                <Button
-                  disabled={isUploadingImage}
-                  onClick={() => fileInputRef.current?.click()}
-                  size="sm"
-                  variant="ghost"
-                  type="button"
-                  className="h-7 px-3 rounded-full text-[10px] font-bold uppercase tracking-tight hover:bg-primary/5 hover:text-primary transition-colors"
-                >
-                  {isUploadingImage ? (
-                    <Loader2 className="size-3 animate-spin mr-1.5" />
-                  ) : (
-                    <ImageUp className="size-3 mr-1.5" />
-                  )}
-                  {isUploadingImage ? "..." : t.admin.articleEditor.insertImage}
-                </Button>
+              <div className="flex items-center gap-4">
+                <Menubar className="h-8 rounded-full px-2 border-border/50 bg-background/50 backdrop-blur-sm">
+                  <MenubarMenu>
+                    <MenubarTrigger className="h-6 px-2 text-[10px] font-bold uppercase tracking-tight rounded-full">
+                      <Heading1 className="size-3 mr-1" /> {t.common.title}
+                    </MenubarTrigger>
+                    <MenubarContent className="rounded-xl">
+                      <MenubarItem onClick={() => insertMarkdownAtCursor("# ")} className="text-xs">
+                        <Heading1 className="size-3 mr-2" /> Heading 1
+                      </MenubarItem>
+                      <MenubarItem onClick={() => insertMarkdownAtCursor("## ")} className="text-xs">
+                        <Heading2 className="size-3 mr-2" /> Heading 2
+                      </MenubarItem>
+                      <MenubarItem onClick={() => insertMarkdownAtCursor("### ")} className="text-xs">
+                        <Heading3 className="size-3 mr-2" /> Heading 3
+                      </MenubarItem>
+                    </MenubarContent>
+                  </MenubarMenu>
+
+                  <MenubarMenu>
+                    <MenubarTrigger className="h-6 px-2 text-[10px] font-bold uppercase tracking-tight rounded-full">
+                      Format
+                    </MenubarTrigger>
+                    <MenubarContent className="rounded-xl">
+                      <MenubarItem onClick={() => insertMarkdownAtCursor("**Bold Text**")} className="text-xs">
+                        <Bold className="size-3 mr-2" /> Bold
+                      </MenubarItem>
+                      <MenubarItem onClick={() => insertMarkdownAtCursor("*Italic Text*")} className="text-xs">
+                        <Italic className="size-3 mr-2" /> Italic
+                      </MenubarItem>
+                      <MenubarSeparator />
+                      <MenubarItem onClick={() => insertMarkdownAtCursor("> Quote")} className="text-xs">
+                        <Quote className="size-3 mr-2" /> Blockquote
+                      </MenubarItem>
+                      <MenubarItem onClick={() => insertMarkdownAtCursor("---")} className="text-xs">
+                        <Minus className="size-3 mr-2" /> Separator
+                      </MenubarItem>
+                    </MenubarContent>
+                  </MenubarMenu>
+
+                  <MenubarMenu>
+                    <MenubarTrigger className="h-6 px-2 text-[10px] font-bold uppercase tracking-tight rounded-full">
+                      List
+                    </MenubarTrigger>
+                    <MenubarContent className="rounded-xl">
+                      <MenubarItem onClick={() => insertMarkdownAtCursor("- Item")} className="text-xs">
+                        <List className="size-3 mr-2" /> Bullet List
+                      </MenubarItem>
+                      <MenubarItem onClick={() => insertMarkdownAtCursor("1. Item")} className="text-xs">
+                        <ListOrdered className="size-3 mr-2" /> Numbered List
+                      </MenubarItem>
+                    </MenubarContent>
+                  </MenubarMenu>
+
+                  <MenubarMenu>
+                    <MenubarTrigger className="h-6 px-2 text-[10px] font-bold uppercase tracking-tight rounded-full">
+                      Insert
+                    </MenubarTrigger>
+                    <MenubarContent className="rounded-xl">
+                      <MenubarItem onClick={() => insertMarkdownAtCursor("```\nCode Block\n```")} className="text-xs">
+                        <Code className="size-3 mr-2" /> Code Block
+                      </MenubarItem>
+                      <MenubarItem onClick={() => insertMarkdownAtCursor("| Header | Header |\n| --- | --- |\n| Cell | Cell |")} className="text-xs">
+                        <TableIcon className="size-3 mr-2" /> Table
+                      </MenubarItem>
+                      <MenubarItem onClick={() => insertMarkdownAtCursor("[Link Text](url)")} className="text-xs">
+                        <Link2 className="size-3 mr-2" /> Link
+                      </MenubarItem>
+                    </MenubarContent>
+                  </MenubarMenu>
+                </Menubar>
+
+                <div className="flex items-center gap-2">
+                  <input
+                    ref={fileInputRef}
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleImageInputChange}
+                    type="file"
+                  />
+                  <Button
+                    disabled={isUploadingImage}
+                    onClick={() => fileInputRef.current?.click()}
+                    size="sm"
+                    variant="ghost"
+                    type="button"
+                    className="h-7 px-3 rounded-full text-[10px] font-bold uppercase tracking-tight hover:bg-primary/5 hover:text-primary transition-colors"
+                  >
+                    {isUploadingImage ? (
+                      <Loader2 className="size-3 animate-spin mr-1.5" />
+                    ) : (
+                      <ImageUp className="size-3 mr-1.5" />
+                    )}
+                    {isUploadingImage ? "..." : t.admin.articleEditor.insertImage}
+                  </Button>
+                </div>
               </div>
             </div>
             <div className="flex-1 flex flex-col p-2">
