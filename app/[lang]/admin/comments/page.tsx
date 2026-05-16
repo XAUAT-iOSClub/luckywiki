@@ -8,6 +8,17 @@ import { getDictionary } from "@/lib/i18n/get-dictionary";
 import { hasLocale, localizeHref } from "@/lib/i18n/config";
 import { notFound } from "next/navigation";
 import { requireRootSession } from "@/lib/auth/session";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 type Params = Promise<{ lang: string }>;
@@ -42,83 +53,115 @@ export default async function AdminCommentsPage({
   );
 
   return (
-    <section className="surface-panel space-y-6">
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
-          <p className="eyebrow">{dictionary.admin.commentsEyebrow}</p>
-          <h2 className="text-2xl font-semibold">{dictionary.admin.moderateFeedback}</h2>
-        </div>
-        <div className="flex flex-wrap gap-2 text-sm">
-          {moderationFilters.map((filter) => {
-            const href = filter.value
-              ? localizeHref(lang, `/admin/comments?status=${filter.value}`)
-              : localizeHref(lang, "/admin/comments");
-            const active = currentStatus === filter.value || (!currentStatus && !filter.value);
-
-            return (
-              <Link
-                key={filter.label}
-                className={active ? "button-primary" : "button-secondary"}
-                href={href}
-              >
-                {filter.label}
-              </Link>
-            );
-          })}
-        </div>
-      </div>
-      <div className="space-y-4">
-        {comments.length === 0 ? (
-          <div className="rounded-3xl border border-dashed border-border p-6 text-sm text-muted-foreground">
-            {dictionary.admin.noCommentsForFilter}
+    <div className="space-y-6">
+      <section className="surface-panel">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <p className="eyebrow">{dictionary.admin.commentsEyebrow}</p>
+            <h2 className="text-3xl font-semibold tracking-tight">{dictionary.admin.moderateFeedback}</h2>
           </div>
-        ) : null}
-        {comments.map((comment) => (
-          <article key={comment.id} className="rounded-3xl border border-border/70 bg-white/70 dark:bg-zinc-900/40 p-5 shadow-sm">
-            <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-              <div className="space-y-2">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="font-medium">{comment.author.name}</span>
-                  <span className="text-xs text-muted-foreground">{comment.author.email}</span>
-                  <span className={comment.status === CommentStatus.APPROVED ? "status-pill status-pill-success" : comment.status === CommentStatus.REJECTED ? "status-pill status-pill-danger" : "status-pill"}>
-                    {getCommentStatusLabel(comment.status, dictionary)}
-                  </span>
-                </div>
-                <p className="text-sm leading-7 whitespace-pre-wrap">{comment.body}</p>
-                <div className="text-xs text-muted-foreground">
-                  {dictionary.metadata.wiki} ·{" "}
-                  <Link className="text-primary hover:underline" href={buildWikiHref(comment.article.path, lang)}>
-                    {comment.article.title}
-                  </Link>
-                  {" · "}
-                  {formatDateTime(lang, comment.createdAt)}
-                </div>
-                {comment.approver ? (
-                  <div className="text-xs text-muted-foreground">
-                    {formatTemplate(dictionary.admin.moderatedBy, {
-                      name: comment.approver.name,
-                      date: comment.approvedAt ? formatDateTime(lang, comment.approvedAt) : "",
-                    })}
-                  </div>
-                ) : null}
-              </div>
-              <div className="flex gap-2">
-                <form action={approveCommentAction.bind(null, lang, comment.id)}>
-                  <button className="button-primary" type="submit">
-                    {dictionary.admin.approve}
-                  </button>
-                </form>
-                <form action={rejectCommentAction.bind(null, lang, comment.id)}>
-                  <button className="button-secondary" type="submit">
-                    {dictionary.admin.reject}
-                  </button>
-                </form>
-              </div>
+          <div className="flex flex-wrap gap-2 text-sm">
+            {moderationFilters.map((filter) => {
+              const href = filter.value
+                ? localizeHref(lang, `/admin/comments?status=${filter.value}`)
+                : localizeHref(lang, "/admin/comments");
+              const active = currentStatus === filter.value || (!currentStatus && !filter.value);
+
+              return (
+                <Button
+                  key={filter.label}
+                  variant={active ? "default" : "outline"}
+                  size="sm"
+                  asChild
+                  className="rounded-full"
+                >
+                  <Link href={href}>{filter.label}</Link>
+                </Button>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      <Card className="rounded-[2rem] border-border/50 bg-background/80 shadow-sm overflow-hidden">
+        <CardContent className="p-0">
+          {comments.length === 0 ? (
+            <div className="p-8 text-center text-sm text-muted-foreground">
+              {dictionary.admin.noCommentsForFilter}
             </div>
-          </article>
-        ))}
-      </div>
-    </section>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="pl-6 w-[200px]">{dictionary.common.author}</TableHead>
+                  <TableHead>{dictionary.common.comment}</TableHead>
+                  <TableHead>{dictionary.common.articles}</TableHead>
+                  <TableHead>{dictionary.common.status}</TableHead>
+                  <TableHead className="pr-6 text-right">{dictionary.common.actions}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {comments.map((comment) => (
+                  <TableRow key={comment.id}>
+                    <TableCell className="pl-6 align-top py-4">
+                      <div className="space-y-1">
+                        <p className="font-medium text-sm">{comment.author.name}</p>
+                        <p className="text-xs text-muted-foreground truncate max-w-[180px]">
+                          {comment.author.email}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground">
+                          {formatDateTime(lang, comment.createdAt)}
+                        </p>
+                      </div>
+                    </TableCell>
+                    <TableCell className="align-top py-4 min-w-[300px]">
+                      <div className="space-y-2">
+                        <p className="text-sm leading-6 whitespace-pre-wrap">{comment.body}</p>
+                        {comment.approver ? (
+                          <p className="text-[10px] text-muted-foreground italic">
+                            {formatTemplate(dictionary.admin.moderatedBy, {
+                              name: comment.approver.name,
+                              date: comment.approvedAt ? formatDateTime(lang, comment.approvedAt) : "",
+                            })}
+                          </p>
+                        ) : null}
+                      </div>
+                    </TableCell>
+                    <TableCell className="align-top py-4">
+                      <Link
+                        className="text-xs text-primary hover:underline font-medium block max-w-[200px] truncate"
+                        href={buildWikiHref(comment.article.path, lang)}
+                      >
+                        {comment.article.title}
+                      </Link>
+                    </TableCell>
+                    <TableCell className="align-top py-4">
+                      <Badge variant={comment.status === CommentStatus.APPROVED ? "default" : comment.status === CommentStatus.REJECTED ? "destructive" : "secondary"}>
+                        {getCommentStatusLabel(comment.status, dictionary)}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="pr-6 text-right align-top py-4">
+                      <div className="flex justify-end gap-2">
+                        <form action={approveCommentAction.bind(null, lang, comment.id)}>
+                          <Button size="sm" type="submit" variant="ghost" disabled={comment.status === CommentStatus.APPROVED}>
+                            {dictionary.admin.approve}
+                          </Button>
+                        </form>
+                        <form action={rejectCommentAction.bind(null, lang, comment.id)}>
+                          <Button size="sm" type="submit" variant="ghost" disabled={comment.status === CommentStatus.REJECTED}>
+                            {dictionary.admin.reject}
+                          </Button>
+                        </form>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
 }
 

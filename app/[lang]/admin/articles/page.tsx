@@ -18,6 +18,14 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { formatDateTime, formatNumber, formatTemplate } from "@/lib/i18n/format";
 import { getDictionary } from "@/lib/i18n/get-dictionary";
 import { hasLocale, localizeHref, type Locale } from "@/lib/i18n/config";
@@ -212,7 +220,7 @@ export default async function AdminArticlesPage({
         </CardContent>
       </Card>
 
-      <Card className="rounded-[2rem] border-border/50 bg-background/80 shadow-sm">
+      <Card className="rounded-[2rem] border-border/50 bg-background/80 shadow-sm overflow-hidden">
         <CardHeader>
           <CardTitle>{dictionary.admin.articleLibrary}</CardTitle>
           <CardDescription>
@@ -224,159 +232,163 @@ export default async function AdminArticlesPage({
                 })}
           </CardDescription>
         </CardHeader>
-        <CardContent className="flex flex-col gap-4">
+        <CardContent className="p-0">
           {articles.length === 0 ? (
-            <div className="rounded-[1.5rem] border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
+            <div className="p-8 text-center text-sm text-muted-foreground border-t border-dashed">
               {dictionary.admin.noArticlesFound}
             </div>
           ) : (
-            articles.map((article) => {
-              const targetStatus =
-                article.status === ArticleStatus.PUBLISHED
-                  ? ArticleStatus.DRAFT
-                  : ArticleStatus.PUBLISHED;
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="pl-6">{dictionary.common.articles}</TableHead>
+                  <TableHead>{dictionary.common.status}</TableHead>
+                  <TableHead>{dictionary.common.tags}</TableHead>
+                  <TableHead>{dictionary.admin.authorLine.split(" · ")[0].replace("{author}", dictionary.common.author)}</TableHead>
+                  <TableHead className="pr-6 text-right">{dictionary.common.actions}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {articles.map((article) => {
+                  const targetStatus =
+                    article.status === ArticleStatus.PUBLISHED
+                      ? ArticleStatus.DRAFT
+                      : ArticleStatus.PUBLISHED;
 
-              return (
-                <article
-                  key={article.id}
-                  className="rounded-[1.75rem] border border-border/60 bg-muted/20 p-5"
-                >
-                  <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-                    <div className="space-y-3">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <Link
-                          href={localizeHref(lang, `/admin/articles/${article.id}`)}
-                          className="text-lg font-medium hover:text-primary"
-                        >
-                          {article.title}
-                        </Link>
+                  return (
+                    <TableRow key={article.id}>
+                      <TableCell className="pl-6 py-4">
+                        <div className="space-y-1">
+                          <Link
+                            href={localizeHref(lang, `/admin/articles/${article.id}`)}
+                            className="font-medium hover:text-primary transition-colors block"
+                          >
+                            {article.title}
+                          </Link>
+                          <p className="font-mono text-xs text-muted-foreground">/{article.path}</p>
+                        </div>
+                      </TableCell>
+                      <TableCell>
                         <Badge
                           variant={article.status === ArticleStatus.PUBLISHED ? "default" : "secondary"}
                         >
                           {getStatusLabel(article.status, dictionary)}
                         </Badge>
-                        <Badge variant="outline">
-                          {formatTemplate(dictionary.admin.commentsCount, {
-                            count: formatNumber(lang, article._count.comments),
-                          })}
-                        </Badge>
-                      </div>
-                      <p className="font-mono text-xs text-muted-foreground">/{article.path}</p>
-                      {article.description ? (
-                        <p className="max-w-3xl text-sm leading-6 text-muted-foreground">
-                          {article.description}
-                        </p>
-                      ) : null}
-                      <div className="flex flex-wrap gap-2">
-                        {article.tags.map((item) => (
-                          <Link
-                            key={item}
-                            href={buildArticleHref(lang, { q: query, status, section, tag: item })}
-                          >
-                            <Badge variant={item === tag ? "default" : "secondary"}>
-                              {item}
-                            </Badge>
-                          </Link>
-                        ))}
-                        {article.tags.length === 0 ? (
-                          <Badge variant="outline">{dictionary.admin.untagged}</Badge>
-                        ) : null}
-                      </div>
-                      <p className="text-sm text-muted-foreground">
-                        {formatTemplate(dictionary.admin.authorLine, {
-                          author: article.author.name,
-                          date: formatDateTime(lang, article.updatedAt),
-                          editor: article.editor ? ` · ${article.editor}` : "",
-                        })}
-                      </p>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2 xl:max-w-[320px] xl:justify-end">
-                      <Button variant="outline" asChild>
-                        <Link href={localizeHref(lang, `/admin/articles/${article.id}`)}>
-                          {dictionary.common.editArticle}
-                        </Link>
-                      </Button>
-                      {article.status === ArticleStatus.PUBLISHED ? (
-                        <Button variant="outline" asChild>
-                          <Link href={buildWikiHref(article.path, lang)} target="_blank">
-                            <ExternalLink data-icon="inline-start" />
-                            {dictionary.common.viewLive}
-                          </Link>
-                        </Button>
-                      ) : null}
-                      <form action={setArticleStatusAction.bind(null, lang, article.id, targetStatus)}>
-                        <Button type="submit">
-                          {article.status === ArticleStatus.PUBLISHED
-                            ? dictionary.admin.moveToDraft
-                            : dictionary.admin.publishNow}
-                        </Button>
-                      </form>
-                    </div>
-                  </div>
-                </article>
-              );
-            })
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap gap-1 max-w-[200px]">
+                          {article.tags.map((item) => (
+                            <Link
+                              key={item}
+                              href={buildArticleHref(lang, { q: query, status, section, tag: item })}
+                            >
+                              <Badge variant={item === tag ? "default" : "outline"} className="text-[10px] px-1.5 py-0 h-5">
+                                {item}
+                              </Badge>
+                            </Link>
+                          ))}
+                          {article.tags.length === 0 ? (
+                            <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-5 text-muted-foreground">{dictionary.admin.untagged}</Badge>
+                          ) : null}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-xs space-y-0.5">
+                          <p className="font-medium">{article.author.name}</p>
+                          <p className="text-muted-foreground">{formatDateTime(lang, article.updatedAt)}</p>
+                        </div>
+                      </TableCell>
+                      <TableCell className="pr-6 text-right">
+                        <div className="flex justify-end gap-2">
+                          <Button variant="ghost" size="sm" asChild>
+                            <Link href={localizeHref(lang, `/admin/articles/${article.id}`)}>
+                              {dictionary.common.editArticle}
+                            </Link>
+                          </Button>
+                          {article.status === ArticleStatus.PUBLISHED ? (
+                            <Button variant="ghost" size="sm" asChild>
+                              <Link href={buildWikiHref(article.path, lang)} target="_blank">
+                                <ExternalLink className="size-3.5" />
+                              </Link>
+                            </Button>
+                          ) : null}
+                          <form action={setArticleStatusAction.bind(null, lang, article.id, targetStatus)}>
+                            <Button type="submit" variant="ghost" size="sm">
+                              {article.status === ArticleStatus.PUBLISHED
+                                ? dictionary.admin.moveToDraft
+                                : dictionary.admin.publishNow}
+                            </Button>
+                          </form>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
           )}
 
           {totalPages > 1 ? (
-            <Pagination className="justify-end">
-              <PaginationContent>
-                <PaginationItem>
-                  <PaginationPrevious
-                    href={
-                      currentPage > 1
-                        ? buildArticleHref(lang, {
+            <div className="p-4 border-t">
+              <Pagination className="justify-end">
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious
+                      href={
+                        currentPage > 1
+                          ? buildArticleHref(lang, {
+                              q: query,
+                              status,
+                              tag,
+                              section,
+                              page: currentPage - 1,
+                            })
+                          : "#"
+                      }
+                      className={currentPage === 1 ? "pointer-events-none opacity-40" : ""}
+                    />
+                  </PaginationItem>
+                  {buildPageNumbers(currentPage, totalPages).map((pageNumber, index) =>
+                    pageNumber === "ellipsis" ? (
+                      <PaginationItem key={`ellipsis-${index}`}>
+                        <PaginationEllipsis />
+                      </PaginationItem>
+                    ) : (
+                      <PaginationItem key={pageNumber}>
+                        <PaginationLink
+                          href={buildArticleHref(lang, {
                             q: query,
                             status,
                             tag,
                             section,
-                            page: currentPage - 1,
-                          })
-                        : "#"
-                    }
-                    className={currentPage === 1 ? "pointer-events-none opacity-40" : ""}
-                  />
-                </PaginationItem>
-                {buildPageNumbers(currentPage, totalPages).map((pageNumber, index) =>
-                  pageNumber === "ellipsis" ? (
-                    <PaginationItem key={`ellipsis-${index}`}>
-                      <PaginationEllipsis />
-                    </PaginationItem>
-                  ) : (
-                    <PaginationItem key={pageNumber}>
-                      <PaginationLink
-                        href={buildArticleHref(lang, {
-                          q: query,
-                          status,
-                          tag,
-                          section,
-                          page: pageNumber,
-                        })}
-                        isActive={pageNumber === currentPage}
-                      >
-                        {pageNumber}
-                      </PaginationLink>
-                    </PaginationItem>
-                  ),
-                )}
-                <PaginationItem>
-                  <PaginationNext
-                    href={
-                      currentPage < totalPages
-                        ? buildArticleHref(lang, {
-                            q: query,
-                            status,
-                            tag,
-                            section,
-                            page: currentPage + 1,
-                          })
-                        : "#"
-                    }
-                    className={currentPage === totalPages ? "pointer-events-none opacity-40" : ""}
-                  />
-                </PaginationItem>
-              </PaginationContent>
-            </Pagination>
+                            page: pageNumber,
+                          })}
+                          isActive={pageNumber === currentPage}
+                        >
+                          {pageNumber}
+                        </PaginationLink>
+                      </PaginationItem>
+                    ),
+                  )}
+                  <PaginationItem>
+                    <PaginationNext
+                      href={
+                        currentPage < totalPages
+                          ? buildArticleHref(lang, {
+                              q: query,
+                              status,
+                              tag,
+                              section,
+                              page: currentPage + 1,
+                            })
+                          : "#"
+                      }
+                      className={currentPage === totalPages ? "pointer-events-none opacity-40" : ""}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            </div>
           ) : null}
         </CardContent>
       </Card>

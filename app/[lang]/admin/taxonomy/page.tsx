@@ -2,8 +2,16 @@ import Link from "next/link";
 import { FolderTree, Tags } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { listAdminTaxonomy } from "@/lib/admin";
-import { formatDateTime, formatNumber, formatTemplate } from "@/lib/i18n/format";
+import { formatDateTime, formatNumber } from "@/lib/i18n/format";
 import { getDictionary } from "@/lib/i18n/get-dictionary";
 import { hasLocale, localizeHref } from "@/lib/i18n/config";
 import { notFound } from "next/navigation";
@@ -52,7 +60,7 @@ export default async function AdminTaxonomyPage({
       </section>
 
       <div className="grid gap-6 xl:grid-cols-2">
-        <Card className="rounded-[2rem] border-border/50 bg-background/80 shadow-sm">
+        <Card className="rounded-[2rem] border-border/50 bg-background/80 shadow-sm overflow-hidden">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <FolderTree className="size-5 text-primary" />
@@ -60,51 +68,64 @@ export default async function AdminTaxonomyPage({
             </CardTitle>
             <CardDescription>{dictionary.admin.groupArticlesBy}</CardDescription>
           </CardHeader>
-          <CardContent className="flex flex-col gap-3">
-            {taxonomy.sections.map((section) => (
-              <div
-                key={section.slug || "root"}
-                className="rounded-[1.5rem] border border-border/60 bg-muted/20 p-4"
-              >
-                <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                  <div className="space-y-2">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <h2 className="text-lg font-medium">{section.slug ? section.label : dictionary.common.root}</h2>
-                      <Badge variant="secondary">
-                        {formatTemplate(dictionary.admin.articlesCount, {
-                          count: formatNumber(lang, section.totalArticles),
-                        })}
-                      </Badge>
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      {formatNumber(lang, section.publishedArticles)} {dictionary.common.published.toLowerCase()} ·{" "}
-                      {formatNumber(lang, section.draftArticles)} {dictionary.common.draft.toLowerCase()} ·{" "}
-                      {formatNumber(lang, section.totalComments)} {dictionary.common.comments.toLowerCase()}
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      {section.sampleTitles.map((title) => (
-                        <Badge key={title} variant="outline">
-                          {title}
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="pl-6">{dictionary.common.section}</TableHead>
+                  <TableHead className="text-center">{dictionary.common.articles}</TableHead>
+                  <TableHead className="pr-6 text-right">{dictionary.common.actions}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {taxonomy.sections.map((section) => (
+                  <TableRow key={section.slug || "root"}>
+                    <TableCell className="pl-6 py-4">
+                      <div className="space-y-1">
+                        <p className="font-medium">{section.slug ? section.label : dictionary.common.root}</p>
+                        <p className="text-xs text-muted-foreground font-mono">
+                          {section.slug ? `/${section.slug}` : "/"}
+                        </p>
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          {section.sampleTitles.slice(0, 3).map((title) => (
+                            <Badge key={title} variant="outline" className="text-[10px] px-1 py-0 h-4 truncate max-w-[120px]">
+                              {title}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <div className="space-y-1">
+                        <Badge variant="secondary" className="h-5 px-1.5 text-[10px]">
+                          {formatNumber(lang, section.totalArticles)}
                         </Badge>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="text-sm text-muted-foreground lg:text-right">
-                    <p>{formatDateTime(lang, section.latestUpdatedAt)}</p>
-                    <Link
-                      href={localizeHref(lang, `/admin/articles?section=${encodeURIComponent(section.slug)}`)}
-                      className="mt-2 inline-flex font-medium text-primary"
-                    >
-                      {dictionary.admin.openArticles}
-                    </Link>
-                  </div>
-                </div>
-              </div>
-            ))}
+                        <div className="text-[10px] text-muted-foreground whitespace-nowrap">
+                          {section.publishedArticles}P · {section.draftArticles}D
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="pr-6 text-right">
+                      <div className="space-y-1">
+                        <p className="text-[10px] text-muted-foreground">
+                          {formatDateTime(lang, section.latestUpdatedAt)}
+                        </p>
+                        <Link
+                          href={localizeHref(lang, `/admin/articles?section=${encodeURIComponent(section.slug)}`)}
+                          className="text-xs font-medium text-primary hover:underline"
+                        >
+                          {dictionary.admin.openArticles}
+                        </Link>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           </CardContent>
         </Card>
 
-        <Card className="rounded-[2rem] border-border/50 bg-background/80 shadow-sm">
+        <Card className="rounded-[2rem] border-border/50 bg-background/80 shadow-sm overflow-hidden">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Tags className="size-5 text-primary" />
@@ -112,52 +133,62 @@ export default async function AdminTaxonomyPage({
             </CardTitle>
             <CardDescription>{dictionary.admin.trackTopics}</CardDescription>
           </CardHeader>
-          <CardContent className="flex flex-col gap-3">
+          <CardContent className="p-0">
             {taxonomy.tags.length === 0 ? (
-              <p className="rounded-[1.5rem] border border-dashed border-border p-4 text-sm text-muted-foreground">
+              <div className="p-8 text-center text-sm text-muted-foreground">
                 {dictionary.admin.noTagsYet}
-              </p>
+              </div>
             ) : (
-              taxonomy.tags.map((tag) => (
-                <div
-                  key={tag.tag}
-                  className="rounded-[1.5rem] border border-border/60 bg-muted/20 p-4"
-                >
-                  <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                    <div className="space-y-2">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <h2 className="text-lg font-medium">{tag.tag}</h2>
-                        <Badge variant="secondary">
-                          {formatTemplate(dictionary.admin.articlesCount, {
-                            count: formatNumber(lang, tag.totalArticles),
-                          })}
-                        </Badge>
-                      </div>
-                      <p className="text-sm text-muted-foreground">
-                        {formatNumber(lang, tag.publishedArticles)} {dictionary.common.published.toLowerCase()} ·{" "}
-                        {formatNumber(lang, tag.draftArticles)} {dictionary.common.draft.toLowerCase()} ·{" "}
-                        {formatNumber(lang, tag.totalComments)} {dictionary.common.comments.toLowerCase()}
-                      </p>
-                      <div className="flex flex-wrap gap-2">
-                        {tag.sampleTitles.map((title) => (
-                          <Badge key={title} variant="outline">
-                            {title}
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="pl-6">{dictionary.common.tag}</TableHead>
+                    <TableHead className="text-center">{dictionary.common.articles}</TableHead>
+                    <TableHead className="pr-6 text-right">{dictionary.common.actions}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {taxonomy.tags.map((tag) => (
+                    <TableRow key={tag.tag}>
+                      <TableCell className="pl-6 py-4">
+                        <div className="space-y-1">
+                          <p className="font-medium">#{tag.tag}</p>
+                          <div className="flex flex-wrap gap-1 mt-2">
+                            {tag.sampleTitles.slice(0, 3).map((title) => (
+                              <Badge key={title} variant="outline" className="text-[10px] px-1 py-0 h-4 truncate max-w-[120px]">
+                                {title}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <div className="space-y-1">
+                          <Badge variant="secondary" className="h-5 px-1.5 text-[10px]">
+                            {formatNumber(lang, tag.totalArticles)}
                           </Badge>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="text-sm text-muted-foreground lg:text-right">
-                      <p>{formatDateTime(lang, tag.latestUpdatedAt)}</p>
-                      <Link
-                        href={localizeHref(lang, `/admin/articles?tag=${encodeURIComponent(tag.tag)}`)}
-                        className="mt-2 inline-flex font-medium text-primary"
-                      >
-                        {dictionary.admin.filterArticlesAction}
-                      </Link>
-                    </div>
-                  </div>
-                </div>
-              ))
+                          <div className="text-[10px] text-muted-foreground whitespace-nowrap">
+                            {tag.publishedArticles}P · {tag.draftArticles}D
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="pr-6 text-right">
+                        <div className="space-y-1">
+                          <p className="text-[10px] text-muted-foreground">
+                            {formatDateTime(lang, tag.latestUpdatedAt)}
+                          </p>
+                          <Link
+                            href={localizeHref(lang, `/admin/articles?tag=${encodeURIComponent(tag.tag)}`)}
+                            className="text-xs font-medium text-primary hover:underline"
+                          >
+                            {dictionary.admin.filterArticlesAction}
+                          </Link>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             )}
           </CardContent>
         </Card>

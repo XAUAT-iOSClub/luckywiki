@@ -12,7 +12,14 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArticleStatus } from "@/generated/prisma/enums";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { getAdminDashboardData } from "@/lib/admin";
 import { buildWikiHref } from "@/lib/wiki/path";
 import { formatDateTime, formatNumber, formatTemplate } from "@/lib/i18n/format";
@@ -151,98 +158,115 @@ export default async function AdminHomePage({
       </section>
 
       <section className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
-        <Card className="rounded-[2rem] border-border/50 bg-background/80 shadow-sm">
+        <Card className="rounded-[2rem] border-border/50 bg-background/80 shadow-sm overflow-hidden">
           <CardHeader>
             <CardTitle>{dictionary.admin.recentlyUpdated}</CardTitle>
             <CardDescription>{dictionary.admin.recentlyUpdatedDescription}</CardDescription>
           </CardHeader>
-          <CardContent className="flex flex-col gap-3">
-            {dashboard.recentArticles.map((article) => (
-              <div
-                key={article.id}
-                className="flex flex-col gap-3 rounded-[1.5rem] border border-border/60 bg-muted/20 p-4 lg:flex-row lg:items-center lg:justify-between"
-              >
-                <div className="space-y-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Link
-                      href={localizeHref(lang, `/admin/articles/${article.id}`)}
-                      className="font-medium hover:text-primary"
-                    >
-                      {article.title}
-                    </Link>
-                    <Badge
-                      variant={article.status === ArticleStatus.PUBLISHED ? "default" : "secondary"}
-                    >
-                      {article.status === ArticleStatus.PUBLISHED
-                        ? dictionary.common.published
-                        : dictionary.common.draft}
-                    </Badge>
-                  </div>
-                  <p className="font-mono text-xs text-muted-foreground">/{article.path || ""}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {article.author.name} · {formatDateTime(lang, article.updatedAt)}
-                  </p>
-                </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  {article.tags.slice(0, 3).map((tag) => (
-                    <Link
-                      key={tag}
-                      href={localizeHref(lang, `/admin/articles?tag=${encodeURIComponent(tag)}`)}
-                    >
-                      <Badge variant="secondary">{tag}</Badge>
-                    </Link>
-                  ))}
-                  {article.status === ArticleStatus.PUBLISHED ? (
-                    <Button size="sm" variant="outline" asChild>
-                      <Link href={buildWikiHref(article.path, lang)} target="_blank">
-                        {dictionary.common.viewLive}
-                      </Link>
-                    </Button>
-                  ) : null}
-                </div>
-              </div>
-            ))}
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="pl-6">{dictionary.common.articles}</TableHead>
+                  <TableHead className="hidden sm:table-cell">{dictionary.common.status}</TableHead>
+                  <TableHead className="pr-6 text-right">{dictionary.common.actions}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {dashboard.recentArticles.map((article) => (
+                  <TableRow key={article.id}>
+                    <TableCell className="pl-6 py-4">
+                      <div className="space-y-0.5">
+                        <Link
+                          href={localizeHref(lang, `/admin/articles/${article.id}`)}
+                          className="font-medium hover:text-primary transition-colors text-sm"
+                        >
+                          {article.title}
+                        </Link>
+                        <p className="text-[10px] text-muted-foreground">
+                          {article.author.name} · {formatDateTime(lang, article.updatedAt)}
+                        </p>
+                      </div>
+                    </TableCell>
+                    <TableCell className="hidden sm:table-cell">
+                      <Badge
+                        variant={article.status === ArticleStatus.PUBLISHED ? "default" : "secondary"}
+                        className="h-5 px-1.5 text-[10px]"
+                      >
+                        {article.status === ArticleStatus.PUBLISHED
+                          ? dictionary.common.published
+                          : dictionary.common.draft}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="pr-6 text-right">
+                      <div className="flex justify-end gap-2">
+                        {article.status === ArticleStatus.PUBLISHED ? (
+                          <Button size="sm" variant="ghost" className="h-8 px-2" asChild>
+                            <Link href={buildWikiHref(article.path, lang)} target="_blank">
+                              <ArrowRight className="size-3.5" />
+                            </Link>
+                          </Button>
+                        ) : null}
+                        <Button size="sm" variant="ghost" className="h-8 px-2" asChild>
+                          <Link href={localizeHref(lang, `/admin/articles/${article.id}`)}>
+                            <FileText className="size-3.5" />
+                          </Link>
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           </CardContent>
         </Card>
 
         <div className="grid gap-6">
-          <Card className="rounded-[2rem] border-border/50 bg-background/80 shadow-sm">
+          <Card className="rounded-[2rem] border-border/50 bg-background/80 shadow-sm overflow-hidden">
             <CardHeader>
               <CardTitle>{dictionary.admin.pendingComments}</CardTitle>
               <CardDescription>{dictionary.admin.pendingCommentsDescription}</CardDescription>
             </CardHeader>
-            <CardContent className="flex flex-col gap-3">
+            <CardContent className="p-0">
               {dashboard.pendingComments.length === 0 ? (
-                <p className="rounded-[1.5rem] border border-dashed border-border p-4 text-sm text-muted-foreground">
+                <div className="p-8 text-center text-sm text-muted-foreground">
                   {dictionary.admin.noPendingComments}
-                </p>
+                </div>
               ) : (
-                dashboard.pendingComments.map((comment) => (
-                  <div
-                    key={comment.id}
-                    className="rounded-[1.5rem] border border-border/60 bg-muted/20 p-4"
-                  >
-                    <div className="mb-2 flex items-center gap-2">
-                      <Badge variant="secondary">{comment.author.name}</Badge>
-                      <span className="text-xs text-muted-foreground">
-                        {formatDateTime(lang, comment.createdAt)}
-                      </span>
-                    </div>
-                    <p className="line-clamp-3 text-sm leading-6">{comment.body}</p>
-                    <Link
-                      href={localizeHref(lang, "/admin/comments?status=PENDING")}
-                      className="mt-3 inline-flex items-center gap-2 text-sm font-medium text-primary"
-                    >
-                      {formatTemplate(dictionary.admin.reviewOn, {
-                        title: comment.article.title,
-                      })}
-                      <ArrowRight className="size-4" />
-                    </Link>
-                  </div>
-                ))
+                <Table>
+                  <TableBody>
+                    {dashboard.pendingComments.map((comment) => (
+                      <TableRow key={comment.id}>
+                        <TableCell className="pl-6 py-4">
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2">
+                              <p className="font-medium text-xs">{comment.author.name}</p>
+                              <span className="text-[10px] text-muted-foreground">
+                                {formatDateTime(lang, comment.createdAt)}
+                              </span>
+                            </div>
+                            <p className="line-clamp-2 text-xs text-muted-foreground leading-relaxed">
+                              {comment.body}
+                            </p>
+                            <Link
+                              href={localizeHref(lang, "/admin/comments?status=PENDING")}
+                              className="inline-flex items-center gap-1.5 text-[10px] font-medium text-primary hover:underline"
+                            >
+                              {formatTemplate(dictionary.admin.reviewOn, {
+                                title: comment.article.title,
+                              })}
+                              <ArrowRight className="size-3" />
+                            </Link>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               )}
             </CardContent>
           </Card>
+
 
           <Card className="rounded-[2rem] border-border/50 bg-background/80 shadow-sm">
             <CardHeader>

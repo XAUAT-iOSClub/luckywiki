@@ -6,8 +6,16 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { listAdminUsers } from "@/lib/admin";
-import { formatDate, formatNumber, formatTemplate } from "@/lib/i18n/format";
+import { formatNumber, formatTemplate } from "@/lib/i18n/format";
 import { getDictionary } from "@/lib/i18n/get-dictionary";
 import { hasLocale, localizeHref } from "@/lib/i18n/config";
 import { requireRootSession } from "@/lib/auth/session";
@@ -71,7 +79,7 @@ export default async function AdminUsersPage({
         </div>
       </section>
 
-      <Card className="rounded-[2rem] border-border/50 bg-background/80 shadow-sm">
+      <Card className="rounded-[2rem] border-border/50 bg-background/80 shadow-sm overflow-hidden">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Users className="size-5 text-primary" />
@@ -79,76 +87,88 @@ export default async function AdminUsersPage({
           </CardTitle>
           <CardDescription>{dictionary.admin.peopleDirectoryDescription}</CardDescription>
         </CardHeader>
-        <CardContent className="flex flex-col gap-3">
-          {users.map((user) => (
-            <div
-              key={user.id}
-              className="flex flex-col gap-4 rounded-[1.5rem] border border-border/60 bg-muted/20 p-4 lg:flex-row lg:items-center lg:justify-between"
-            >
-              <div className="flex items-center gap-4">
-                <Avatar className="size-12 rounded-2xl">
-                  <AvatarImage src={user.image || ""} alt={user.name} />
-                  <AvatarFallback className="rounded-2xl">
-                    {user.name.slice(0, 2).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="space-y-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-medium">{user.name}</span>
-                    <Badge variant={roleBadgeVariant(user.role)}>
-                      {getRoleLabel(user.role, dictionary)}
-                    </Badge>
-                    {user.emailVerified ? (
-                      <Badge variant="outline" className="gap-1">
-                        <UserRoundCheck className="size-3.5" />
-                        {dictionary.common.verified.toLowerCase()}
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="pl-6">{dictionary.common.user}</TableHead>
+                <TableHead>{dictionary.common.status}</TableHead>
+                <TableHead className="text-center">{dictionary.common.articles}</TableHead>
+                <TableHead className="text-center">{dictionary.common.comments}</TableHead>
+                <TableHead className="text-center">{dictionary.admin.moderated}</TableHead>
+                <TableHead className="pr-6 text-right">{dictionary.common.actions}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {users.map((user) => (
+                <TableRow key={user.id}>
+                  <TableCell className="pl-6 py-4">
+                    <div className="flex items-center gap-3">
+                      <Avatar className="size-10 rounded-xl">
+                        <AvatarImage src={user.image || ""} alt={user.name} />
+                        <AvatarFallback className="rounded-xl">
+                          {user.name.slice(0, 2).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="space-y-0.5">
+                        <p className="font-medium text-sm">{user.name}</p>
+                        <p className="text-xs text-muted-foreground">{user.email}</p>
+                      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex flex-wrap gap-1.5">
+                      <Badge variant={roleBadgeVariant(user.role)} className="h-5 px-1.5 text-[10px]">
+                        {getRoleLabel(user.role, dictionary)}
                       </Badge>
-                    ) : (
-                      <Badge variant="outline">{dictionary.common.unverified.toLowerCase()}</Badge>
-                    )}
-                  </div>
-                  <p className="text-sm text-muted-foreground">{user.email}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {formatTemplate(dictionary.admin.joinedUpdated, {
-                      joined: formatDate(lang, user.createdAt),
-                      updated: formatDate(lang, user.updatedAt),
-                    })}
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-3 lg:min-w-[360px]">
-                <div className="grid gap-2 text-sm text-muted-foreground sm:grid-cols-3">
-                  <StatCard label={dictionary.common.articles} value={user._count.articles} />
-                  <StatCard label={dictionary.common.comments} value={user._count.comments} />
-                  <StatCard
-                    label={dictionary.admin.moderated}
-                    value={user._count.approvedComments}
-                    icon={<ShieldCheck className="size-3.5" />}
-                  />
-                </div>
-                <div className="flex flex-wrap justify-end gap-2">
-                  {roleTargets(user.role).map((targetRole) => (
-                    <form key={targetRole} action={setUserRoleAction.bind(null, lang, user.id, targetRole)}>
-                      <Button
-                        type="submit"
-                        variant={targetRole === Role.ROOT ? "default" : "outline"}
-                        size="sm"
-                        disabled={user.role === Role.ROOT && rootCount <= 1 && targetRole !== Role.ROOT}
-                        title={
-                          user.role === Role.ROOT && rootCount <= 1 && targetRole !== Role.ROOT
-                            ? dictionary.admin.protectedLastAdmin
-                            : undefined
-                        }
-                      >
-                        {getRoleActionLabel(targetRole, dictionary)}
-                      </Button>
-                    </form>
-                  ))}
-                </div>
-              </div>
-            </div>
-          ))}
+                      {user.emailVerified ? (
+                        <Badge variant="outline" className="gap-1 h-5 px-1.5 text-[10px]">
+                          <UserRoundCheck className="size-3" />
+                          {dictionary.common.verified.toLowerCase()}
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="h-5 px-1.5 text-[10px]">{dictionary.common.unverified.toLowerCase()}</Badge>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-center font-mono text-xs">
+                    {formatNumber(lang, user._count.articles)}
+                  </TableCell>
+                  <TableCell className="text-center font-mono text-xs">
+                    {formatNumber(lang, user._count.comments)}
+                  </TableCell>
+                  <TableCell className="text-center font-mono text-xs">
+                    <div className="flex items-center justify-center gap-1">
+                      {user._count.approvedComments > 0 && <ShieldCheck className="size-3 text-primary" />}
+                      {formatNumber(lang, user._count.approvedComments)}
+                    </div>
+                  </TableCell>
+                  <TableCell className="pr-6 text-right">
+                    <div className="flex justify-end gap-1.5">
+                      {roleTargets(user.role).map((targetRole) => (
+                        <form key={targetRole} action={setUserRoleAction.bind(null, lang, user.id, targetRole)}>
+                          <Button
+                            type="submit"
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 text-xs px-2"
+                            disabled={user.role === Role.ROOT && rootCount <= 1 && targetRole !== Role.ROOT}
+                            title={
+                              user.role === Role.ROOT && rootCount <= 1 && targetRole !== Role.ROOT
+                                ? dictionary.admin.protectedLastAdmin
+                                : undefined
+                            }
+                          >
+                            {getRoleActionLabel(targetRole, dictionary)}
+                          </Button>
+                        </form>
+                      ))}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </CardContent>
       </Card>
     </div>
@@ -198,24 +218,4 @@ function roleBadgeVariant(role: Role) {
     default:
       return "outline" as const;
   }
-}
-
-function StatCard({
-  label,
-  value,
-  icon,
-}: {
-  label: string;
-  value: number;
-  icon?: ReactNode;
-}) {
-  return (
-    <div className="rounded-2xl border border-border/60 bg-background/80 p-3">
-      <p className="flex items-center gap-1 text-xs uppercase tracking-[0.18em]">
-        {icon}
-        {label}
-      </p>
-      <p className="mt-1 text-2xl font-semibold text-foreground">{value}</p>
-    </div>
-  );
 }
