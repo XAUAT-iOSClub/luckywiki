@@ -1,8 +1,11 @@
 "use client";
 
 import type { ChangeEvent, ClipboardEvent } from "react";
-import { useActionState, useEffect, useRef, useState } from "react";
+import { useActionState, useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTheme } from "next-themes";
+import Editor from "@monaco-editor/react";
+import type { editor } from "monaco-editor";
 import {
   ImageUp,
   Loader2,
@@ -86,11 +89,12 @@ export function ArticleEditor({
   const router = useRouter();
   const [state, formAction] = useActionState(action, initialState);
   const t = useT();
+  const { resolvedTheme } = useTheme();
   const [title, setTitle] = useState(initialValues?.title ?? "");
   const [path, setPath] = useState(initialValues?.path ?? "");
   const [description, setDescription] = useState(initialValues?.description ?? "");
   const [tags, setTags] = useState(initialValues?.tags.join(", ") ?? "");
-  const [editor, setEditor] = useState(initialValues?.editor ?? "");
+  const [editorName, setEditorName] = useState(initialValues?.editor ?? "");
   const [markdown, setMarkdown] = useState(initialValues?.markdown ?? "");
   const [status, setStatus] = useState<ArticleStatus>(
     initialValues?.status ?? ArticleStatus.DRAFT,
@@ -99,132 +103,148 @@ export function ArticleEditor({
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [mode, setMode] = useState<"edit" | "preview" | "split">("split");
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const markdownRef = useRef<HTMLTextAreaElement | null>(null);
-  const editorContainerRef = useRef<HTMLDivElement | null>(null);
+  const monacoEditorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
   const previewContainerRef = useRef<HTMLDivElement | null>(null);
   const isSyncingRef = useRef(false);
+  const modeRef = useRef(mode);
+  modeRef.current = mode;
 
-  // Sync scroll between editor and preview
-  const handleScroll = (source: "editor" | "preview") => {
-    if (mode !== "split" || isSyncingRef.current) {
-      return;
-    }
-
-    const editor = editorContainerRef.current;
+  // Sync scroll: editor → preview
+  const syncEditorToPreview = useCallback(() => {
+    const monacoEditor = monacoEditorRef.current;
     const preview = previewContainerRef.current;
-    const textarea = markdownRef.current;
+    if (!monacoEditor || !preview || isSyncingRef.current) return;
 
-    if (!editor || !preview || !textarea) {
+    const visibleRanges = monacoEditor.getVisibleRanges();
+    if (visibleRanges.length === 0) return;
+
+    const topVisibleLine = visibleRanges[0].startLineNumber;
+    const model = monacoEditor.getModel();
+    if (!model) return;
+
+    if (topVisibleLine <= 1) {
+      preview.scrollTo({ top: 0, behavior: "auto" });
       return;
     }
 
-    isSyncingRef.current = true;
+    const editorScrollTop = monacoEditor.getScrollTop();
+    const editorScrollHeight = monacoEditor.getScrollHeight();
+    const editorClientHeight = monacoEditor.getLayoutInfo().height;
 
-    if (source === "editor") {
-      const lines = markdown.split("\n");
-      const totalLines = lines.length || 1;
-      const editorScrollTop = editor.scrollTop;
-      const editorScrollHeight = editor.scrollHeight;
-      const editorClientHeight = editor.clientHeight;
-
-      if (editorScrollTop <= 5) {
-        preview.scrollTo({ top: 0, behavior: "auto" });
-      } else if (editorScrollTop + editorClientHeight >= editorScrollHeight - 5) {
-        preview.scrollTo({ top: preview.scrollHeight - preview.clientHeight, behavior: "auto" });
-      } else {
-        const lineHeight = editorScrollHeight / totalLines;
-        const currentLine = Math.floor(editorScrollTop / lineHeight) + 1;
-
-        const previewElements = preview.querySelectorAll("[data-line]");
-        let targetElement: HTMLElement | null = null;
-        let prevElement: HTMLElement | null = null;
-
-        for (let i = 0; i < previewElements.length; i++) {
-          const el = previewElements[i] as HTMLElement;
-          const line = parseInt(el.getAttribute("data-line") || "0", 10);
-          if (line >= currentLine) {
-            targetElement = el;
-            break;
-          }
-          prevElement = el;
-        }
-
-        if (targetElement) {
-          const targetLine = parseInt(targetElement.getAttribute("data-line") || "0", 10);
-          const prevLine = prevElement ? parseInt(prevElement.getAttribute("data-line") || "0", 10) : 1;
-          
-          const containerRect = preview.getBoundingClientRect();
-          const targetRect = targetElement.getBoundingClientRect();
-          const targetTop = targetRect.top - containerRect.top + preview.scrollTop;
-          
-          let offset = 0;
-          if (targetLine !== prevLine && prevElement) {
-            const prevRect = prevElement.getBoundingClientRect();
-            const prevTop = prevRect.top - containerRect.top + preview.scrollTop;
-            const ratio = (currentLine - prevLine) / (targetLine - prevLine);
-            offset = prevTop + ratio * (targetTop - prevTop);
-          } else {
-            offset = targetTop;
-          }
-          
-          preview.scrollTop = offset - 40;
-        }
-      }
-    } else {
-      const previewScrollTop = preview.scrollTop;
-      const previewScrollHeight = preview.scrollHeight;
-      const previewClientHeight = preview.clientHeight;
-
-      if (previewScrollTop <= 5) {
-        editor.scrollTop = 0;
-      } else if (previewScrollTop + previewClientHeight >= previewScrollHeight - 5) {
-        editor.scrollTop = editor.scrollHeight - editor.clientHeight;
-      } else {
-        const previewElements = preview.querySelectorAll("[data-line]");
-        let topElement: HTMLElement | null = null;
-        let bottomElement: HTMLElement | null = null;
-
-        for (let i = 0; i < previewElements.length; i++) {
-          const el = previewElements[i] as HTMLElement;
-          const containerRect = preview.getBoundingClientRect();
-          const elRect = el.getBoundingClientRect();
-          const elTop = elRect.top - containerRect.top;
-          
-          if (elTop >= 0) {
-            bottomElement = el;
-            break;
-          }
-          topElement = el;
-        }
-
-        const editorScrollHeight = editor.scrollHeight;
-        const totalLines = markdown.split("\n").length || 1;
-        const lineHeight = editorScrollHeight / totalLines;
-
-        if (bottomElement) {
-          const topLine = topElement ? parseInt(topElement.getAttribute("data-line") || "1", 10) : 1;
-          const bottomLine = parseInt(bottomElement.getAttribute("data-line") || "1", 10);
-          
-          const containerRect = preview.getBoundingClientRect();
-          const topRect = topElement ? topElement.getBoundingClientRect() : { top: containerRect.top };
-          const bottomRect = bottomElement.getBoundingClientRect();
-          
-          const topPos = topRect.top - containerRect.top;
-          const bottomPos = bottomRect.top - containerRect.top;
-          
-          const ratio = bottomPos !== topPos ? (0 - topPos) / (bottomPos - topPos) : 0;
-          const targetLine = topLine + ratio * (bottomLine - topLine);
-          editor.scrollTop = (targetLine - 1) * lineHeight;
-        }
-      }
+    if (editorScrollTop + editorClientHeight >= editorScrollHeight - 5) {
+      preview.scrollTo({ top: preview.scrollHeight - preview.clientHeight, behavior: "auto" });
+      return;
     }
 
+    const previewElements = preview.querySelectorAll("[data-line]");
+    let targetElement: HTMLElement | null = null;
+    let prevElement: HTMLElement | null = null;
+
+    for (let i = 0; i < previewElements.length; i++) {
+      const el = previewElements[i] as HTMLElement;
+      const line = parseInt(el.getAttribute("data-line") || "0", 10);
+      if (line >= topVisibleLine) {
+        targetElement = el;
+        break;
+      }
+      prevElement = el;
+    }
+
+    if (targetElement) {
+      const targetLine = parseInt(targetElement.getAttribute("data-line") || "0", 10);
+      const prevLine = prevElement ? parseInt(prevElement.getAttribute("data-line") || "0", 10) : 1;
+
+      const containerRect = preview.getBoundingClientRect();
+      const targetRect = targetElement.getBoundingClientRect();
+      const targetTop = targetRect.top - containerRect.top + preview.scrollTop;
+
+      let offset = 0;
+      if (targetLine !== prevLine && prevElement) {
+        const prevRect = prevElement.getBoundingClientRect();
+        const prevTop = prevRect.top - containerRect.top + preview.scrollTop;
+        const ratio = (topVisibleLine - prevLine) / (targetLine - prevLine);
+        offset = prevTop + ratio * (targetTop - prevTop);
+      } else {
+        offset = targetTop;
+      }
+
+      preview.scrollTop = offset - 40;
+    }
+  }, []);
+
+  // Sync scroll: preview → editor
+  const syncPreviewToEditor = useCallback(() => {
+    const monacoEditor = monacoEditorRef.current;
+    const preview = previewContainerRef.current;
+    if (!monacoEditor || !preview || isSyncingRef.current) return;
+
+    const previewScrollTop = preview.scrollTop;
+    const previewScrollHeight = preview.scrollHeight;
+    const previewClientHeight = preview.clientHeight;
+
+    if (previewScrollTop <= 5) {
+      monacoEditor.setScrollTop(0);
+      return;
+    }
+
+    const editorScrollHeight = monacoEditor.getScrollHeight();
+    const editorClientHeight = monacoEditor.getLayoutInfo().height;
+
+    if (previewScrollTop + previewClientHeight >= previewScrollHeight - 5) {
+      monacoEditor.setScrollTop(editorScrollHeight - editorClientHeight);
+      return;
+    }
+
+    const previewElements = preview.querySelectorAll("[data-line]");
+    let topElement: HTMLElement | null = null;
+    let bottomElement: HTMLElement | null = null;
+
+    for (let i = 0; i < previewElements.length; i++) {
+      const el = previewElements[i] as HTMLElement;
+      const containerRect = preview.getBoundingClientRect();
+      const elRect = el.getBoundingClientRect();
+      const elTop = elRect.top - containerRect.top;
+
+      if (elTop >= 0) {
+        bottomElement = el;
+        break;
+      }
+      topElement = el;
+    }
+
+    if (bottomElement) {
+      const topLine = topElement ? parseInt(topElement.getAttribute("data-line") || "1", 10) : 1;
+      const bottomLine = parseInt(bottomElement.getAttribute("data-line") || "1", 10);
+
+      const containerRect = preview.getBoundingClientRect();
+      const topRect = topElement ? topElement.getBoundingClientRect() : { top: containerRect.top };
+      const bottomRect = bottomElement.getBoundingClientRect();
+
+      const topPos = topRect.top - containerRect.top;
+      const bottomPos = bottomRect.top - containerRect.top;
+
+      const ratio = bottomPos !== topPos ? (0 - topPos) / (bottomPos - topPos) : 0;
+      const targetLine = topLine + ratio * (bottomLine - topLine);
+
+      const model = monacoEditor.getModel();
+      if (model) {
+        const totalLines = model.getLineCount();
+        const lineHeight = editorScrollHeight / totalLines;
+        monacoEditor.setScrollTop((targetLine - 1) * lineHeight);
+      }
+    }
+  }, []);
+
+  const handlePreviewScroll = useCallback(() => {
+    if (mode !== "split" || isSyncingRef.current) return;
+    isSyncingRef.current = true;
+    syncPreviewToEditor();
     window.requestAnimationFrame(() => {
       window.requestAnimationFrame(() => {
         isSyncingRef.current = false;
       });
     });
-  };
+  }, [mode, syncPreviewToEditor]);
 
   const imageUploadMessages = {
     FILE_TOO_LARGE: t.admin.articleEditor.uploadErrors.fileTooLarge,
@@ -242,31 +262,62 @@ export function ArticleEditor({
     }
   }, [router, state.success]);
 
-  function insertMarkdownAtCursor(snippet: string) {
-    setMarkdown((currentMarkdown) => {
-      const textarea = markdownRef.current;
-      const selectionStart = textarea?.selectionStart ?? currentMarkdown.length;
-      const selectionEnd = textarea?.selectionEnd ?? currentMarkdown.length;
-      const before = currentMarkdown.slice(0, selectionStart);
-      const after = currentMarkdown.slice(selectionEnd);
-      const needsLeadingNewline = before.length > 0 && !before.endsWith("\n");
-      const needsTrailingNewline = after.length > 0 && !after.startsWith("\n");
-      const insertedSnippet = `${needsLeadingNewline ? "\n" : ""}${snippet}${needsTrailingNewline ? "\n" : ""}`;
-      const nextMarkdown = `${before}${insertedSnippet}${after}`;
+  const insertMarkdownAtCursor = useCallback((snippet: string) => {
+    const monacoEditor = monacoEditorRef.current;
+    if (!monacoEditor) {
+      setMarkdown((prev) => prev + snippet);
+      return;
+    }
 
-      requestAnimationFrame(() => {
-        if (!textarea) {
-          return;
-        }
+    const selection = monacoEditor.getSelection();
+    if (!selection) return;
 
-        const caret = before.length + insertedSnippet.length;
-        textarea.focus();
-        textarea.setSelectionRange(caret, caret);
-      });
+    const model = monacoEditor.getModel();
+    if (!model) return;
 
-      return nextMarkdown;
+    const before = model.getValueInRange({
+      startLineNumber: 1,
+      startColumn: 1,
+      endLineNumber: selection.startLineNumber,
+      endColumn: selection.startColumn,
     });
-  }
+    const after = model.getValueInRange({
+      startLineNumber: selection.endLineNumber,
+      startColumn: selection.endColumn,
+      endLineNumber: model.getLineCount(),
+      endColumn: model.getLineMaxColumn(model.getLineCount()),
+    });
+
+    const needsLeadingNewline = before.length > 0 && !before.endsWith("\n");
+    const needsTrailingNewline = after.length > 0 && !after.startsWith("\n");
+    const insertedSnippet = `${needsLeadingNewline ? "\n" : ""}${snippet}${needsTrailingNewline ? "\n" : ""}`;
+
+    monacoEditor.executeEdits("insert", [
+      {
+        range: {
+          startLineNumber: selection.startLineNumber,
+          startColumn: selection.startColumn,
+          endLineNumber: selection.endLineNumber,
+          endColumn: selection.endColumn,
+        },
+        text: insertedSnippet,
+      },
+    ]);
+
+    // Position cursor after inserted text
+    const insertLines = insertedSnippet.split("\n");
+    const lastLineLength = insertLines[insertLines.length - 1].length;
+    const endLineNumber = selection.startLineNumber + insertLines.length - 1;
+    const endColumn = insertLines.length === 1 ? selection.startColumn + lastLineLength : lastLineLength + 1;
+
+    monacoEditor.setSelection({
+      startLineNumber: endLineNumber,
+      startColumn: endColumn,
+      endLineNumber: endLineNumber,
+      endColumn: endColumn,
+    });
+    monacoEditor.focus();
+  }, []);
 
   async function uploadImage(file: File) {
     setIsUploadingImage(true);
@@ -344,11 +395,12 @@ export function ArticleEditor({
       <input type="hidden" name="path" value={path} />
       <input type="hidden" name="status" value={status} />
       <input type="hidden" name="tags" value={tags} />
-      <input type="hidden" name="editor" value={editor} />
+      <input type="hidden" name="editor" value={editorName} />
       <input type="hidden" name="description" value={description} />
+      <input type="hidden" name="markdown" value={markdown} />
 
       {/* Main Working Area: Editor & Preview */}
-      <section className="flex-1 flex flex-col min-h-0 rounded-t-[2.5rem] lg:rounded-[2.5rem] border border-border/40 bg-white/60 dark:bg-zinc-900/60 shadow-2xl overflow-hidden backdrop-blur-2xl">
+      <section className="flex-1 flex flex-col min-h-0 rounded-t-[2.5rem] lg:rounded-[2.5rem] border border-border/40 bg-white/60 dark:bg-zinc-900/60 overflow-hidden backdrop-blur-2xl">
         {/* Unified Header Toolbar */}
         <div className="flex flex-wrap items-center justify-between gap-4 p-3 border-b border-border/20 bg-white/60 dark:bg-black/60 backdrop-blur-xl shrink-0 sticky top-0 z-40">
           {/* Left: Tools */}
@@ -591,9 +643,9 @@ export function ArticleEditor({
                       <User className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-muted-foreground/40 group-focus-within:text-primary transition-colors" />
                       <Input
                         id="drawer-editor"
-                        onChange={(event) => setEditor(event.target.value)}
+                        onChange={(event) => setEditorName(event.target.value)}
                         placeholder={t.admin.articleEditor.editorPlaceholder}
-                        value={editor}
+                        value={editorName}
                         className="h-12 pl-11 rounded-2xl bg-background/50 border-border/40 shadow-sm focus-visible:ring-primary/20 transition-all"
                       />
                     </div>
@@ -630,19 +682,56 @@ export function ArticleEditor({
             mode === "edit" && "lg:col-span-2"
           )}>
             <div className="flex-1 flex flex-col min-h-0">
-                <div 
-                  ref={editorContainerRef}
-                  onScroll={() => handleScroll("editor")}
-                  className="flex-1 overflow-auto"
-                >
-                  <Textarea
-                    className="w-full h-auto min-h-full font-mono text-sm leading-relaxed border-none focus-visible:ring-0 bg-transparent resize-none p-6 lg:p-10 selection:bg-primary/20 overflow-hidden"
-                    onPaste={handleMarkdownPaste}
-                    name="markdown"
-                    ref={markdownRef}
-                    onChange={(event) => setMarkdown(event.target.value)}
-                    placeholder={t.admin.articleEditor.markdownPlaceholder}
+                <div className="flex-1 min-h-0">
+                  <Editor
+                    defaultLanguage="markdown"
                     value={markdown}
+                    onChange={(value) => setMarkdown(value ?? "")}
+                    onMount={(editor, _monaco) => {
+                      monacoEditorRef.current = editor;
+
+                      // Scroll sync: editor → preview
+                      editor.onDidScrollChange(() => {
+                        if (modeRef.current !== "split" || isSyncingRef.current) return;
+                        isSyncingRef.current = true;
+                        syncEditorToPreview();
+                        window.requestAnimationFrame(() => {
+                          window.requestAnimationFrame(() => {
+                            isSyncingRef.current = false;
+                          });
+                        });
+                      });
+
+                      // Paste handler for images
+                      editor.getContainerDomNode()?.addEventListener("paste", (e) => {
+                        handleMarkdownPaste(e as unknown as ClipboardEvent<HTMLTextAreaElement>);
+                      });
+                    }}
+                    theme={resolvedTheme === "dark" ? "vs-dark" : "light"}
+                    options={{
+                      wordWrap: "on",
+                      minimap: { enabled: false },
+                      lineNumbers: "on",
+                      scrollBeyondLastLine: false,
+                      automaticLayout: true,
+                      fontSize: 14,
+                      renderWhitespace: "selection",
+                      padding: { top: 24, bottom: 24 },
+                      lineNumbersMinChars: 3,
+                      glyphMargin: false,
+                      folding: true,
+                      lineDecorationsWidth: 0,
+                      scrollbar: {
+                        verticalScrollbarSize: 8,
+                        horizontalScrollbarSize: 8,
+                      },
+                    }}
+                    loading={
+                      <div className="flex items-center justify-center h-full text-muted-foreground">
+                        <Loader2 className="size-5 animate-spin mr-2" />
+                        Loading editor...
+                      </div>
+                    }
                   />
                 </div>
                 <div className="px-6 py-3 border-t border-border/10 flex items-center justify-between shrink-0 bg-white/5 dark:bg-black/5">
@@ -659,7 +748,7 @@ export function ArticleEditor({
             {/* Preview Side */}
             <div 
               ref={previewContainerRef}
-              onScroll={() => handleScroll("preview")}
+              onScroll={handlePreviewScroll}
               className={cn(
                 "flex flex-col min-h-0 bg-slate-50/30 dark:bg-zinc-950/20 overflow-auto relative",
                 mode === "edit" && "hidden",
