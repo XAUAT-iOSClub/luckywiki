@@ -24,6 +24,16 @@ enum CommentStatus {
   REJECTED
 }
 
+enum LogAction {
+  CREATE_ARTICLE
+  UPDATE_ARTICLE
+  DELETE_ARTICLE
+  APPROVE_COMMENT
+  REJECT_COMMENT
+  SET_ARTICLE_STATUS
+  SET_USER_ROLE
+}
+
 model User {
   id               String    @id @default(cuid())
   name             String
@@ -39,6 +49,7 @@ model User {
   articles         Article[] @relation("ArticleAuthor")
   comments         Comment[] @relation("CommentAuthor")
   approvedComments Comment[] @relation("CommentApprover")
+  logs             Log[]
 
   @@map("users")
 }
@@ -74,8 +85,8 @@ model Account {
   updatedAt             DateTime  @updatedAt @map("updated_at")
   user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([userId])
   @@unique([providerId, accountId])
+  @@index([userId])
   @@map("accounts")
 }
 
@@ -147,4 +158,20 @@ model Comment {
   @@index([authorId])
   @@index([approvedById])
   @@map("comments")
+}
+
+model Log {
+  id         String    @id @default(cuid())
+  action     LogAction
+  targetType String    @map("target_type")
+  targetId   String    @map("target_id")
+  detail     String?
+  userId     String    @map("user_id")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  user       User      @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([action])
+  @@index([userId])
+  @@index([createdAt])
+  @@map("logs")
 }

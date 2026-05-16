@@ -1,5 +1,5 @@
 import { cache } from "react";
-import { ArticleStatus, CommentStatus, Role } from "@/generated/prisma/enums";
+import { ArticleStatus, CommentStatus, LogAction, Role } from "@/generated/prisma/enums";
 import { prisma } from "@/lib/prisma";
 
 type ArticleTaxonomySource = {
@@ -212,6 +212,50 @@ export const listAdminUsers = cache(async () => {
       left.createdAt.getTime() - right.createdAt.getTime(),
   );
 });
+
+export const listAdminLogs = cache(
+  async (options?: {
+    page?: number;
+    pageSize?: number;
+    action?: LogAction;
+    userId?: string;
+  }) => {
+    const page = options?.page ?? 1;
+    const pageSize = options?.pageSize ?? 20;
+    const skip = (page - 1) * pageSize;
+
+    const where: Record<string, unknown> = {};
+    if (options?.action) where.action = options.action;
+    if (options?.userId?.trim()) where.userId = options.userId.trim();
+
+    const [logs, totalCount] = await Promise.all([
+      prisma.log.findMany({
+        where,
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+        },
+        orderBy: { createdAt: "desc" },
+        skip,
+        take: pageSize,
+      }),
+      prisma.log.count({ where }),
+    ]);
+
+    return {
+      logs,
+      totalCount,
+      page,
+      pageSize,
+      totalPages: Math.ceil(totalCount / pageSize),
+    };
+  },
+);
 
 function buildSectionSummaries(articles: ArticleTaxonomySource[]) {
   const sectionMap = new Map<string, AdminSectionSummary>();

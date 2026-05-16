@@ -25,6 +25,7 @@ export function AdminHeader() {
     admin: t.common.admin,
     articles: t.common.articles,
     comments: t.common.comments,
+    logs: t.common.logs,
     taxonomy: t.common.taxonomy,
     users: t.common.contributors,
     new: t.common.create,

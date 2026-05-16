@@ -9,6 +9,7 @@ import {
   Tags,
   Users,
 } from "lucide-react";
+import { ArticleStatus } from "@/generated/prisma/enums";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";

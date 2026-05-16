@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { ArticleStatus, CommentStatus, Role } from "@/generated/prisma/enums";
+import { ArticleStatus, CommentStatus, LogAction, Role } from "@/generated/prisma/enums";
 import type { Locale } from "@/lib/i18n/config";
 import { locales, localizeHref } from "@/lib/i18n/config";
 import { safeSyncArticleEmbeddingsForArticleId } from "@/lib/agent/index";
@@ -44,6 +44,18 @@ export async function createArticleAction(
     });
     await safeSyncArticleEmbeddingsForArticleId(article.id);
 
+    await createLog({
+      action: LogAction.CREATE_ARTICLE,
+      targetType: "Article",
+      targetId: article.id,
+      detail: JSON.stringify({
+        title: article.title,
+        path: article.path,
+        status: article.status,
+      }),
+      userId: session.user.id,
+    });
+
     revalidateWikiPaths(article.path);
     revalidateLocalizedPath("/admin/articles");
     revalidateLocalizedPath("/admin");
@@ -62,7 +74,7 @@ export async function updateArticleAction(
   _previousState: FormActionState,
   formData: FormData,
 ): Promise<FormActionState> {
-  const [dictionary] = await Promise.all([
+  const [dictionary, session] = await Promise.all([
     getDictionary(locale),
     requireAuthorSession(locale),
   ]);
@@ -92,6 +104,19 @@ export async function updateArticleAction(
       },
     });
     await safeSyncArticleEmbeddingsForArticleId(article.id);
+
+    await createLog({
+      action: LogAction.UPDATE_ARTICLE,
+      targetType: "Article",
+      targetId: articleId,
+      detail: JSON.stringify({
+        title: article.title,
+        path: article.path,
+        status: article.status,
+        ...(existing.path !== article.path ? { oldPath: existing.path } : {}),
+      }),
+      userId: session.user.id,
+    });
 
     revalidateWikiPaths(existing.path);
     revalidateWikiPaths(article.path);
@@ -146,6 +171,14 @@ export async function approveCommentAction(locale: Locale, commentId: string) {
     },
   });
 
+  await createLog({
+    action: LogAction.APPROVE_COMMENT,
+    targetType: "Comment",
+    targetId: commentId,
+    detail: JSON.stringify({ articlePath: comment.article.path }),
+    userId: session.user.id,
+  });
+
   revalidateLocalizedPath("/admin/comments");
   revalidateLocalizedPath("/admin");
   revalidateLocalizedPath("/admin/users");
@@ -178,6 +211,14 @@ export async function rejectCommentAction(locale: Locale, commentId: string) {
     },
   });
 
+  await createLog({
+    action: LogAction.REJECT_COMMENT,
+    targetType: "Comment",
+    targetId: commentId,
+    detail: JSON.stringify({ articlePath: comment.article.path }),
+    userId: session.user.id,
+  });
+
   revalidateLocalizedPath("/admin/comments");
   revalidateLocalizedPath("/admin");
   revalidateLocalizedPath("/admin/users");
@@ -189,7 +230,7 @@ export async function setArticleStatusAction(
   articleId: string,
   status: ArticleStatus,
 ) {
-  await requireAuthorSession(locale);
+  const session = await requireAuthorSession(locale);
 
   const existing = await prisma.article.findUnique({
     where: {
@@ -215,6 +256,17 @@ export async function setArticleStatusAction(
   });
   await safeSyncArticleEmbeddingsForArticleId(article.id);
 
+  await createLog({
+    action: LogAction.SET_ARTICLE_STATUS,
+    targetType: "Article",
+    targetId: articleId,
+    detail: JSON.stringify({
+      oldStatus: existing.status,
+      newStatus: status,
+    }),
+    userId: session.user.id,
+  });
+
   revalidateWikiPaths(existing.path);
   if (existing.path !== article.path) {
     revalidateWikiPaths(article.path);
@@ -229,7 +281,7 @@ export async function setUserRoleAction(
   userId: string,
   targetRole: Role,
 ) {
-  await requireRootSession(locale, localizeHref(locale, "/admin/articles"));
+  const session = await requireRootSession(locale, localizeHref(locale, "/admin/articles"));
 
   const [targetUser, rootUsersCount] = await Promise.all([
     prisma.user.findUnique({
@@ -250,6 +302,17 @@ export async function setUserRoleAction(
   await prisma.user.update({
     where: { id: userId },
     data: { role: targetRole },
+  });
+
+  await createLog({
+    action: LogAction.SET_USER_ROLE,
+    targetType: "User",
+    targetId: userId,
+    detail: JSON.stringify({
+      oldRole: targetUser.role,
+      newRole: targetRole,
+    }),
+    userId: session.user.id,
   });
 
   revalidateLocalizedPath("/admin");
@@ -325,6 +388,24 @@ function getActionErrorMessage(
   }
 
   return fallbackMessage;
+}
+
+async function createLog(params: {
+  action: LogAction;
+  targetType: string;
+  targetId: string;
+  detail?: string;
+  userId: string;
+}) {
+  await prisma.log.create({
+    data: {
+      action: params.action,
+      targetType: params.targetType,
+      targetId: params.targetId,
+      detail: params.detail ?? null,
+      userId: params.userId,
+    },
+  });
 }
 
 function revalidateWikiPaths(path: string) {

@@ -7,6 +7,7 @@ import {
   FileText,
   LayoutDashboard,
   MessageSquare,
+  ScrollText,
   Users,
   View,
 } from "lucide-react";
@@ -79,6 +80,11 @@ export function AppSidebar({
               url: localizeHref(locale, "/admin/comments?status=APPROVED"),
             },
           ],
+        },
+        {
+          title: t.common.logs,
+          url: localizeHref(locale, "/admin/logs"),
+          icon: ScrollText,
         },
         {
           title: t.common.taxonomy,
