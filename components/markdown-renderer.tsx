@@ -17,6 +17,7 @@ import rehypeHighlight from "rehype-highlight";
 import rehypeSlug from "rehype-slug";
 import rehypeAutolinkHeadings from "rehype-autolink-headings";
 import { markdownComponentRenderers } from "@/components/markdown-custom-components";
+import { CodeBlock } from "@/components/markdown-custom-components/code-block";
 import { rehypeMdxJsxElements } from "@/lib/markdown-mdx-elements";
 import { cn } from "@/lib/utils";
 import { visit } from "unist-util-visit";
@@ -343,10 +344,10 @@ const sanitizeSchema = {
   ],
 };
 
-const markdownComponents = markdownComponentRenderers as Record<
-  string,
-  ElementType
->;
+const markdownComponents = {
+  ...markdownComponentRenderers,
+  pre: CodeBlock,
+} as Record<string, ElementType>;
 export function MarkdownRenderer({
   markdown,
   linkToSectionLabel = "Link to section",

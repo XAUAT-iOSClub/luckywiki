@@ -1,5 +1,4 @@
 @import "katex/dist/katex.min.css";
-@import "highlight.js/styles/github-dark.css";
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
@@ -88,6 +87,16 @@
   --chart-4: oklch(0.52 0.105 223.128);
   --chart-5: oklch(0.45 0.085 224.283);
   --sidebar: oklch(0.985 0 0);
+
+  /* hljs light */
+  --hljs-color: #24292e;
+  --hljs-keyword: #d73a49;
+  --hljs-title: #6f42c1;
+  --hljs-attr: #005cc5;
+  --hljs-string: #032f62;
+  --hljs-built_in: #e36209;
+  --hljs-comment: #6a737d;
+  --hljs-name: #22863a;
 }
 
 .dark {
@@ -124,6 +133,16 @@
   --chart-4: oklch(0.52 0.105 223.128);
   --chart-5: oklch(0.45 0.085 224.283);
   --sidebar: oklch(0.205 0 0);
+
+  /* hljs dark */
+  --hljs-color: #c9d1d9;
+  --hljs-keyword: #ff7b72;
+  --hljs-title: #d2a8ff;
+  --hljs-attr: #79c0ff;
+  --hljs-string: #a5d6ff;
+  --hljs-built_in: #ffa657;
+  --hljs-comment: #8b949e;
+  --hljs-name: #7ee787;
 }
 
 @layer base {
@@ -315,12 +334,31 @@
   }
 
   .markdown-body pre {
-    @apply overflow-x-auto rounded-[2rem] bg-slate-950 p-6 text-slate-100 shadow-xl dark:bg-black border border-white/5;
+    @apply overflow-x-auto p-6 text-slate-800 dark:text-slate-100;
+  }
+
+  .code-block-container {
+    @apply relative my-8 overflow-hidden rounded-[2rem] border border-border/50 bg-slate-100/50 shadow-sm backdrop-blur-md dark:bg-zinc-950/50 dark:shadow-xl dark:border-white/5;
   }
 
   .markdown-body pre code {
     @apply bg-transparent p-0 text-inherit before:content-none after:content-none font-normal;
+    color: var(--hljs-color);
   }
+
+  /* hljs tokens */
+  .hljs-doctag, .hljs-keyword, .hljs-meta .hljs-keyword, .hljs-template-tag, .hljs-template-variable, .hljs-type, .hljs-variable.language_ { color: var(--hljs-keyword); }
+  .hljs-title, .hljs-title.class_, .hljs-title.class_.inherited__, .hljs-title.function_ { color: var(--hljs-title); }
+  .hljs-attr, .hljs-attribute, .hljs-literal, .hljs-meta, .hljs-number, .hljs-operator, .hljs-variable, .hljs-selector-attr, .hljs-selector-class, .hljs-selector-id { color: var(--hljs-attr); }
+  .hljs-regexp, .hljs-string, .hljs-meta .hljs-string { color: var(--hljs-string); }
+  .hljs-built_in, .hljs-symbol { color: var(--hljs-built_in); }
+  .hljs-comment, .hljs-code, .hljs-formula { color: var(--hljs-comment); }
+  .hljs-name, .hljs-quote, .hljs-selector-tag, .hljs-selector-pseudo { color: var(--hljs-name); }
+  .hljs-subst { color: var(--hljs-color); }
+  .hljs-section { color: var(--hljs-attr); font-weight: bold; }
+  .hljs-bullet { color: #735c0f; }
+  .hljs-emphasis { font-style: italic; }
+  .hljs-strong { font-weight: bold; }
 
   .markdown-body hr {
     @apply my-12 border-border/60;
