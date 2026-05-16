@@ -180,7 +180,7 @@ function MarkdownTip({
     return (
       <button
         className={clsx(
-          "inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-700 transition hover:border-primary/40 hover:text-primary",
+          "inline-flex items-center gap-1 rounded-full border border-border bg-muted px-2.5 py-1 text-xs font-medium text-foreground transition hover:border-primary/40 hover:text-primary",
           className,
         )}
         onClick={() => copyToClipboard(value || label)}
@@ -189,7 +189,7 @@ function MarkdownTip({
         {...props}
       >
         <span>{label}</span>
-        <span className="text-[10px] uppercase tracking-[0.18em] text-slate-400">
+        <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
           {t.common.copy}
         </span>
       </button>
@@ -199,7 +199,7 @@ function MarkdownTip({
   return (
     <span
       className={clsx(
-        "inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-800",
+        "inline-flex items-center rounded-full border border-amber-200/50 bg-amber-500/10 px-2.5 py-1 text-xs font-medium text-amber-600 dark:border-amber-500/20 dark:text-amber-400",
         className,
       )}
       title={tip || label}
@@ -222,7 +222,7 @@ function MarkdownTabs({
     <tabsContext.Provider value={{ activeValue, setActiveValue }}>
       <div
         className={clsx(
-          "mt-6 rounded-3xl border border-border/70 bg-white/80 p-4 shadow-sm shadow-slate-200/40",
+          "mt-6 rounded-3xl border border-border/70 bg-card/80 p-4 shadow-sm backdrop-blur-sm",
           className,
         )}
         {...props}
@@ -241,7 +241,7 @@ function MarkdownTabsList({
   return (
     <div
       className={clsx(
-        "flex flex-wrap gap-2 rounded-2xl bg-slate-100/80 p-2",
+        "flex flex-wrap gap-2 rounded-2xl bg-muted/80 p-2",
         className,
       )}
       role="tablist"
@@ -267,8 +267,8 @@ function MarkdownTabsTrigger({
       className={clsx(
         "rounded-2xl px-3 py-2 text-sm font-medium transition",
         isActive
-          ? "bg-white text-slate-900 shadow-sm shadow-slate-300/40"
-          : "text-slate-500 hover:text-slate-900",
+          ? "bg-card text-foreground shadow-sm ring-1 ring-border/50"
+          : "text-muted-foreground hover:text-foreground",
         className,
       )}
       onClick={() => {
@@ -332,7 +332,7 @@ function MarkdownComponentBlock({
       <Suspense
         fallback={
           <div
-            className="flex h-24 animate-pulse items-center justify-center rounded-3xl border border-dashed bg-slate-50 text-xs font-medium text-slate-400"
+            className="flex h-24 animate-pulse items-center justify-center rounded-3xl border border-dashed border-border bg-muted/50 text-xs font-medium text-muted-foreground"
             data-mdx-name={name}
             data-mdx-props={propsStr}
           >
@@ -352,20 +352,20 @@ function MarkdownComponentBlock({
   return (
     <div
       className={clsx(
-        "mt-6 rounded-3xl border border-dashed border-slate-300 bg-slate-50/80 p-4",
+        "mt-6 rounded-3xl border border-dashed border-border bg-muted/30 p-4",
         className,
       )}
     >
-      <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+      <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
         <span>{name || "Component"}</span>
         {language ? (
-          <span className="rounded-full bg-white px-2 py-1 tracking-normal">
+          <span className="rounded-full bg-card px-2 py-1 tracking-normal border border-border/50">
             {language}
           </span>
         ) : null}
       </div>
       {preview ? (
-        <pre className="mt-3 overflow-x-auto rounded-2xl bg-slate-950 p-4 text-xs leading-6 text-slate-100">
+        <pre className="mt-3 overflow-x-auto rounded-2xl bg-zinc-950 p-4 text-xs leading-6 text-zinc-100">
           <code>{preview}</code>
         </pre>
       ) : null}
@@ -388,7 +388,7 @@ function MarkdownComponentInline({
       <Suspense
         fallback={
           <span
-            className="inline-block h-4 w-4 animate-pulse rounded bg-slate-100"
+            className="inline-block h-4 w-4 animate-pulse rounded bg-muted"
             data-mdx-name={name}
             data-mdx-props={propsStr}
           />
@@ -402,7 +402,7 @@ function MarkdownComponentInline({
   return (
     <span
       className={clsx(
-        "inline-flex items-center rounded-full border border-dashed border-slate-300 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-600",
+        "inline-flex items-center rounded-full border border-dashed border-border bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground",
         className,
       )}
       title={name || "Component"}
@@ -412,17 +412,20 @@ function MarkdownComponentInline({
   );
 }
 
+import { useTheme } from "next-themes";
+
 function MarkdownMermaid({ chart }: { chart?: string }) {
   const [svg, setSvg] = useState("");
   const generatedId = useId();
   const id = useRef(`mermaid-${generatedId.replace(/:/g, "")}`);
+  const { resolvedTheme } = useTheme();
 
   useEffect(() => {
     if (!chart) return;
 
     mermaid.initialize({
       startOnLoad: false,
-      theme: "default",
+      theme: resolvedTheme === "dark" ? "dark" : "default",
       securityLevel: "loose",
     });
 
@@ -434,13 +437,13 @@ function MarkdownMermaid({ chart }: { chart?: string }) {
       .catch((err) => {
         console.error("Mermaid render error:", err);
       });
-  }, [chart]);
+  }, [chart, resolvedTheme]);
 
   if (!chart) return null;
 
   return (
     <div
-      className="mt-6 flex justify-center overflow-hidden rounded-3xl border border-slate-200 bg-slate-50/50 p-6"
+      className="mt-6 flex justify-center overflow-hidden rounded-3xl border border-border bg-muted/20 p-6"
       dangerouslySetInnerHTML={{ __html: svg }}
     />
   );
@@ -462,31 +465,31 @@ type MarkdownAlertProps = HTMLAttributes<HTMLElement> & {
 const ALERT_CONFIG = {
   NOTE: {
     icon: Info,
-    className: "border-blue-200 bg-blue-50 text-blue-800",
+    className: "border-blue-200/50 bg-blue-500/5 text-blue-700 dark:border-blue-500/20 dark:text-blue-400",
     iconClassName: "text-blue-500",
     label: "Note",
   },
   TIP: {
     icon: Lightbulb,
-    className: "border-emerald-200 bg-emerald-50 text-emerald-800",
+    className: "border-emerald-200/50 bg-emerald-500/5 text-emerald-700 dark:border-emerald-500/20 dark:text-emerald-400",
     iconClassName: "text-emerald-500",
     label: "Tip",
   },
   WARNING: {
     icon: AlertTriangle,
-    className: "border-amber-200 bg-amber-50 text-amber-800",
+    className: "border-amber-200/50 bg-amber-500/5 text-amber-700 dark:border-amber-500/20 dark:text-amber-400",
     iconClassName: "text-amber-500",
     label: "Warning",
   },
   IMPORTANT: {
     icon: AlertCircle,
-    className: "border-indigo-200 bg-indigo-50 text-indigo-800",
+    className: "border-indigo-200/50 bg-indigo-500/5 text-indigo-700 dark:border-indigo-500/20 dark:text-indigo-400",
     iconClassName: "text-indigo-500",
     label: "Important",
   },
   CAUTION: {
     icon: ShieldAlert,
-    className: "border-red-200 bg-red-50 text-red-800",
+    className: "border-red-200/50 bg-red-500/5 text-red-700 dark:border-red-500/20 dark:text-red-400",
     iconClassName: "text-red-500",
     label: "Caution",
   },
