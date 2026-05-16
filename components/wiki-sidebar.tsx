@@ -249,7 +249,7 @@ function TreeItem({
         )}
 
         <CollapsibleContent>
-          <SidebarMenuSub className="border-l-0 ml-4 pl-2 space-y-1 mt-1 border-l border-border/10">
+          <SidebarMenuSub className="border-l-0 ml-4 pl-2 space-y-1 mt-1 mr-0">
             {node.children.map((child) => (
               <TreeItem
                 key={child.path}
