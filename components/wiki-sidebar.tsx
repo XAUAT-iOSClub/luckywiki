@@ -6,10 +6,7 @@ import {
   ChevronRight,
   FileText,
   Folder,
-  Moon,
   Search,
-  Settings,
-  Sun,
   ShieldCheck,
 } from "lucide-react";
 
@@ -34,7 +31,6 @@ import {
   SidebarInput,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
-import { useTheme } from "next-themes";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { NavUser } from "@/components/nav-user";
@@ -44,6 +40,7 @@ import { buildWikiHref, getWikiPathFromPathname } from "@/lib/wiki/path";
 import { localizeHref } from "@/lib/i18n/config";
 import { useLocale, useT } from "@/lib/i18n/provider";
 import { LocaleSwitcher } from "@/components/locale-switcher";
+import { ThemeSwitcher } from "./theme-switcher";
 
 export function WikiSidebar({
   tree,
@@ -54,7 +51,6 @@ export function WikiSidebar({
   user?: { name: string; email: string; image?: string | null } | null;
   isAdmin?: boolean;
 }) {
-  const { setTheme, theme } = useTheme();
   const pathname = usePathname();
   const router = useRouter();
   const locale = useLocale();
@@ -63,7 +59,6 @@ export function WikiSidebar({
   const deferredSearchQuery = React.useDeferredValue(searchQuery);
   const currentWikiPath = getWikiPathFromPathname(pathname);
   const isAgentRoute = pathname === localizeHref(locale, "/agent");
-  const isSettingsRoute = pathname === localizeHref(locale, "/settings");
   const normalizedSearchQuery = normalizeSearchQuery(deferredSearchQuery);
   const filteredTree = normalizedSearchQuery
     ? filterWikiTree(tree, normalizedSearchQuery)
@@ -165,32 +160,12 @@ export function WikiSidebar({
           <SidebarMenuItem>
             <div className="px-1">
               <React.Suspense fallback={null}>
-                <LocaleSwitcher className="w-full justify-center" />
+                <LocaleSwitcher className="justify-center  w-full" />
               </React.Suspense>
             </div>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <SidebarMenuButton
-              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              tooltip={t.common.appearance}
-              className="rounded-xl"
-            >
-              {theme === "dark" ? <Sun className="size-4" /> : <Moon className="size-4" />}
-              <span className="font-medium">{t.common.appearance}</span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              asChild
-              tooltip={t.common.settings}
-              className="rounded-xl"
-              isActive={isSettingsRoute}
-            >
-              <Link href={localizeHref(locale, "/settings")}>
-                <Settings className="size-4" />
-                <span className="font-medium">{t.common.settings}</span>
-              </Link>
-            </SidebarMenuButton>
+            <ThemeSwitcher/>
           </SidebarMenuItem>
         </SidebarMenu>
 

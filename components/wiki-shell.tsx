@@ -56,7 +56,7 @@ export async function WikiShell({
   return (
     <SidebarProvider>
       <WikiSidebar tree={tree} user={session?.user} isAdmin={isAdmin} />
-      <SidebarInset className="bg-background/50 backdrop-blur-sm min-h-svh">
+      <SidebarInset className="m-0! min-h-svh">
         <header className="flex h-16 shrink-0 items-center gap-2 border-b border-border/5 px-4 sticky top-0 z-20 bg-background/50 backdrop-blur-md transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
           <div className="flex items-center gap-2 justify-center">
             <SidebarTrigger className="-ml-1" />

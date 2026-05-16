@@ -7,8 +7,6 @@ import {
   FileText,
   LayoutDashboard,
   MessageSquare,
-  Moon,
-  Sun,
   Users,
   View,
 } from "lucide-react";
@@ -26,11 +24,11 @@ import {
   SidebarMenuItem,
   SidebarRail,
 } from "@/components/ui/sidebar";
-import { useTheme } from "next-themes";
 import Link from "next/link";
 import { localizeHref } from "@/lib/i18n/config";
 import { useLocale, useT } from "@/lib/i18n/provider";
 import { LocaleSwitcher } from "@/components/locale-switcher";
+import { ThemeSwitcher } from "./theme-switcher";
 
 export function AppSidebar({
   user,
@@ -38,7 +36,6 @@ export function AppSidebar({
 }: React.ComponentProps<typeof Sidebar> & {
   user: { name: string; email: string; image?: string | null; role?: string | null };
 }) {
-  const { setTheme, theme } = useTheme();
   const locale = useLocale();
   const t = useT();
   const isRoot = user.role === Role.ROOT;
@@ -160,13 +157,9 @@ export function AppSidebar({
             </div>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <SidebarMenuButton
-              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              tooltip={t.common.appearance}
-            >
-              {theme === "dark" ? <Sun className="size-4" /> : <Moon className="size-4" />}
-              <span>{t.common.appearance}</span>
-            </SidebarMenuButton>
+            <div className="px-1 group-data-[collapsible=icon]:hidden">
+              <ThemeSwitcher/>
+            </div>
           </SidebarMenuItem>
         </SidebarMenu>
         <NavUser user={user} />
