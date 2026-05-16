@@ -40,6 +40,7 @@ import { useLocale, useT } from "@/lib/i18n/provider";
 import { LocaleSwitcher } from "@/components/locale-switcher";
 import { ThemeSwitcher } from "./theme-switcher";
 import { WikiSearchCommand } from "./wiki-search-command";
+import Image from "next/image";
 
 export function WikiSidebar({
   tree,
@@ -63,9 +64,7 @@ export function WikiSidebar({
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild className="hover:bg-transparent group">
               <Link href={localizeHref(locale, "/wiki")}>
-                <div className="flex aspect-square size-8 items-center justify-center rounded-xl bg-primary transition-transform">
-                  <FileText className="size-5 text-primary-foreground" />
-                </div>
+                <Image src="/favicon.png" alt="LuckyWiki" width={32} height={32} />
                 <div className="grid flex-1 text-left text-sm leading-tight ml-2">
                   <span className="truncate font-bold text-lg tracking-tight">LuckyWiki</span>
                   <span className="truncate text-xs opacity-60 font-medium">{t.wiki.knowledgeBase}</span>

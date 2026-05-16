@@ -56,7 +56,7 @@ export async function WikiShell({
     <SidebarProvider>
       <WikiSidebar tree={tree} user={session?.user} isAdmin={isAdmin} />
       <SidebarInset className="m-0! min-h-svh">
-        <header className="flex justify-between h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
+        <header className="sticky md:rounded-tl-2xl top-0 z-20 bg-background/50 backdrop-blur-md flex justify-between h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12 ">
           <div className="flex items-center gap-2 px-4">
             <SidebarTrigger className="-ml-1" />
             <div className="flex items-center">

@@ -2,7 +2,6 @@
 
 import * as React from "react";
 import {
-  BookOpen,
   FolderTree,
   FileText,
   LayoutDashboard,
@@ -30,6 +29,7 @@ import { localizeHref } from "@/lib/i18n/config";
 import { useLocale, useT } from "@/lib/i18n/provider";
 import { LocaleSwitcher } from "@/components/locale-switcher";
 import { ThemeSwitcher } from "./theme-switcher";
+import Image from "next/image";
 
 export function AppSidebar({
   user,
@@ -133,10 +133,8 @@ export function AppSidebar({
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
               <Link href={localizeHref(locale, "/admin")}>
-                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                  <BookOpen className="size-4" />
-                </div>
-                <div className="grid flex-1 text-left text-sm leading-tight">
+                <Image src="/favicon.png" alt="LuckyWiki" width={32} height={32} />
+                <div className="grid flex-1 text-left text-sm leading-tight md:ml-1">
                   <span className="truncate font-semibold text-lg tracking-tight">LuckyWiki</span>
                   <span className="truncate text-xs opacity-70">{t.admin.control}</span>
                 </div>
