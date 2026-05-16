@@ -24,6 +24,7 @@ import { useT } from "@/lib/i18n/provider";
 
 export function NavMain({
   items,
+  label
 }: {
   items: {
     title: string;
@@ -35,6 +36,7 @@ export function NavMain({
       url: string;
     }[];
   }[];
+  label: string;
 }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -43,7 +45,7 @@ export function NavMain({
 
   return (
     <SidebarGroup>
-      <SidebarGroupLabel>{t.common.platform}</SidebarGroupLabel>
+      <SidebarGroupLabel>{label}</SidebarGroupLabel>
       <SidebarMenu>
         {items.map((item) => {
           const isActive = matchesNavLink(pathname, currentQuery, item.url);

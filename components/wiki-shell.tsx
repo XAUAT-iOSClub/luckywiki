@@ -56,15 +56,19 @@ export async function WikiShell({
     <SidebarProvider>
       <WikiSidebar tree={tree} user={session?.user} isAdmin={isAdmin} />
       <SidebarInset className="m-0! min-h-svh">
-        <header className="flex h-16 shrink-0 items-center gap-2 border-b border-border/5 px-4 sticky top-0 z-20 bg-background/50 backdrop-blur-md transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
-          <div className="flex flex-1 items-center gap-2 justify-between">
-            <div className="flex items-center gap-2">
-              <SidebarTrigger className="-ml-1" />
-              <Separator orientation="vertical" className="mr-2 h-4" />
-              <Breadcrumb>
+        <header className="flex justify-between h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
+          <div className="flex items-center gap-2 px-4">
+            <SidebarTrigger className="-ml-1" />
+            <div className="flex items-center">
+              <Separator
+                orientation="vertical"
+                className="mr-2 h-4"
+            />
+            </div>
+            <Breadcrumb>
                 <BreadcrumbList>
                   <BreadcrumbItem className="hidden md:block">
-                    <BreadcrumbLink href={localizeHref(locale, "/wiki")}>
+                    <BreadcrumbLink href={localizeHref(locale, "/wiki/home")}>
                       {dictionary.metadata.wiki}
                     </BreadcrumbLink>
                   </BreadcrumbItem>
@@ -74,11 +78,10 @@ export async function WikiShell({
                   </BreadcrumbItem>
                 </BreadcrumbList>
               </Breadcrumb>
-            </div>
-            <div className="hidden md:flex items-center gap-2">
+          </div>
+          <div className="md:hidden items-center gap-2">
               <WikiSearchCommand className="md:w-40 lg:w-64" />
             </div>
-          </div>
         </header>
         <div className="flex-1">{children}</div>
       </SidebarInset>

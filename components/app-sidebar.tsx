@@ -147,10 +147,10 @@ export function AppSidebar({
       </SidebarHeader>
       <SidebarContent>
         <React.Suspense fallback={null}>
-          <NavMain items={navMain} />
+          <NavMain items={navMain} label={t.common.platform}/>
         </React.Suspense>
         <React.Suspense fallback={null}>
-          <NavMain items={secondaryNav} />
+          <NavMain items={secondaryNav} label={t.common.other} />
         </React.Suspense>
       </SidebarContent>
       <SidebarFooter>

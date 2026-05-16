@@ -47,6 +47,7 @@ export const zh = {
     toggle: "切换",
     toggleSidebar: "切换侧边栏",
     platform: "平台",
+    other: "其他",
     account: "账号",
     billing: "账单",
     notifications: "通知",

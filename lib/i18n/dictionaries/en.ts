@@ -47,6 +47,7 @@ export const en = {
     toggle: "Toggle",
     toggleSidebar: "Toggle Sidebar",
     platform: "Platform",
+    other: "Other",
     account: "Account",
     billing: "Billing",
     notifications: "Notifications",

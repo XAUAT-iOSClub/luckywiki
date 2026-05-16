@@ -18,6 +18,12 @@ async function main() {
     },
   });
 
+  const pageExisting = await prisma.page.findFirst({
+    where: {
+      path: 'home',
+    },
+  });
+
   if (!existing) {
     await auth.api.signUpEmail({
       body: {
@@ -42,6 +48,21 @@ async function main() {
       emailVerifiedAt: new Date(),
     },
   });
+
+  if (!pageExisting) {
+    await prisma.article.create({
+      data: {
+        title: "Home",
+        path: "home",
+        markdown: "",
+        author: {
+          connect: {
+            id: rootUser.id,
+          },
+        },
+      },
+    });
+  }
 
   console.info(`Seeded root user ${rootUser.email}`);
 }
