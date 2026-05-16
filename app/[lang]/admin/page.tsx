@@ -170,7 +170,7 @@ export default async function AdminHomePage({
                 <TableRow>
                   <TableHead className="pl-6">{dictionary.common.articles}</TableHead>
                   <TableHead className="hidden sm:table-cell">{dictionary.common.status}</TableHead>
-                  <TableHead className="pr-6 text-right">{dictionary.common.actions}</TableHead>
+                  <TableHead className="pr-6 text-right">{dictionary.common.action}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

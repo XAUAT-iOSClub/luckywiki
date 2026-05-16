@@ -245,7 +245,7 @@ export default async function AdminArticlesPage({
                   <TableHead>{dictionary.common.status}</TableHead>
                   <TableHead>{dictionary.common.tags}</TableHead>
                   <TableHead>{dictionary.admin.authorLine.split(" · ")[0].replace("{author}", dictionary.common.author)}</TableHead>
-                  <TableHead className="pr-6 text-right">{dictionary.common.actions}</TableHead>
+                  <TableHead className="pr-6 text-right">{dictionary.common.action}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

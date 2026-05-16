@@ -74,7 +74,7 @@ export default async function AdminTaxonomyPage({
                 <TableRow>
                   <TableHead className="pl-6">{dictionary.common.section}</TableHead>
                   <TableHead className="text-center">{dictionary.common.articles}</TableHead>
-                  <TableHead className="pr-6 text-right">{dictionary.common.actions}</TableHead>
+                  <TableHead className="pr-6 text-right">{dictionary.common.action}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -144,7 +144,7 @@ export default async function AdminTaxonomyPage({
                   <TableRow>
                     <TableHead className="pl-6">{dictionary.common.tag}</TableHead>
                     <TableHead className="text-center">{dictionary.common.articles}</TableHead>
-                    <TableHead className="pr-6 text-right">{dictionary.common.actions}</TableHead>
+                    <TableHead className="pr-6 text-right">{dictionary.common.action}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>

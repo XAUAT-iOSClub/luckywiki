@@ -94,10 +94,10 @@ export default async function AdminCommentsPage({
               <TableHeader>
                 <TableRow>
                   <TableHead className="pl-6 w-[200px]">{dictionary.common.author}</TableHead>
-                  <TableHead>{dictionary.common.comment}</TableHead>
+                  <TableHead>{dictionary.common.comments}</TableHead>
                   <TableHead>{dictionary.common.articles}</TableHead>
                   <TableHead>{dictionary.common.status}</TableHead>
-                  <TableHead className="pr-6 text-right">{dictionary.common.actions}</TableHead>
+                  <TableHead className="pr-6 text-right">{dictionary.common.action}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

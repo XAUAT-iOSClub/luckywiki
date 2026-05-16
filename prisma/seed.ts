@@ -18,7 +18,7 @@ async function main() {
     },
   });
 
-  const pageExisting = await prisma.page.findFirst({
+  const pageExisting = await prisma.article.findFirst({
     where: {
       path: 'home',
     },

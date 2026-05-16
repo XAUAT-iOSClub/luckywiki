@@ -96,7 +96,7 @@ export default async function AdminUsersPage({
                 <TableHead className="text-center">{dictionary.common.articles}</TableHead>
                 <TableHead className="text-center">{dictionary.common.comments}</TableHead>
                 <TableHead className="text-center">{dictionary.admin.moderated}</TableHead>
-                <TableHead className="pr-6 text-right">{dictionary.common.actions}</TableHead>
+                <TableHead className="pr-6 text-right">{dictionary.common.action}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
