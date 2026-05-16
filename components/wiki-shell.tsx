@@ -14,6 +14,7 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { WikiSidebar } from "@/components/wiki-sidebar";
+import { WikiSearchCommand } from "@/components/wiki-search-command";
 import { listPublishedArticleTreeData } from "@/lib/articles";
 import type { Locale } from "@/lib/i18n/config";
 import { hasLocale, localizeHref } from "@/lib/i18n/config";
@@ -58,22 +59,27 @@ export async function WikiShell({
       <WikiSidebar tree={tree} user={session?.user} isAdmin={isAdmin} />
       <SidebarInset className="m-0! min-h-svh">
         <header className="flex h-16 shrink-0 items-center gap-2 border-b border-border/5 px-4 sticky top-0 z-20 bg-background/50 backdrop-blur-md transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
-          <div className="flex items-center gap-2 justify-center">
-            <SidebarTrigger className="-ml-1" />
-            <Separator orientation="vertical" className="mr-2" />
-            <Breadcrumb>
-              <BreadcrumbList>
-                <BreadcrumbItem className="hidden md:block">
-                  <BreadcrumbLink href={localizeHref(locale, "/wiki")}>
-                    {dictionary.metadata.wiki}
-                  </BreadcrumbLink>
-                </BreadcrumbItem>
-                <BreadcrumbSeparator className="hidden md:block" />
-                <BreadcrumbItem>
-                  <BreadcrumbPage>{breadcrumbLabel}</BreadcrumbPage>
-                </BreadcrumbItem>
-              </BreadcrumbList>
-            </Breadcrumb>
+          <div className="flex flex-1 items-center gap-2 justify-between">
+            <div className="flex items-center gap-2">
+              <SidebarTrigger className="-ml-1" />
+              <Separator orientation="vertical" className="mr-2 h-4" />
+              <Breadcrumb>
+                <BreadcrumbList>
+                  <BreadcrumbItem className="hidden md:block">
+                    <BreadcrumbLink href={localizeHref(locale, "/wiki")}>
+                      {dictionary.metadata.wiki}
+                    </BreadcrumbLink>
+                  </BreadcrumbItem>
+                  <BreadcrumbSeparator className="hidden md:block" />
+                  <BreadcrumbItem>
+                    <BreadcrumbPage>{breadcrumbLabel}</BreadcrumbPage>
+                  </BreadcrumbItem>
+                </BreadcrumbList>
+              </Breadcrumb>
+            </div>
+            <div className="hidden md:flex items-center gap-2">
+              <WikiSearchCommand className="md:w-40 lg:w-64" />
+            </div>
           </div>
         </header>
         <div className="flex-1">{children}</div>

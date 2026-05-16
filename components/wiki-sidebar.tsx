@@ -41,6 +41,7 @@ import { localizeHref } from "@/lib/i18n/config";
 import { useLocale, useT } from "@/lib/i18n/provider";
 import { LocaleSwitcher } from "@/components/locale-switcher";
 import { ThemeSwitcher } from "./theme-switcher";
+import { WikiSearchCommand } from "./wiki-search-command";
 
 export function WikiSidebar({
   tree,
@@ -85,24 +86,7 @@ export function WikiSidebar({
         </SidebarMenu>
 
         <div className="px-2 mt-4 group-data-[collapsible=icon]:hidden">
-          <div className="relative group/search">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground transition-colors group-focus-within/search:text-primary" />
-            <SidebarInput
-              aria-label={t.common.search}
-              value={searchQuery}
-              onChange={(event) => setSearchQuery(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter" && searchQuery.trim()) {
-                  event.preventDefault();
-                  router.push(
-                    localizeHref(locale, `/search?q=${encodeURIComponent(searchQuery.trim())}`),
-                  );
-                }
-              }}
-              placeholder={t.wiki.searchPlaceholder}
-              className="pl-9 h-10 rounded-xl bg-background/50 border-border/50 focus:bg-background transition-all focus-visible:ring-primary/20"
-            />
-          </div>
+          <WikiSearchCommand />
         </div>
       </SidebarHeader>
 

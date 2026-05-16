@@ -15,6 +15,8 @@ import {
   locales,
 } from "@/lib/i18n/config";
 import { I18nProvider } from "@/lib/i18n/provider";
+import { SearchProvider } from "@/components/search-provider";
+import { WikiSearchDialog } from "@/components/wiki-search-dialog";
 import { getMetadataBase } from "@/lib/site";
 import { WebSiteJsonLd } from "@/lib/structured-data";
 import { Analytics } from "@vercel/analytics/next"
@@ -102,7 +104,10 @@ export default async function RootLayout({
           disableTransitionOnChange
         >
           <I18nProvider dictionary={dictionary} locale={locale}>
-            <TooltipProvider>{children}</TooltipProvider>
+            <SearchProvider>
+              <TooltipProvider>{children}</TooltipProvider>
+              <WikiSearchDialog />
+            </SearchProvider>
           </I18nProvider>
           <WebSiteJsonLd locale={locale} />
         </ThemeProvider>
