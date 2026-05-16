@@ -502,7 +502,7 @@ function MarkdownAlert({ children, className, type = "NOTE", ...props }: Markdow
   return (
     <div
       className={clsx(
-        "mt-6 flex gap-4 rounded-2xl border p-4 text-sm leading-relaxed",
+        "my-6 flex gap-4 rounded-2xl border p-4 text-sm leading-relaxed",
         config.className,
         className,
       )}

@@ -322,11 +322,20 @@
   }
 
   .markdown-body blockquote {
-    @apply rounded-3xl border-l-0 bg-primary/5 px-8 py-6 italic text-slate-700 dark:text-zinc-300 relative overflow-hidden not-italic;
+    @apply my-4! rounded-2xl border border-border bg-primary/5 p-4 text-foreground/90 relative not-italic! leading-relaxed;
+    font-size: 1.05em;
+  }
+
+  .markdown-body blockquote p {
+    @apply m-0!;
   }
 
   .markdown-body blockquote::before {
-    @apply content-[''] absolute left-0 top-0 bottom-0 w-1.5 bg-primary/30;
+    display: none;
+  }
+
+    .markdown-body blockquote p::before {
+    display: none;
   }
 
   .markdown-body code {
