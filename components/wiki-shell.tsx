@@ -29,7 +29,7 @@ export async function WikiShell({
   children,
 }: {
   lang: string;
-  section: "articles" | "agent" | "settings" | "search";
+  section: "articles" | "agent" | "settings";
   children: React.ReactNode;
 }) {
   if (!hasLocale(lang)) {
@@ -50,9 +50,7 @@ export async function WikiShell({
       ? dictionary.agent.breadcrumb
       : section === "settings"
         ? dictionary.common.settings
-        : section === "search"
-          ? dictionary.common.search
-          : dictionary.wiki.articlesBreadcrumb;
+        : dictionary.wiki.articlesBreadcrumb;
 
   return (
     <SidebarProvider>

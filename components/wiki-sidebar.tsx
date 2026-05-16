@@ -6,7 +6,6 @@ import {
   ChevronRight,
   FileText,
   Folder,
-  Search,
   ShieldCheck,
 } from "lucide-react";
 
@@ -28,11 +27,10 @@ import {
   SidebarRail,
   SidebarGroup,
   SidebarGroupLabel,
-  SidebarInput,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { NavUser } from "@/components/nav-user";
 import { isNodeExpanded, type WikiTreeNode } from "@/lib/wiki/tree";
 import { cn } from "@/lib/utils";
@@ -53,18 +51,10 @@ export function WikiSidebar({
   isAdmin?: boolean;
 }) {
   const pathname = usePathname();
-  const router = useRouter();
   const locale = useLocale();
   const t = useT();
-  const [searchQuery, setSearchQuery] = React.useState("");
-  const deferredSearchQuery = React.useDeferredValue(searchQuery);
   const currentWikiPath = getWikiPathFromPathname(pathname);
   const isAgentRoute = pathname === localizeHref(locale, "/agent");
-  const normalizedSearchQuery = normalizeSearchQuery(deferredSearchQuery);
-  const filteredTree = normalizedSearchQuery
-    ? filterWikiTree(tree, normalizedSearchQuery)
-    : tree;
-  const hasSearchResults = hasVisibleTreeNodes(filteredTree);
 
   return (
     <Sidebar variant="inset" collapsible="icon" className="border-r-0 bg-sidebar/40 backdrop-blur-xl">
@@ -124,17 +114,10 @@ export function WikiSidebar({
         <SidebarGroup>
           <SidebarGroupLabel className="text-[10px] uppercase tracking-widest font-bold opacity-40 group-data-[collapsible=icon]:hidden">{t.common.articles}</SidebarGroupLabel>
           <SidebarMenu>
-            {hasSearchResults ? (
-              <TreeNav
-                node={filteredTree}
-                currentPath={currentWikiPath}
-                forceExpanded={normalizedSearchQuery.length > 0}
-              />
-            ) : (
-              <SidebarMenuItem className="px-2 py-3 text-sm text-muted-foreground group-data-[collapsible=icon]:hidden">
-                {t.wiki.noSearchResults}
-              </SidebarMenuItem>
-            )}
+            <TreeNav
+              node={tree}
+              currentPath={currentWikiPath}
+            />
           </SidebarMenu>
         </SidebarGroup>
       </SidebarContent>
@@ -282,47 +265,3 @@ function TreeItem({
   );
 }
 
-function normalizeSearchQuery(query: string) {
-  return query.trim().toLocaleLowerCase();
-}
-
-function matchesWikiTreeNode(node: WikiTreeNode, query: string) {
-  return [node.label, node.articleTitle, node.path, node.segment]
-    .filter((value): value is string => Boolean(value))
-    .some((value) => value.toLocaleLowerCase().includes(query));
-}
-
-function filterWikiTree(node: WikiTreeNode, query: string): WikiTreeNode {
-  const filteredChildren = node.children
-    .map((child) => filterWikiTree(child, query))
-    .filter((child) => child.articleTitle || child.children.length > 0);
-  const matches = matchesWikiTreeNode(node, query);
-
-  if (node.path === "") {
-    return {
-      ...node,
-      children: filteredChildren,
-    };
-  }
-
-  if (!matches && filteredChildren.length === 0) {
-    return {
-      ...node,
-      articleTitle: undefined,
-      children: [],
-    };
-  }
-
-  return {
-    ...node,
-    children: matches && filteredChildren.length === 0 ? node.children : filteredChildren,
-  };
-}
-
-function hasVisibleTreeNodes(node: WikiTreeNode) {
-  if (node.path !== "") {
-    return true;
-  }
-
-  return node.children.length > 0;
-}
