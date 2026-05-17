@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   MessageSquare,
   ScrollText,
+  Settings,
   Users,
   View,
 } from "lucide-react";
@@ -33,9 +34,11 @@ import Image from "next/image";
 
 export function AppSidebar({
   user,
+  siteName = "LuckyWiki",
   ...props
 }: React.ComponentProps<typeof Sidebar> & {
   user: { name: string; email: string; image?: string | null; role?: string | null };
+  siteName?: string;
 }) {
   const locale = useLocale();
   const t = useT();
@@ -96,6 +99,11 @@ export function AppSidebar({
           url: localizeHref(locale, "/admin/users"),
           icon: Users,
         },
+        {
+          title: t.common.settings,
+          url: localizeHref(locale, "/admin/settings"),
+          icon: Settings,
+        },
       ]
     : [
         {
@@ -133,9 +141,9 @@ export function AppSidebar({
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
               <Link href={localizeHref(locale, "/admin")}>
-                <Image src="/favicon.png" alt="LuckyWiki" width={32} height={32} />
+                <Image src="/favicon.png" alt={siteName} width={32} height={32} />
                 <div className="grid flex-1 text-left text-sm leading-tight md:ml-1">
-                  <span className="truncate font-semibold text-lg tracking-tight">LuckyWiki</span>
+                  <span className="truncate font-semibold text-lg tracking-tight">{siteName}</span>
                   <span className="truncate text-xs opacity-70">{t.admin.control}</span>
                 </div>
               </Link>

@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { AppSidebar } from "@/components/app-sidebar";
 import { AdminHeader } from "@/components/admin-header";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import { getSiteSettings } from "@/lib/site";
 import { hasLocale } from "@/lib/i18n/config";
 import { requireAuthorSession } from "@/lib/auth/session";
 
@@ -20,7 +21,10 @@ export default async function AdminLayout({
     notFound();
   }
 
-  const session = await requireAuthorSession(lang);
+  const [session, siteSettings] = await Promise.all([
+    requireAuthorSession(lang),
+    getSiteSettings(),
+  ]);
   const user = {
     name: session.user.name,
     email: session.user.email,
@@ -30,7 +34,7 @@ export default async function AdminLayout({
 
   return (
     <SidebarProvider>
-      <AppSidebar user={user} />
+      <AppSidebar user={user} siteName={siteSettings.siteName} />
       <SidebarInset>
         <AdminHeader />
         <div className="flex flex-1 flex-col min-h-0 gap-4 p-4 md:p-8 md:pt-6 admin-layout-container">

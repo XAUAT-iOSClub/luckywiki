@@ -16,6 +16,7 @@ import {
 import { WikiSidebar } from "@/components/wiki-sidebar";
 import { WikiSearchCommand } from "@/components/wiki-search-command";
 import { listPublishedArticleTreeData } from "@/lib/articles";
+import { getSiteSettings } from "@/lib/site";
 import type { Locale } from "@/lib/i18n/config";
 import { hasLocale, localizeHref } from "@/lib/i18n/config";
 import { getDictionary } from "@/lib/i18n/get-dictionary";
@@ -37,10 +38,11 @@ export async function WikiShell({
   }
 
   const locale: Locale = lang;
-  const [treeArticles, session, dictionary] = await Promise.all([
+  const [treeArticles, session, dictionary, siteSettings] = await Promise.all([
     listPublishedArticleTreeData(),
     getCurrentSession(),
     getDictionary(locale),
+    getSiteSettings(),
   ]);
 
   const tree = buildWikiTree(treeArticles);
@@ -54,7 +56,7 @@ export async function WikiShell({
 
   return (
     <SidebarProvider>
-      <WikiSidebar tree={tree} user={session?.user} isAdmin={isAdmin} />
+      <WikiSidebar tree={tree} user={session?.user} isAdmin={isAdmin} siteName={siteSettings.siteName} />
       <SidebarInset className="m-0! min-h-svh">
         <header className="sticky md:rounded-tl-2xl top-0 z-20 bg-background/50 backdrop-blur-md flex justify-between h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12 ">
           <div className="flex items-center gap-2 px-4">

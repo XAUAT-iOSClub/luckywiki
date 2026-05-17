@@ -46,10 +46,12 @@ export function WikiSidebar({
   tree,
   user,
   isAdmin,
+  siteName = "LuckyWiki",
 }: {
   tree: WikiTreeNode;
   user?: { name: string; email: string; image?: string | null } | null;
   isAdmin?: boolean;
+  siteName?: string;
 }) {
   const pathname = usePathname();
   const locale = useLocale();
@@ -64,9 +66,9 @@ export function WikiSidebar({
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild className="hover:bg-transparent group">
               <Link href={localizeHref(locale, "/wiki")}>
-                <Image src="/favicon.png" alt="LuckyWiki" width={32} height={32} />
+                <Image src="/favicon.png" alt={siteName} width={32} height={32} />
                 <div className="grid flex-1 text-left text-sm leading-tight ml-2">
-                  <span className="truncate font-bold text-lg tracking-tight">LuckyWiki</span>
+                  <span className="truncate font-bold text-lg tracking-tight">{siteName}</span>
                   <span className="truncate text-xs opacity-60 font-medium">{t.wiki.knowledgeBase}</span>
                 </div>
               </Link>

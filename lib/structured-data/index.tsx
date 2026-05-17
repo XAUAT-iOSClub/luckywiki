@@ -1,6 +1,6 @@
 import { getIntlLocale, localizeHref, type Locale } from "@/lib/i18n/config";
 import { buildWikiHref, splitPath } from "@/lib/wiki/path";
-import { getSiteUrl } from "@/lib/site";
+import { getSiteSettings, getSiteUrl } from "@/lib/site";
 import { getDictionary } from "@/lib/i18n/get-dictionary";
 import { extractMarkdownDescription } from "@/lib/text";
 
@@ -15,13 +15,16 @@ function jsonLd<T>(data: T) {
 
 export async function WebSiteJsonLd({ locale }: { locale: Locale }) {
   const siteUrl = getSiteUrl();
-  const dictionary = await getDictionary(locale);
+  const [dictionary, siteSettings] = await Promise.all([
+    getDictionary(locale),
+    getSiteSettings(),
+  ]);
 
   const data = {
     "@context": "https://schema.org",
     "@type": "WebSite",
-    name: dictionary.metadata.title,
-    description: dictionary.metadata.description,
+    name: siteSettings.siteName,
+    description: siteSettings.description || dictionary.metadata.description,
     url: siteUrl,
     potentialAction: {
       "@type": "SearchAction",
@@ -52,7 +55,10 @@ export async function ArticleJsonLd({
   locale: Locale;
 }) {
   const siteUrl = getSiteUrl();
-  const dictionary = await getDictionary(locale);
+  const [dictionary, siteSettings] = await Promise.all([
+    getDictionary(locale),
+    getSiteSettings(),
+  ]);
   const articleUrl = `${siteUrl}${buildWikiHref(article.path, locale)}`;
 
   const description = article.markdown
@@ -72,7 +78,7 @@ export async function ArticleJsonLd({
       : undefined,
     publisher: {
       "@type": "Organization",
-      name: dictionary.metadata.title,
+      name: siteSettings.siteName,
     },
     keywords: article.tags?.length ? article.tags.join(", ") : undefined,
   };
@@ -88,14 +94,17 @@ export async function BreadcrumbListJsonLd({
   locale: Locale;
 }) {
   const siteUrl = getSiteUrl();
-  const dictionary = await getDictionary(locale);
+  const [dictionary, siteSettings] = await Promise.all([
+    getDictionary(locale),
+    getSiteSettings(),
+  ]);
   const segments = splitPath(path);
 
   const itemListElement = [
     {
       "@type": "ListItem" as const,
       position: 1,
-      name: dictionary.metadata.title,
+      name: siteSettings.siteName,
       item: `${siteUrl}${localizeHref(locale, "/wiki/home")}`,
     },
     ...segments.map((segment, index) => {

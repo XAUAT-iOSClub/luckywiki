@@ -17,7 +17,7 @@ import {
 import { I18nProvider } from "@/lib/i18n/provider";
 import { SearchProvider } from "@/components/search-provider";
 import { WikiSearchDialog } from "@/components/wiki-search-dialog";
-import { getMetadataBase } from "@/lib/site";
+import { getMetadataBase, getSiteSettings } from "@/lib/site";
 import { WebSiteJsonLd } from "@/lib/structured-data";
 import { Analytics } from "@vercel/analytics/next"
 
@@ -50,17 +50,20 @@ export async function generateMetadata({
     notFound();
   }
 
-  const dictionary = await getDictionary(lang);
+  const [dictionary, siteSettings] = await Promise.all([
+    getDictionary(lang),
+    getSiteSettings(),
+  ]);
 
   return {
     metadataBase: getMetadataBase(),
     title: {
-      default: dictionary.metadata.title,
-      template: `%s | ${dictionary.metadata.title}`,
+      default: siteSettings.siteName,
+      template: `%s | ${siteSettings.siteName}`,
     },
-    description: dictionary.metadata.description,
+    description: siteSettings.description || dictionary.metadata.description,
     generator: "Next.js",
-    creator: "LuckyWiki",
+    creator: siteSettings.siteName,
     robots: {
       index: true,
       follow: true,

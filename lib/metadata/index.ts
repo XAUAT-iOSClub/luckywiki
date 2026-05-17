@@ -1,9 +1,8 @@
 import type { Metadata } from "next";
-import { getSiteUrl } from "@/lib/site";
+import { getSiteSettings, getSiteUrl } from "@/lib/site";
 import { locales, getIntlLocale, localizeHref, type Locale } from "@/lib/i18n/config";
 import { buildWikiHref } from "@/lib/wiki/path";
 import { extractMarkdownDescription } from "@/lib/text";
-import { getDictionary } from "@/lib/i18n/get-dictionary";
 
 type ArticleMetadataInput = {
   title: string;
@@ -53,8 +52,8 @@ export async function buildArticleMetadata(
   lang: string,
 ): Promise<Metadata> {
   const siteUrl = getSiteUrl();
-  const dictionary = await getDictionary(lang as Locale);
-  const siteName = dictionary.metadata.title;
+  const siteSettings = await getSiteSettings();
+  const siteName = siteSettings.siteName;
   const description = extractMarkdownDescription(article.markdown);
   const ogImage = getOgImageUrl(article.title, lang);
   const articlePath = buildWikiHref(article.path, lang as Locale);
@@ -96,8 +95,8 @@ export async function buildPageMetadata(
   { title, description, path }: PageMetadataInput,
   lang: string,
 ): Promise<Metadata> {
-  const dictionary = await getDictionary(lang as Locale);
-  const siteName = dictionary.metadata.title;
+  const siteSettings = await getSiteSettings();
+  const siteName = siteSettings.siteName;
   const ogImage = getOgImageUrl(title, lang);
   const { canonical, languages } = buildAlternates(path, lang);
 

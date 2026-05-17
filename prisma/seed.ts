@@ -64,6 +64,18 @@ async function main() {
     });
   }
 
+  await prisma.siteSettings.upsert({
+    where: { id: "default" },
+    create: {
+      id: "default",
+      siteName: "LuckyWiki",
+      description: null,
+      logoUrl: null,
+      faviconUrl: null,
+    },
+    update: {},
+  });
+
   console.info(`Seeded root user ${rootUser.email}`);
 }
 
