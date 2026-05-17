@@ -75,10 +75,6 @@ test("markdown renderer supports custom components and attributes", async () => 
     <I18nProvider dictionary={en} locale="en">
       <MarkdownRenderer
         markdown={`
-::GitHubCalendarCard
-username: luckyfishes
-::
-
 ::Icon
 icon: ph:rocket-launch-duotone
 ::
@@ -92,10 +88,6 @@ Card content
       />
     </I18nProvider>,
   );
-
-  // GitHubCalendarCard
-  assert.match(html, /data-mdx-name="GitHubCalendarCard"/);
-  assert.match(html, /data-mdx-props="{&quot;username&quot;:&quot;luckyfishes&quot;}"/);
 
   // Icon (block)
   assert.match(html, /data-mdx-name="Icon"/);

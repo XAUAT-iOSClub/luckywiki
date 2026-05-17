@@ -377,6 +377,16 @@
     @apply rounded-[2.5rem] shadow-2xl shadow-slate-200/50 dark:shadow-black/50 mx-auto border border-border/40 transition-transform duration-500 hover:scale-[1.01];
   }
 
+  .markdown-body ruby {
+    ruby-align: center;
+  }
+
+  .markdown-body rt {
+    font-size: 0.55em;
+    line-height: 1;
+    color: var(--muted-foreground);
+  }
+
   .markdown-body kbd {
     @apply rounded-lg border border-border bg-slate-50 px-2 py-1 font-mono text-[0.8em] font-medium text-slate-900 shadow-[0_2px_0_rgba(0,0,0,0.05)] dark:bg-zinc-800 dark:text-zinc-100 dark:border-white/10;
   }

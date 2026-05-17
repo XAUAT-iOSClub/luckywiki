@@ -219,6 +219,52 @@ function rehypeExtractMermaid() {
   };
 }
 
+function rehypeExtractPlantUML() {
+  return (tree: import("hast").Root) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    visit(tree, "element", (node: any) => {
+      if (node.tagName === "pre" && node.children?.[0]?.tagName === "code") {
+        const codeNode = node.children[0];
+        const className = codeNode.properties?.className || [];
+        if (
+          Array.isArray(className) &&
+          className.includes("language-plantuml")
+        ) {
+          node.tagName = "mdx-plantuml";
+          node.properties = {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            code: (codeNode.children[0] as any).value,
+          };
+          node.children = [];
+        }
+      }
+    });
+  };
+}
+
+function rehypeExtractInfographic() {
+  return (tree: import("hast").Root) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    visit(tree, "element", (node: any) => {
+      if (node.tagName === "pre" && node.children?.[0]?.tagName === "code") {
+        const codeNode = node.children[0];
+        const className = codeNode.properties?.className || [];
+        if (
+          Array.isArray(className) &&
+          className.includes("language-infographic")
+        ) {
+          node.tagName = "mdx-infographic";
+          node.properties = {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            syntax: (codeNode.children[0] as any).value,
+          };
+          node.children = [];
+        }
+      }
+    });
+  };
+}
+
 function rehypeNormalizeAnchors() {
   return (tree: import("hast").Root) => {
     visit(tree, "element", (node: any, _index, parent: any) => {
@@ -245,6 +291,53 @@ function rehypeNormalizeAnchors() {
       ) {
         properties.href = `#${parent.properties.id}`;
       }
+    });
+  };
+}
+
+function rehypeRuby() {
+  return (tree: any) => {
+    visit(tree, "text", (node: any, index: number | undefined, parent: any) => {
+      if (!parent || typeof index !== "number") return;
+
+      const value: string = node.value ?? "";
+      const regex = /\[([^\]]+)\]\{([^}]+)\}/g;
+
+      let match: RegExpExecArray | null;
+      let lastIndex = 0;
+      const replacements: any[] = [];
+      let matched = false;
+
+      while ((match = regex.exec(value)) !== null) {
+        matched = true;
+        if (match.index > lastIndex) {
+          replacements.push({
+            type: "text",
+            value: value.slice(lastIndex, match.index),
+          });
+        }
+        replacements.push({
+          type: "element",
+          tagName: "ruby",
+          children: [
+            { type: "text", value: match[1] },
+            {
+              type: "element",
+              tagName: "rt",
+              children: [{ type: "text", value: match[2] }],
+            },
+          ],
+        });
+        lastIndex = match.index + match[0].length;
+      }
+
+      if (!matched) return;
+
+      if (lastIndex < value.length) {
+        replacements.push({ type: "text", value: value.slice(lastIndex) });
+      }
+
+      parent.children.splice(index, 1, ...replacements);
     });
   };
 }
@@ -296,6 +389,8 @@ const customTagNames = [
   "mdx-component-block",
   "mdx-component-inline",
   "mdx-mermaid",
+  "mdx-plantuml",
+  "mdx-infographic",
   "mdx-alert",
 ];
 
@@ -321,6 +416,8 @@ const sanitizeSchema = {
     ],
     "mdx-component-inline": ["data-mdx-name", "data-mdx-props"],
     "mdx-mermaid": ["chart"],
+    "mdx-plantuml": ["code"],
+    "mdx-infographic": ["syntax"],
     details: ["className", "open"],
     summary: ["className"],
     input: ["type", "checked", "disabled"],
@@ -341,6 +438,9 @@ const sanitizeSchema = {
     "input",
     "details",
     "summary",
+    "ruby",
+    "rt",
+    "rp",
   ],
 };
 
@@ -359,6 +459,8 @@ export function MarkdownRenderer({
 }) {
   const rehypePlugins: NonNullable<ReactMarkdownOptions["rehypePlugins"]> = [
     rehypeExtractMermaid,
+    rehypeExtractPlantUML,
+    rehypeExtractInfographic,
     createCodeFenceComponentPlugin,
     rehypeFootnotesHeading,
     rehypeMdxJsxElements,
@@ -373,6 +475,7 @@ export function MarkdownRenderer({
         },
       },
     ],
+    rehypeRuby,
     [rehypeSanitize, sanitizeSchema],
     rehypeNormalizeAnchors,
     rehypeHighlight,

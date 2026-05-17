@@ -16,11 +16,6 @@ import { clsx } from "clsx";
 import { useT } from "@/lib/i18n/provider";
 import mermaid from "mermaid";
 
-const GitHubCalendarCard = lazy(() =>
-  import("./markdown-custom-components/github-calendar").then((m) => ({
-    default: m.GitHubCalendarCard,
-  })),
-);
 const Icon = lazy(() =>
   import("./markdown-custom-components/icon").then((m) => ({
     default: m.Icon,
@@ -39,6 +34,11 @@ const Timeline = lazy(() =>
 const Chat = lazy(() =>
   import("./markdown-custom-components/chat").then((m) => ({
     default: m.Chat,
+  })),
+);
+const InfographicDiagram = lazy(() =>
+  import("./markdown-custom-components/infographic").then((m) => ({
+    default: m.InfographicDiagram,
   })),
 );
 
@@ -315,11 +315,9 @@ function MarkdownComponentBlock({
 }: MarkdownComponentFallbackProps) {
   const mdxProps = parseMdxProps({ "data-mdx-props": propsStr, ...rest });
   const Component =
-    name === "GitHubCalendarCard"
-      ? GitHubCalendarCard
-      : name === "Icon"
-        ? Icon
-        : name === "Card"
+    name === "Icon"
+      ? Icon
+      : name === "Card"
           ? CustomCard
           : name === "timeline"
             ? Timeline
@@ -449,6 +447,26 @@ function MarkdownMermaid({ chart }: { chart?: string }) {
   );
 }
 
+import plantumlEncoder from "plantuml-encoder";
+
+function MarkdownPlantUML({ code }: { code?: string }) {
+  if (!code) return null;
+
+  const encoded = plantumlEncoder.encode(code);
+  const url = `https://www.plantuml.com/plantuml/svg/${encoded}`;
+
+  return (
+    <div className="mt-6 flex justify-center overflow-hidden rounded-3xl border border-border bg-muted/20 p-6">
+      <img
+        src={url}
+        alt="PlantUML diagram"
+        className="max-w-full"
+        loading="lazy"
+      />
+    </div>
+  );
+}
+
 import {
   Info,
   Lightbulb,
@@ -521,6 +539,20 @@ function MarkdownAlert({ children, className, type = "NOTE", ...props }: Markdow
   );
 }
 
+function MarkdownInfographic({ syntax }: { syntax?: string }) {
+  return (
+    <Suspense
+      fallback={
+        <div className="mt-6 flex h-48 animate-pulse items-center justify-center rounded-3xl border border-dashed border-border bg-muted/50 text-xs font-medium text-muted-foreground">
+          Loading infographic...
+        </div>
+      }
+    >
+      <InfographicDiagram syntax={syntax} />
+    </Suspense>
+  );
+}
+
 export const markdownComponentRenderers = {
   "mdx-badge": MarkdownBadge,
   "mdx-component-block": MarkdownComponentBlock,
@@ -531,5 +563,7 @@ export const markdownComponentRenderers = {
   "mdx-tabs-trigger": MarkdownTabsTrigger,
   "mdx-tip": MarkdownTip,
   "mdx-mermaid": MarkdownMermaid,
+  "mdx-plantuml": MarkdownPlantUML,
+  "mdx-infographic": MarkdownInfographic,
   "mdx-alert": MarkdownAlert,
 };
