@@ -21,6 +21,8 @@ export const getSiteSettings = cache(async () => {
     description: settings?.description ?? null,
     logoUrl: settings?.logoUrl ?? null,
     faviconUrl: settings?.faviconUrl ?? null,
+    footerCopyright: settings?.footerCopyright ?? null,
+    footerIcp: settings?.footerIcp ?? null,
   };
 });
 

@@ -16,6 +16,8 @@ export type SiteSettingsActionState = {
     description?: string[];
     logoUrl?: string[];
     faviconUrl?: string[];
+    footerCopyright?: string[];
+    footerIcp?: string[];
   };
 };
 
@@ -62,6 +64,18 @@ export async function updateSiteSettingsAction(
         z.string().url({ message: dictionary.siteSettings.validation.faviconUrlInvalid }),
       ])
       .optional(),
+    footerCopyright: z
+      .string()
+      .trim()
+      .max(200, dictionary.siteSettings.validation.footerCopyrightTooLong)
+      .optional()
+      .or(z.literal("")),
+    footerIcp: z
+      .string()
+      .trim()
+      .max(100, dictionary.siteSettings.validation.footerIcpTooLong)
+      .optional()
+      .or(z.literal("")),
   });
 
   const parsed = schema.safeParse({
@@ -69,6 +83,8 @@ export async function updateSiteSettingsAction(
     description: String(formData.get("description") ?? ""),
     logoUrl: String(formData.get("logoUrl") ?? ""),
     faviconUrl: String(formData.get("faviconUrl") ?? ""),
+    footerCopyright: String(formData.get("footerCopyright") ?? ""),
+    footerIcp: String(formData.get("footerIcp") ?? ""),
   });
 
   if (!parsed.success) {
@@ -87,12 +103,16 @@ export async function updateSiteSettingsAction(
         description: parsed.data.description || null,
         logoUrl: parsed.data.logoUrl || null,
         faviconUrl: parsed.data.faviconUrl || null,
+        footerCopyright: parsed.data.footerCopyright || null,
+        footerIcp: parsed.data.footerIcp || null,
       },
       update: {
         siteName: parsed.data.siteName,
         description: parsed.data.description || null,
         logoUrl: parsed.data.logoUrl || null,
         faviconUrl: parsed.data.faviconUrl || null,
+        footerCopyright: parsed.data.footerCopyright || null,
+        footerIcp: parsed.data.footerIcp || null,
       },
     });
 

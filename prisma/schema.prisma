@@ -177,12 +177,14 @@ model Log {
 }
 
 model SiteSettings {
-  id          String   @id @default("default")
-  siteName    String   @default("LuckyWiki") @map("site_name")
-  description String?  @map("description")
-  logoUrl     String?  @map("logo_url")
-  faviconUrl  String?  @map("favicon_url")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  id             String   @id @default("default")
+  siteName       String   @default("LuckyWiki") @map("site_name")
+  description    String?  @map("description")
+  logoUrl        String?  @map("logo_url")
+  faviconUrl     String?  @map("favicon_url")
+  footerCopyright String? @map("footer_copyright")
+  footerIcp      String?  @map("footer_icp")
+  updatedAt      DateTime @updatedAt @map("updated_at")
 
   @@map("site_settings")
 }

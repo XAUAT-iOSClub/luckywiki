@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { AppSidebar } from "@/components/app-sidebar";
 import { AdminHeader } from "@/components/admin-header";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import { SiteFooter } from "@/components/site-footer";
 import { getSiteSettings } from "@/lib/site";
 import { hasLocale } from "@/lib/i18n/config";
 import { requireAuthorSession } from "@/lib/auth/session";
@@ -40,6 +41,7 @@ export default async function AdminLayout({
         <div className="flex flex-1 flex-col min-h-0 gap-4 p-4 md:p-8 md:pt-6 admin-layout-container">
           <div className="mx-auto w-full max-w-6xl flex-1 flex flex-col min-h-0 admin-layout-content">{children}</div>
         </div>
+        <SiteFooter />
       </SidebarInset>
     </SidebarProvider>
   );

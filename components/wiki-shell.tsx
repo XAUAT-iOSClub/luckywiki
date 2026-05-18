@@ -16,6 +16,7 @@ import {
 import { WikiSidebar } from "@/components/wiki-sidebar";
 import { WikiSearchCommand } from "@/components/wiki-search-command";
 import { listPublishedArticleTreeData } from "@/lib/articles";
+import { SiteFooter } from "@/components/site-footer";
 import { getSiteSettings } from "@/lib/site";
 import type { Locale } from "@/lib/i18n/config";
 import { hasLocale, localizeHref } from "@/lib/i18n/config";
@@ -86,6 +87,7 @@ export async function WikiShell({
             </div>
         </header>
         <div className="flex-1">{children}</div>
+        <SiteFooter />
       </SidebarInset>
     </SidebarProvider>
   );

@@ -20,6 +20,8 @@ type SiteSettingsFormProps = {
     description: string | null;
     logoUrl: string | null;
     faviconUrl: string | null;
+    footerCopyright: string | null;
+    footerIcp: string | null;
   };
 };
 
@@ -94,6 +96,42 @@ export function SiteSettingsForm({
           </p>
           {state.fieldErrors?.faviconUrl?.length ? (
             <p className="text-sm text-destructive">{state.fieldErrors.faviconUrl[0]}</p>
+          ) : null}
+        </div>
+      </div>
+
+      <div className="space-y-5 border-t pt-6">
+        <h3 className="text-sm font-semibold">{t.siteSettings.footerSection}</h3>
+        <div className="space-y-2">
+          <Label htmlFor="site-settings-footer-copyright">{t.siteSettings.footerCopyright}</Label>
+          <Input
+            id="site-settings-footer-copyright"
+            name="footerCopyright"
+            defaultValue={settings.footerCopyright ?? ""}
+            placeholder={t.siteSettings.footerCopyrightPlaceholder}
+            className="rounded-xl"
+          />
+          <p className="text-xs text-muted-foreground">
+            {t.siteSettings.footerCopyrightHint}
+          </p>
+          {state.fieldErrors?.footerCopyright?.length ? (
+            <p className="text-sm text-destructive">{state.fieldErrors.footerCopyright[0]}</p>
+          ) : null}
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="site-settings-footer-icp">{t.siteSettings.footerIcp}</Label>
+          <Input
+            id="site-settings-footer-icp"
+            name="footerIcp"
+            defaultValue={settings.footerIcp ?? ""}
+            placeholder={t.siteSettings.footerIcpPlaceholder}
+            className="rounded-xl"
+          />
+          <p className="text-xs text-muted-foreground">
+            {t.siteSettings.footerIcpHint}
+          </p>
+          {state.fieldErrors?.footerIcp?.length ? (
+            <p className="text-sm text-destructive">{state.fieldErrors.footerIcp[0]}</p>
           ) : null}
         </div>
       </div>
