@@ -1,14 +1,15 @@
 "use client";
 
 import {
+  useCallback,
   createContext,
   useContext,
   useEffect,
+  useId,
   useRef,
   useState,
   lazy,
   Suspense,
-  useId,
   type HTMLAttributes,
   type ImgHTMLAttributes,
   type ReactNode,
@@ -19,7 +20,6 @@ import {
   Dialog,
   DialogClose,
   DialogContent,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { useT } from "@/lib/i18n/provider";
 import mermaid from "mermaid";
@@ -95,10 +95,28 @@ type MarkdownImageProps = Omit<
   "children"
 >;
 
+type MarkdownGalleryImage = {
+  alt?: string;
+  index: number;
+  src: string;
+  title?: string;
+};
+
+type MarkdownImageGalleryContextValue = {
+  images: MarkdownGalleryImage[];
+  openImage: (index: number) => void;
+};
+
 const tabsContext = createContext<MarkdownTabsContextValue | null>(null);
+const markdownImageGalleryContext =
+  createContext<MarkdownImageGalleryContextValue | null>(null);
 
 function useTabsContext() {
   return useContext(tabsContext);
+}
+
+function useMarkdownImageGallery() {
+  return useContext(markdownImageGalleryContext);
 }
 
 function stringifyUnknownProps(props: MarkdownComponentFallbackProps) {
@@ -223,22 +241,23 @@ function MarkdownTip({
   );
 }
 
-function MarkdownImage({
-  alt,
-  className,
-  loading,
-  src,
-  title,
-  ...props
-}: MarkdownImageProps) {
-  const [open, setOpen] = useState(false);
+export function MarkdownImageGalleryProvider({
+  children,
+  images,
+}: {
+  children: ReactNode;
+  images: MarkdownGalleryImage[];
+}) {
+  const [activeImageIndex, setActiveImageIndex] = useState<number | null>(null);
   const [scale, setScale] = useState(1);
-
-  if (!src) {
-    return null;
-  }
-
-  const previewLabel = alt?.trim() || title?.trim() || "Preview image";
+  const currentImagePosition = images.findIndex(
+    (image) => image.index === activeImageIndex,
+  );
+  const currentImage =
+    currentImagePosition >= 0 ? images[currentImagePosition] : null;
+  const canGoToPrevious = currentImagePosition > 0;
+  const canGoToNext =
+    currentImagePosition >= 0 && currentImagePosition < images.length - 1;
   const MIN_SCALE = 0.5;
   const MAX_SCALE = 3;
   const SCALE_STEP = 0.25;
@@ -247,107 +266,195 @@ function MarkdownImage({
     setScale(Math.min(MAX_SCALE, Math.max(MIN_SCALE, nextScale)));
   };
 
+  const openImage = (index: number) => {
+    setScale(1);
+    setActiveImageIndex(index);
+  };
+
+  const moveToImage = useCallback((position: number) => {
+    const nextImage = images[position];
+    if (!nextImage) {
+      return;
+    }
+
+    setScale(1);
+    setActiveImageIndex(nextImage.index);
+  }, [images]);
+
+  useEffect(() => {
+    if (activeImageIndex === null) {
+      return;
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "ArrowLeft" && canGoToPrevious) {
+        event.preventDefault();
+        moveToImage(currentImagePosition - 1);
+      }
+
+      if (event.key === "ArrowRight" && canGoToNext) {
+        event.preventDefault();
+        moveToImage(currentImagePosition + 1);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [activeImageIndex, canGoToNext, canGoToPrevious, currentImagePosition, moveToImage]);
+
   return (
-    <Dialog
-      onOpenChange={(nextOpen) => {
-        setOpen(nextOpen);
-        if (!nextOpen) {
-          setScale(1);
-        }
-      }}
-      open={open}
-    >
-      <DialogTrigger asChild>
-        <button
-          aria-label={previewLabel}
-          className="markdown-image-trigger group relative my-8 block w-full cursor-zoom-in border-0 bg-transparent p-0 text-left"
-          type="button"
-        >
-          <img
-            alt={alt}
-            className={clsx("markdown-inline-image", className)}
-            loading={loading ?? "lazy"}
-            src={src}
-            title={title}
-            {...props}
-          />
-          <span className="pointer-events-none absolute right-5 top-5 rounded-full bg-black/45 px-3 py-1 text-[11px] font-medium tracking-[0.18em] text-white opacity-0 transition duration-200 group-hover:opacity-100 group-focus-visible:opacity-100">
-            VIEW
-          </span>
-        </button>
-      </DialogTrigger>
-      <DialogContent
-        aria-describedby={undefined}
-        className="max-w-[min(96vw,1280px)] border-none bg-transparent p-0 shadow-none ring-0"
-        showCloseButton={false}
+    <markdownImageGalleryContext.Provider value={{ images, openImage }}>
+      {children}
+      <Dialog
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen) {
+            setActiveImageIndex(null);
+            setScale(1);
+          }
+        }}
+        open={activeImageIndex !== null}
       >
-        <div className="flex max-h-[90vh] flex-col gap-4">
-          <div className="flex items-center justify-between gap-3 rounded-full bg-black/45 px-3 py-2 text-white shadow-lg shadow-black/20 backdrop-blur-md">
-            <div className="flex items-center gap-2">
-              <Button
-                aria-label="Zoom out"
-                className="border-white/20 bg-white/10 text-white hover:bg-white/20 hover:text-white"
-                disabled={scale <= MIN_SCALE}
-                onClick={() => updateScale(scale - SCALE_STEP)}
-                size="icon-sm"
-                type="button"
-                variant="outline"
-              >
-                <MinusIcon />
-              </Button>
-              <Button
-                aria-label="Reset zoom"
-                className="min-w-16 border-white/20 bg-white/10 px-3 text-white hover:bg-white/20 hover:text-white"
-                onClick={() => setScale(1)}
-                size="sm"
-                type="button"
-                variant="outline"
-              >
-                {Math.round(scale * 100)}%
-              </Button>
-              <Button
-                aria-label="Zoom in"
-                className="border-white/20 bg-white/10 text-white hover:bg-white/20 hover:text-white"
-                disabled={scale >= MAX_SCALE}
-                onClick={() => updateScale(scale + SCALE_STEP)}
-                size="icon-sm"
-                type="button"
-                variant="outline"
-              >
-                <PlusIcon />
-              </Button>
+        <DialogContent
+          aria-describedby={undefined}
+          className="max-w-[min(96vw,1280px)] border-none bg-transparent p-0 shadow-none ring-0"
+          showCloseButton={false}
+        >
+          {currentImage ? (
+            <div className="flex max-h-[90vh] flex-col gap-4">
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-full bg-black/45 px-3 py-2 text-white shadow-lg shadow-black/20 backdrop-blur-md">
+                <div className="flex items-center gap-2">
+                  <Button
+                    aria-label="Previous image"
+                    className="border-white/20 bg-white/10 text-white hover:bg-white/20 hover:text-white"
+                    disabled={!canGoToPrevious}
+                    onClick={() => moveToImage(currentImagePosition - 1)}
+                    size="icon-sm"
+                    type="button"
+                    variant="outline"
+                  >
+                    <ChevronLeftIcon />
+                  </Button>
+                  <span className="min-w-20 text-center text-xs font-medium tracking-[0.18em] text-white/85 uppercase">
+                    {currentImagePosition + 1} / {images.length}
+                  </span>
+                  <Button
+                    aria-label="Next image"
+                    className="border-white/20 bg-white/10 text-white hover:bg-white/20 hover:text-white"
+                    disabled={!canGoToNext}
+                    onClick={() => moveToImage(currentImagePosition + 1)}
+                    size="icon-sm"
+                    type="button"
+                    variant="outline"
+                  >
+                    <ChevronRightIcon />
+                  </Button>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    aria-label="Zoom out"
+                    className="border-white/20 bg-white/10 text-white hover:bg-white/20 hover:text-white"
+                    disabled={scale <= MIN_SCALE}
+                    onClick={() => updateScale(scale - SCALE_STEP)}
+                    size="icon-sm"
+                    type="button"
+                    variant="outline"
+                  >
+                    <MinusIcon />
+                  </Button>
+                  <Button
+                    aria-label="Reset zoom"
+                    className="min-w-16 border-white/20 bg-white/10 px-3 text-white hover:bg-white/20 hover:text-white"
+                    onClick={() => setScale(1)}
+                    size="sm"
+                    type="button"
+                    variant="outline"
+                  >
+                    {Math.round(scale * 100)}%
+                  </Button>
+                  <Button
+                    aria-label="Zoom in"
+                    className="border-white/20 bg-white/10 text-white hover:bg-white/20 hover:text-white"
+                    disabled={scale >= MAX_SCALE}
+                    onClick={() => updateScale(scale + SCALE_STEP)}
+                    size="icon-sm"
+                    type="button"
+                    variant="outline"
+                  >
+                    <PlusIcon />
+                  </Button>
+                  <DialogClose asChild>
+                    <Button
+                      aria-label="Close preview"
+                      className="border-white/20 bg-white/10 text-white hover:bg-white/20 hover:text-white"
+                      size="icon-sm"
+                      type="button"
+                      variant="outline"
+                    >
+                      <XIcon />
+                    </Button>
+                  </DialogClose>
+                </div>
+              </div>
+              <div className="rounded-[2rem]">
+                <div className="flex min-h-[50vh] min-w-full items-center justify-center p-2">
+                  <img
+                    alt={currentImage.alt}
+                    className="h-auto max-w-none object-contain"
+                    loading="eager"
+                    src={currentImage.src}
+                    style={{ width: `${scale * 100}%`, minWidth: `${scale * 100}%` }}
+                  />
+                </div>
+              </div>
+              {(currentImage.alt || currentImage.title) ? (
+                <p className="max-w-3xl text-center text-sm text-white/90">
+                  {currentImage.title || currentImage.alt}
+                </p>
+              ) : null}
             </div>
-            <DialogClose asChild>
-              <Button
-                aria-label="Close preview"
-                className="border-white/20 bg-white/10 text-white hover:bg-white/20 hover:text-white"
-                size="icon-sm"
-                type="button"
-                variant="outline"
-              >
-                <XIcon />
-              </Button>
-            </DialogClose>
-          </div>
-          <div className="rounded-[2rem]">
-            <div className="flex min-h-[50vh] min-w-full items-center justify-center p-2">
-              <img
-                alt={alt}
-                className="h-auto object-contain"
-                loading="eager"
-                src={src}
-                style={{ width: `${scale * 100}%`, minWidth: `${scale * 100}%` }}
-              />
-            </div>
-          </div>
-          {(alt || title) ? (
-            <p className="max-w-3xl text-center text-sm text-white/90">
-              {title || alt}
-            </p>
           ) : null}
-        </div>
-      </DialogContent>
-    </Dialog>
+        </DialogContent>
+      </Dialog>
+    </markdownImageGalleryContext.Provider>
+  );
+}
+
+export function MarkdownImage({
+  alt,
+  className,
+  imageIndex,
+  loading,
+  src,
+  title,
+  ...props
+}: MarkdownImageProps & { imageIndex: number }) {
+  const gallery = useMarkdownImageGallery();
+
+  if (!src) {
+    return null;
+  }
+
+  const previewLabel = alt?.trim() || title?.trim() || "Preview image";
+
+  return (
+    <button
+      aria-label={previewLabel}
+      className="markdown-image-trigger group relative my-8 block w-full cursor-zoom-in border-0 bg-transparent p-0 text-left"
+      onClick={() => gallery?.openImage(imageIndex)}
+      type="button"
+    >
+      <img
+        alt={alt}
+        className={clsx("markdown-inline-image", className)}
+        loading={loading ?? "lazy"}
+        src={src}
+        title={title}
+        {...props}
+      />
+      <span className="pointer-events-none absolute right-5 top-5 rounded-full bg-black/45 px-3 py-1 text-[11px] font-medium tracking-[0.18em] text-white opacity-0 transition duration-200 group-hover:opacity-100 group-focus-visible:opacity-100">
+        VIEW
+      </span>
+    </button>
   );
 }
 
@@ -611,6 +718,8 @@ function MarkdownPlantUML({ code }: { code?: string }) {
 import {
   AlertCircle,
   AlertTriangle,
+  ChevronLeftIcon,
+  ChevronRightIcon,
   Info,
   Lightbulb,
   MinusIcon,
@@ -698,7 +807,6 @@ function MarkdownInfographic({ syntax }: { syntax?: string }) {
 }
 
 export const markdownComponentRenderers = {
-  img: MarkdownImage,
   "mdx-badge": MarkdownBadge,
   "mdx-component-block": MarkdownComponentBlock,
   "mdx-component-inline": MarkdownComponentInline,

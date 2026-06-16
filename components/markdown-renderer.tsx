@@ -16,7 +16,11 @@ import rehypeKatex from "rehype-katex";
 import rehypeHighlight from "rehype-highlight";
 import rehypeSlug from "rehype-slug";
 import rehypeAutolinkHeadings from "rehype-autolink-headings";
-import { markdownComponentRenderers } from "@/components/markdown-custom-components";
+import {
+  MarkdownImage,
+  MarkdownImageGalleryProvider,
+  markdownComponentRenderers,
+} from "@/components/markdown-custom-components";
 import { CodeBlock } from "@/components/markdown-custom-components/code-block";
 import { rehypeMdxJsxElements } from "@/lib/markdown-mdx-elements";
 import { cn } from "@/lib/utils";
@@ -448,6 +452,31 @@ const markdownComponents = {
   ...markdownComponentRenderers,
   pre: CodeBlock,
 } as Record<string, ElementType>;
+
+function extractMarkdownImages(markdown: string) {
+  const imagePattern = /!\[([^\]]*)\]\((\S+?)(?:\s+["']([^"']*)["'])?\)/g;
+  const images: Array<{ alt?: string; index: number; src: string; title?: string }> = [];
+  let match: RegExpExecArray | null;
+  let index = 0;
+
+  while ((match = imagePattern.exec(markdown)) !== null) {
+    const [, alt = "", src = "", title = ""] = match;
+    if (!src) {
+      continue;
+    }
+
+    images.push({
+      alt: alt || undefined,
+      index,
+      src,
+      title: title || undefined,
+    });
+    index += 1;
+  }
+
+  return images;
+}
+
 export function MarkdownRenderer({
   markdown,
   linkToSectionLabel = "Link to section",
@@ -490,23 +519,45 @@ export function MarkdownRenderer({
     remarkMath,
     remarkSuperSub,
   ];
+  const images = extractMarkdownImages(markdown);
+  const imageIndexesBySrc = new Map<string, number[]>();
+  for (const image of images) {
+    const matchedIndexes = imageIndexesBySrc.get(image.src) ?? [];
+    matchedIndexes.push(image.index);
+    imageIndexesBySrc.set(image.src, matchedIndexes);
+  }
+  const imageMatchCounts = new Map<string, number>();
+  const components = {
+    ...markdownComponents,
+    img: (props: React.ComponentProps<"img">) => {
+      const src = typeof props.src === "string" ? props.src : "";
+      const seenCount = imageMatchCounts.get(src) ?? 0;
+      imageMatchCounts.set(src, seenCount + 1);
+      const matchedIndexes = imageIndexesBySrc.get(src) ?? [];
+      const currentImageIndex = matchedIndexes[seenCount] ?? seenCount;
+
+      return <MarkdownImage {...props} imageIndex={currentImageIndex} />;
+    },
+  } as Components;
 
   return (
-    <div
-      className={cn(
-        "markdown-body prose prose-slate dark:prose-invert max-w-none",
-        className,
-      )}
-    >
-      <ReactMarkdown
-        components={markdownComponents as Components}
-        rehypePlugins={rehypePlugins as ReactMarkdownOptions["rehypePlugins"]}
-        remarkPlugins={remarkPlugins as ReactMarkdownOptions["remarkPlugins"]}
-        remarkRehypeOptions={remarkRehypeOptions}
-        skipHtml
+    <MarkdownImageGalleryProvider images={images}>
+      <div
+        className={cn(
+          "markdown-body prose prose-slate dark:prose-invert max-w-none",
+          className,
+        )}
       >
-        {markdown}
-      </ReactMarkdown>
-    </div>
+        <ReactMarkdown
+          components={components}
+          rehypePlugins={rehypePlugins as ReactMarkdownOptions["rehypePlugins"]}
+          remarkPlugins={remarkPlugins as ReactMarkdownOptions["remarkPlugins"]}
+          remarkRehypeOptions={remarkRehypeOptions}
+          skipHtml
+        >
+          {markdown}
+        </ReactMarkdown>
+      </div>
+    </MarkdownImageGalleryProvider>
   );
 }
