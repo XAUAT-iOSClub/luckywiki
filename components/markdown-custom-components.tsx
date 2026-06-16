@@ -10,9 +10,17 @@ import {
   Suspense,
   useId,
   type HTMLAttributes,
+  type ImgHTMLAttributes,
   type ReactNode,
 } from "react";
 import { clsx } from "clsx";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { useT } from "@/lib/i18n/provider";
 import mermaid from "mermaid";
 
@@ -81,6 +89,11 @@ type MarkdownComponentFallbackProps = HTMLAttributes<HTMLElement> & {
   spec?: string;
   title?: string;
 };
+
+type MarkdownImageProps = Omit<
+  ImgHTMLAttributes<HTMLImageElement>,
+  "children"
+>;
 
 const tabsContext = createContext<MarkdownTabsContextValue | null>(null);
 
@@ -207,6 +220,134 @@ function MarkdownTip({
     >
       {children || text}
     </span>
+  );
+}
+
+function MarkdownImage({
+  alt,
+  className,
+  loading,
+  src,
+  title,
+  ...props
+}: MarkdownImageProps) {
+  const [open, setOpen] = useState(false);
+  const [scale, setScale] = useState(1);
+
+  if (!src) {
+    return null;
+  }
+
+  const previewLabel = alt?.trim() || title?.trim() || "Preview image";
+  const MIN_SCALE = 0.5;
+  const MAX_SCALE = 3;
+  const SCALE_STEP = 0.25;
+
+  const updateScale = (nextScale: number) => {
+    setScale(Math.min(MAX_SCALE, Math.max(MIN_SCALE, nextScale)));
+  };
+
+  return (
+    <Dialog
+      onOpenChange={(nextOpen) => {
+        setOpen(nextOpen);
+        if (!nextOpen) {
+          setScale(1);
+        }
+      }}
+      open={open}
+    >
+      <DialogTrigger asChild>
+        <button
+          aria-label={previewLabel}
+          className="markdown-image-trigger group relative my-8 block w-full cursor-zoom-in border-0 bg-transparent p-0 text-left"
+          type="button"
+        >
+          <img
+            alt={alt}
+            className={clsx("markdown-inline-image", className)}
+            loading={loading ?? "lazy"}
+            src={src}
+            title={title}
+            {...props}
+          />
+          <span className="pointer-events-none absolute right-5 top-5 rounded-full bg-black/45 px-3 py-1 text-[11px] font-medium tracking-[0.18em] text-white opacity-0 transition duration-200 group-hover:opacity-100 group-focus-visible:opacity-100">
+            VIEW
+          </span>
+        </button>
+      </DialogTrigger>
+      <DialogContent
+        aria-describedby={undefined}
+        className="max-w-[min(96vw,1280px)] border-none bg-transparent p-0 shadow-none ring-0"
+        showCloseButton={false}
+      >
+        <div className="flex max-h-[90vh] flex-col gap-4">
+          <div className="flex items-center justify-between gap-3 rounded-full bg-black/45 px-3 py-2 text-white shadow-lg shadow-black/20 backdrop-blur-md">
+            <div className="flex items-center gap-2">
+              <Button
+                aria-label="Zoom out"
+                className="border-white/20 bg-white/10 text-white hover:bg-white/20 hover:text-white"
+                disabled={scale <= MIN_SCALE}
+                onClick={() => updateScale(scale - SCALE_STEP)}
+                size="icon-sm"
+                type="button"
+                variant="outline"
+              >
+                <MinusIcon />
+              </Button>
+              <Button
+                aria-label="Reset zoom"
+                className="min-w-16 border-white/20 bg-white/10 px-3 text-white hover:bg-white/20 hover:text-white"
+                onClick={() => setScale(1)}
+                size="sm"
+                type="button"
+                variant="outline"
+              >
+                {Math.round(scale * 100)}%
+              </Button>
+              <Button
+                aria-label="Zoom in"
+                className="border-white/20 bg-white/10 text-white hover:bg-white/20 hover:text-white"
+                disabled={scale >= MAX_SCALE}
+                onClick={() => updateScale(scale + SCALE_STEP)}
+                size="icon-sm"
+                type="button"
+                variant="outline"
+              >
+                <PlusIcon />
+              </Button>
+            </div>
+            <DialogClose asChild>
+              <Button
+                aria-label="Close preview"
+                className="border-white/20 bg-white/10 text-white hover:bg-white/20 hover:text-white"
+                size="icon-sm"
+                type="button"
+                variant="outline"
+              >
+                <XIcon />
+              </Button>
+            </DialogClose>
+          </div>
+          <div className="rounded-[2rem]">
+            <div className="flex min-h-[50vh] min-w-full items-center justify-center p-2">
+              <img
+                alt={alt}
+                className="h-auto object-contain"
+                loading="eager"
+                src={src}
+                style={{ width: `${scale * 100}%`, minWidth: `${scale * 100}%` }}
+              />
+            </div>
+          </div>
+          {(alt || title) ? (
+            <p className="max-w-3xl text-center text-sm text-white/90">
+              {title || alt}
+            </p>
+          ) : null}
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -468,11 +609,14 @@ function MarkdownPlantUML({ code }: { code?: string }) {
 }
 
 import {
+  AlertCircle,
+  AlertTriangle,
   Info,
   Lightbulb,
-  AlertTriangle,
-  AlertCircle,
+  MinusIcon,
+  PlusIcon,
   ShieldAlert,
+  XIcon,
 } from "lucide-react";
 
 type MarkdownAlertProps = HTMLAttributes<HTMLElement> & {
@@ -554,6 +698,7 @@ function MarkdownInfographic({ syntax }: { syntax?: string }) {
 }
 
 export const markdownComponentRenderers = {
+  img: MarkdownImage,
   "mdx-badge": MarkdownBadge,
   "mdx-component-block": MarkdownComponentBlock,
   "mdx-component-inline": MarkdownComponentInline,

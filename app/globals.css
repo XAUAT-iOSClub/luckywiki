@@ -373,8 +373,12 @@
     @apply my-12 border-border/60;
   }
 
-  .markdown-body img {
-    @apply rounded-[2.5rem] shadow-2xl shadow-slate-200/50 dark:shadow-black/50 mx-auto border border-border/40 transition-transform duration-500 hover:scale-[1.01];
+  .markdown-body .markdown-image-trigger {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-4 focus-visible:ring-offset-background rounded-[2.75rem];
+  }
+
+  .markdown-body .markdown-inline-image {
+    @apply rounded-[2.5rem] shadow-2xl shadow-slate-200/50 dark:shadow-black/50 mx-auto border border-border/40 transition-all duration-300 group-hover:scale-[1.01] group-hover:shadow-black/55;
   }
 
   .markdown-body ruby {
