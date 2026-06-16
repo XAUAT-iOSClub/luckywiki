@@ -14,7 +14,6 @@ import {
   Hash,
   Link2,
   Type,
-  User,
   Bold,
   Italic,
   Heading1,
@@ -94,7 +93,7 @@ export function ArticleEditor({
   const [path, setPath] = useState(initialValues?.path ?? "");
   const [description, setDescription] = useState(initialValues?.description ?? "");
   const [tags, setTags] = useState(initialValues?.tags.join(", ") ?? "");
-  const [editorName, setEditorName] = useState(initialValues?.editor ?? "");
+  const [editorName, setEditorName] = useState(initialValues?.editor ?? "markdown");
   const [markdown, setMarkdown] = useState(initialValues?.markdown ?? "");
   const [status, setStatus] = useState<ArticleStatus>(
     initialValues?.status ?? ArticleStatus.DRAFT,
@@ -639,16 +638,17 @@ export function ArticleEditor({
                     <Label htmlFor="drawer-editor" className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/80 ml-1">
                       {t.common.editor}
                     </Label>
-                    <div className="relative group">
-                      <User className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-muted-foreground/40 group-focus-within:text-primary transition-colors" />
-                      <Input
-                        id="drawer-editor"
-                        onChange={(event) => setEditorName(event.target.value)}
-                        placeholder={t.admin.articleEditor.editorPlaceholder}
-                        value={editorName}
-                        className="h-12 pl-11 rounded-2xl bg-background/50 border-border/40 shadow-sm focus-visible:ring-primary/20 transition-all"
-                      />
-                    </div>
+                    <Select
+                      onValueChange={setEditorName}
+                      value={editorName}
+                    >
+                      <SelectTrigger id="drawer-editor" className="h-12 rounded-2xl bg-background/50 border-border/40 shadow-sm focus:ring-primary/20 transition-all">
+                        <SelectValue placeholder={t.admin.articleEditor.editorPlaceholder} />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-2xl border-border/40 backdrop-blur-xl bg-background/90">
+                        <SelectItem value="markdown" className="rounded-xl">{t.common.markdown}</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
 
                   <div className="space-y-3">
