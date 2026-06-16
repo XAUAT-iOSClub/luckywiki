@@ -1,11 +1,12 @@
 "use client";
 
 import {
-  useCallback,
   createContext,
-  useContext,
+  useCallback,
+  type ComponentProps,
   useEffect,
   useId,
+  useContext,
   useRef,
   useState,
   lazy,
@@ -21,6 +22,12 @@ import {
   DialogClose,
   DialogContent,
 } from "@/components/ui/dialog";
+import {
+  Tabs as ShadcnTabs,
+  TabsContent as ShadcnTabsContent,
+  TabsList as ShadcnTabsList,
+  TabsTrigger as ShadcnTabsTrigger,
+} from "@/components/ui/tabs";
 import { useT } from "@/lib/i18n/provider";
 import mermaid from "mermaid";
 
@@ -63,20 +70,10 @@ type MarkdownTipProps = HTMLAttributes<HTMLElement> & {
   value?: string;
 };
 
-type MarkdownTabsProps = HTMLAttributes<HTMLElement> & {
-  children?: ReactNode;
-  defaultValue?: string;
-};
-
-type MarkdownTabsContextValue = {
-  activeValue: string;
-  setActiveValue: (value: string) => void;
-};
-
-type MarkdownTabsItemProps = HTMLAttributes<HTMLElement> & {
-  children?: ReactNode;
-  value?: string;
-};
+type MarkdownTabsProps = ComponentProps<typeof ShadcnTabs>;
+type MarkdownTabsListProps = ComponentProps<typeof ShadcnTabsList>;
+type MarkdownTabsTriggerProps = ComponentProps<typeof ShadcnTabsTrigger>;
+type MarkdownTabsContentProps = ComponentProps<typeof ShadcnTabsContent>;
 
 type MarkdownComponentFallbackProps = HTMLAttributes<HTMLElement> & {
   children?: ReactNode;
@@ -107,13 +104,8 @@ type MarkdownImageGalleryContextValue = {
   openImage: (index: number) => void;
 };
 
-const tabsContext = createContext<MarkdownTabsContextValue | null>(null);
 const markdownImageGalleryContext =
   createContext<MarkdownImageGalleryContextValue | null>(null);
-
-function useTabsContext() {
-  return useContext(tabsContext);
-}
 
 function useMarkdownImageGallery() {
   return useContext(markdownImageGalleryContext);
@@ -461,23 +453,12 @@ export function MarkdownImage({
 function MarkdownTabs({
   children,
   className,
-  defaultValue,
   ...props
 }: MarkdownTabsProps) {
-  const [activeValue, setActiveValue] = useState(defaultValue ?? "");
-
   return (
-    <tabsContext.Provider value={{ activeValue, setActiveValue }}>
-      <div
-        className={clsx(
-          "mt-6 rounded-3xl border border-border/70 bg-card/80 p-4 shadow-sm backdrop-blur-sm",
-          className,
-        )}
-        {...props}
-      >
-        {children}
-      </div>
-    </tabsContext.Provider>
+    <ShadcnTabs className={clsx("mt-6", className)} {...props}>
+      {children}
+    </ShadcnTabs>
   );
 }
 
@@ -485,71 +466,35 @@ function MarkdownTabsList({
   children,
   className,
   ...props
-}: HTMLAttributes<HTMLElement>) {
+}: MarkdownTabsListProps) {
   return (
-    <div
-      className={clsx(
-        "flex flex-wrap gap-2 rounded-2xl bg-muted/80 p-2",
-        className,
-      )}
-      role="tablist"
-      {...props}
-    >
+    <ShadcnTabsList className={className} {...props}>
       {children}
-    </div>
+    </ShadcnTabsList>
   );
 }
 
 function MarkdownTabsTrigger({
   children,
   className,
-  value,
   ...props
-}: MarkdownTabsItemProps) {
-  const context = useTabsContext();
-  const isActive = context ? context.activeValue === value : false;
-
+}: MarkdownTabsTriggerProps) {
   return (
-    <button
-      aria-selected={isActive}
-      className={clsx(
-        "rounded-2xl px-3 py-2 text-sm font-medium transition",
-        isActive
-          ? "bg-card text-foreground shadow-sm ring-1 ring-border/50"
-          : "text-muted-foreground hover:text-foreground",
-        className,
-      )}
-      onClick={() => {
-        if (context && value) {
-          context.setActiveValue(value);
-        }
-      }}
-      role="tab"
-      type="button"
-      {...props}
-    >
+    <ShadcnTabsTrigger className={className} {...props}>
       {children}
-    </button>
+    </ShadcnTabsTrigger>
   );
 }
 
 function MarkdownTabsContent({
   children,
   className,
-  value,
   ...props
-}: MarkdownTabsItemProps) {
-  const context = useTabsContext();
-  const isVisible = !context || !value || context.activeValue === value;
-
-  if (!isVisible) {
-    return null;
-  }
-
+}: MarkdownTabsContentProps) {
   return (
-    <div className={clsx("mt-4", className)} role="tabpanel" {...props}>
+    <ShadcnTabsContent className={className} {...props}>
       {children}
-    </div>
+    </ShadcnTabsContent>
   );
 }
 

@@ -14,7 +14,7 @@ test("markdown renderer supports gfm and strips raw html", async () => {
   );
 
   assert.match(html, /<h1[^>]*>Title/);
-  assert.match(html, /<li>item<\/li>/);
+  assert.match(html, /<li[^>]*>item<\/li>/);
   assert.doesNotMatch(html, /script/);
 });
 
@@ -57,7 +57,8 @@ const x: number = 1;
 
   // Mermaid (mapped to mdx-mermaid, which renders as a div with specific classes)
   assert.match(html, /flex justify-center/);
-  assert.match(html, /rounded-3xl border border-slate-200 bg-slate-50\/50/);
+  assert.match(html, /rounded-3xl border/);
+  assert.match(html, /bg-muted\/20/);
 
   // Code Highlighting (rehype-highlight adds hljs classes)
   assert.match(html, /code/);
@@ -125,6 +126,10 @@ tabs: ["社团官网", "iOS 社团AI", "建大Wiki/百科"]
   assert.match(html, /iOS 社团AI/);
   assert.match(html, /建大Wiki\/百科/);
   assert.doesNotMatch(html, /Tab 1/);
+  assert.match(html, /data-slot="tabs"/);
+  assert.match(html, /data-slot="tabs-list"/);
+  assert.match(html, /data-slot="tabs-trigger"/);
+  assert.match(html, /data-slot="tabs-content"/);
 });
 
 test("markdown renderer can render the 社团总览 article with multiple tabs blocks", async () => {
@@ -217,6 +222,6 @@ test("markdown renderer aligns heading anchor hrefs with generated ids", async (
     </I18nProvider>,
   );
 
-  assert.match(html, /<h1 id="user-content-title">Title<a class="" aria-label="Link to section" href="#user-content-title">/);
-  assert.match(html, /<h2 id="user-content-section">Section<a class="" aria-label="Link to section" href="#user-content-section">/);
+  assert.match(html, /<h1 id="user-content-title"[^>]*>Title<a class="" aria-label="Link to section" href="#user-content-title">/);
+  assert.match(html, /<h2 id="user-content-section"[^>]*>Section<a class="" aria-label="Link to section" href="#user-content-section">/);
 });

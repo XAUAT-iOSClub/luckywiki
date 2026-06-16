@@ -63,7 +63,7 @@ title: Demo
     );
 
     assert.match(html, /role="tablist"/);
-    assert.doesNotMatch(html, /center/);
+    assert.doesNotMatch(html, /<center>/);
   } finally {
     await rm(tempDir, { recursive: true, force: true });
   }
