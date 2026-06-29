@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 import { ArticleStatus } from "@/generated/prisma/enums";
 import { MarkdownRenderer } from "@/components/markdown-renderer";
+import { HtmlPreview } from "@/components/html-preview";
 import { PathPicker } from "@/components/path-picker";
 import { SubmitButton } from "@/components/submit-button";
 import { Button } from "@/components/ui/button";
@@ -101,12 +102,15 @@ export function ArticleEditor({
   const [isPathPickerOpen, setIsPathPickerOpen] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [mode, setMode] = useState<"edit" | "preview" | "split">("split");
+  const isHtmlEditor = editorName === "html";
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const monacoEditorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
   const previewContainerRef = useRef<HTMLDivElement | null>(null);
   const isSyncingRef = useRef(false);
   const modeRef = useRef(mode);
-  modeRef.current = mode;
+  useEffect(() => {
+    modeRef.current = mode;
+  }, [mode]);
 
   // Sync scroll: editor → preview
   const syncEditorToPreview = useCallback(() => {
@@ -303,7 +307,62 @@ export function ArticleEditor({
       },
     ]);
 
-    // Position cursor after inserted text
+    const insertLines = insertedSnippet.split("\n");
+    const lastLineLength = insertLines[insertLines.length - 1].length;
+    const endLineNumber = selection.startLineNumber + insertLines.length - 1;
+    const endColumn = insertLines.length === 1 ? selection.startColumn + lastLineLength : lastLineLength + 1;
+
+    monacoEditor.setSelection({
+      startLineNumber: endLineNumber,
+      startColumn: endColumn,
+      endLineNumber: endLineNumber,
+      endColumn: endColumn,
+    });
+    monacoEditor.focus();
+  }, []);
+
+  const insertCodeAtCursor = useCallback((snippet: string) => {
+    const monacoEditor = monacoEditorRef.current;
+    if (!monacoEditor) {
+      setMarkdown((prev) => prev + snippet);
+      return;
+    }
+
+    const selection = monacoEditor.getSelection();
+    if (!selection) return;
+
+    const model = monacoEditor.getModel();
+    if (!model) return;
+
+    const before = model.getValueInRange({
+      startLineNumber: 1,
+      startColumn: 1,
+      endLineNumber: selection.startLineNumber,
+      endColumn: selection.startColumn,
+    });
+    const after = model.getValueInRange({
+      startLineNumber: selection.endLineNumber,
+      startColumn: selection.endColumn,
+      endLineNumber: model.getLineCount(),
+      endColumn: model.getLineMaxColumn(model.getLineCount()),
+    });
+
+    const needsLeadingNewline = before.length > 0 && !before.endsWith("\n");
+    const needsTrailingNewline = after.length > 0 && !after.startsWith("\n");
+    const insertedSnippet = `${needsLeadingNewline ? "\n" : ""}${snippet}${needsTrailingNewline ? "\n" : ""}`;
+
+    monacoEditor.executeEdits("insert", [
+      {
+        range: {
+          startLineNumber: selection.startLineNumber,
+          startColumn: selection.startColumn,
+          endLineNumber: selection.endLineNumber,
+          endColumn: selection.endColumn,
+        },
+        text: insertedSnippet,
+      },
+    ]);
+
     const insertLines = insertedSnippet.split("\n");
     const lastLineLength = insertLines[insertLines.length - 1].length;
     const endLineNumber = selection.startLineNumber + insertLines.length - 1;
@@ -345,7 +404,15 @@ export function ArticleEditor({
         throw new Error(message);
       }
 
-      insertMarkdownAtCursor(payload.markdown);
+      if (editorName === "html") {
+        const urlMatch = payload.markdown.match(/\((https?:\/\/[^\s)]+)\)/);
+        const altMatch = payload.markdown.match(/!\[([^\]]*)\]/);
+        const imgUrl = urlMatch?.[1] ?? payload.markdown;
+        const imgAlt = altMatch?.[1] ?? file.name.replace(/\.[^.]+$/u, "");
+        insertMarkdownAtCursor(`<img src="${imgUrl}" alt="${imgAlt}" />`);
+      } else {
+        insertMarkdownAtCursor(payload.markdown);
+      }
     } catch (error) {
       console.error(
         error instanceof Error ? error.message : t.feedback.somethingWentWrong,
@@ -404,7 +471,105 @@ export function ArticleEditor({
         <div className="flex flex-wrap items-center justify-between gap-4 p-3 border-b border-border/20 bg-white/60 dark:bg-black/60 backdrop-blur-xl shrink-0 sticky top-0 z-40">
           {/* Left: Tools */}
           <div className="flex items-center gap-2">
-            <Menubar className="h-9 rounded-full px-2 border-border/50 bg-background/50 backdrop-blur-sm">
+            {isHtmlEditor ? (
+              <div className="flex items-center gap-1">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => insertCodeAtCursor(`<h1 class="text-3xl font-bold"></h1>`)}
+                  className="h-9 px-3 rounded-full text-[10px] font-bold uppercase tracking-tight hover:bg-primary/5 hover:text-primary transition-all active:scale-95"
+                >
+                  H1
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => insertCodeAtCursor(`<h2 class="text-2xl font-semibold"></h2>`)}
+                  className="h-9 px-3 rounded-full text-[10px] font-bold uppercase tracking-tight hover:bg-primary/5 hover:text-primary transition-all active:scale-95"
+                >
+                  H2
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => insertCodeAtCursor(`<h3 class="text-xl font-medium"></h3>`)}
+                  className="h-9 px-3 rounded-full text-[10px] font-bold uppercase tracking-tight hover:bg-primary/5 hover:text-primary transition-all active:scale-95"
+                >
+                  H3
+                </Button>
+                <div className="h-6 w-px bg-border/20 mx-1" />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => insertCodeAtCursor(`<p class="text-base leading-relaxed"></p>`)}
+                  className="h-9 px-3 rounded-full text-[10px] font-bold uppercase tracking-tight hover:bg-primary/5 hover:text-primary transition-all active:scale-95"
+                >
+                  P
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => insertCodeAtCursor(`<p class="text-sm text-zinc-500 dark:text-zinc-400"></p>`)}
+                  className="h-9 px-3 rounded-full text-[10px] font-bold uppercase tracking-tight hover:bg-primary/5 hover:text-primary transition-all active:scale-95"
+                >
+                  Text
+                </Button>
+                <div className="h-6 w-px bg-border/20 mx-1" />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => insertCodeAtCursor(`<div class="flex items-center gap-4">
+  <div class="flex-1"></div>
+  <div class="flex-1"></div>
+</div>`)}
+                  className="h-9 px-3 rounded-full text-[10px] font-bold uppercase tracking-tight hover:bg-primary/5 hover:text-primary transition-all active:scale-95"
+                >
+                  Flex
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => insertCodeAtCursor(`<div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+  <div></div>
+  <div></div>
+  <div></div>
+</div>`)}
+                  className="h-9 px-3 rounded-full text-[10px] font-bold uppercase tracking-tight hover:bg-primary/5 hover:text-primary transition-all active:scale-95"
+                >
+                  Grid
+                </Button>
+                <div className="h-6 w-px bg-border/20 mx-1" />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => insertCodeAtCursor(`<div class="rounded-xl bg-white dark:bg-zinc-800 shadow-sm border border-zinc-200 dark:border-zinc-700 p-6">
+</div>`)}
+                  className="h-9 px-3 rounded-full text-[10px] font-bold uppercase tracking-tight hover:bg-primary/5 hover:text-primary transition-all active:scale-95"
+                >
+                  Card
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => insertCodeAtCursor(`<button class="px-4 py-2 rounded-full bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors">
+  Button
+</button>`)}
+                  className="h-9 px-3 rounded-full text-[10px] font-bold uppercase tracking-tight hover:bg-primary/5 hover:text-primary transition-all active:scale-95"
+                >
+                  Btn
+                </Button>
+              </div>
+            ) : (
+              <Menubar className="h-9 rounded-full px-2 border-border/50 bg-background/50 backdrop-blur-sm">
               <MenubarMenu>
                 <MenubarTrigger className="h-7 px-3 text-[10px] font-bold uppercase tracking-tight rounded-full">
                   <Heading1 className="size-3.5 mr-1.5" /> {t.admin.articleEditor.menubar.headings}
@@ -474,6 +639,7 @@ export function ArticleEditor({
                 </MenubarContent>
               </MenubarMenu>
             </Menubar>
+            )}
 
             <div className="h-6 w-px bg-border/20 mx-1 hidden sm:block" />
 
@@ -647,6 +813,7 @@ export function ArticleEditor({
                       </SelectTrigger>
                       <SelectContent className="rounded-2xl border-border/40 backdrop-blur-xl bg-background/90">
                         <SelectItem value="markdown" className="rounded-xl">{t.common.markdown}</SelectItem>
+                        <SelectItem value="html" className="rounded-xl">{t.common.html}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -684,25 +851,25 @@ export function ArticleEditor({
             <div className="flex-1 flex flex-col min-h-0">
                 <div className="flex-1 min-h-0">
                   <Editor
-                    defaultLanguage="markdown"
+                    defaultLanguage={isHtmlEditor ? "html" : "markdown"}
                     value={markdown}
                     onChange={(value) => setMarkdown(value ?? "")}
                     onMount={(editor, _monaco) => {
                       monacoEditorRef.current = editor;
 
-                      // Scroll sync: editor → preview
-                      editor.onDidScrollChange(() => {
-                        if (modeRef.current !== "split" || isSyncingRef.current) return;
-                        isSyncingRef.current = true;
-                        syncEditorToPreview();
-                        window.requestAnimationFrame(() => {
+                      if (!isHtmlEditor) {
+                        editor.onDidScrollChange(() => {
+                          if (modeRef.current !== "split" || isSyncingRef.current) return;
+                          isSyncingRef.current = true;
+                          syncEditorToPreview();
                           window.requestAnimationFrame(() => {
-                            isSyncingRef.current = false;
+                            window.requestAnimationFrame(() => {
+                              isSyncingRef.current = false;
+                            });
                           });
                         });
-                      });
+                      }
 
-                      // Paste handler for images
                       editor.getContainerDomNode()?.addEventListener("paste", (e) => {
                         handleMarkdownPaste(e as unknown as ClipboardEvent<HTMLTextAreaElement>);
                       });
@@ -736,7 +903,9 @@ export function ArticleEditor({
                 </div>
                 <div className="px-6 py-3 border-t border-border/10 flex items-center justify-between shrink-0 bg-white/5 dark:bg-black/5">
                   <p className="text-[10px] text-muted-foreground/50 italic">
-                    {t.admin.articleEditor.imageUploadHint}
+                    {isHtmlEditor
+                      ? t.admin.articleEditor.htmlImageUploadHint
+                      : t.admin.articleEditor.imageUploadHint}
                   </p>
                   <span className="text-[10px] font-mono text-muted-foreground/40 uppercase tracking-wider">
                     {markdown.length} chars
@@ -748,36 +917,43 @@ export function ArticleEditor({
             {/* Preview Side */}
             <div 
               ref={previewContainerRef}
-              onScroll={handlePreviewScroll}
+              onScroll={isHtmlEditor ? undefined : handlePreviewScroll}
               className={cn(
                 "flex flex-col min-h-0 bg-slate-50/30 dark:bg-zinc-950/20 overflow-auto relative",
                 mode === "edit" && "hidden",
                 mode === "preview" && "lg:col-span-2"
               )}
             >
-            <div className="flex-1 p-8 lg:p-16">
-              <div className="max-w-3xl mx-auto">
-                <div className="mb-12 border-b border-border/20 pb-8">
-                  <h1 className="text-4xl font-bold tracking-tight mb-4">{title || t.common.title}</h1>
-                  {description && (
-                    <p className="text-lg text-muted-foreground leading-relaxed">{description}</p>
-                  )}
-                  {tags.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mt-6">
-                      {tags.split(",").map(tag => tag.trim()).filter(Boolean).map(tag => (
-                        <span key={tag} className="px-2.5 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-wider">
-                          #{tag}
-                        </span>
-                      ))}
-                    </div>
-                  )}
+            {isHtmlEditor ? (
+              <HtmlPreview
+                html={markdown || "<p class=\"text-zinc-400\">Nothing to preview yet.</p>"}
+                className="w-full h-full border-0"
+              />
+            ) : (
+              <div className="flex-1 p-8 lg:p-16">
+                <div className="max-w-3xl mx-auto">
+                  <div className="mb-12 border-b border-border/20 pb-8">
+                    <h1 className="text-4xl font-bold tracking-tight mb-4">{title || t.common.title}</h1>
+                    {description && (
+                      <p className="text-lg text-muted-foreground leading-relaxed">{description}</p>
+                    )}
+                    {tags.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mt-6">
+                        {tags.split(",").map(tag => tag.trim()).filter(Boolean).map(tag => (
+                          <span key={tag} className="px-2.5 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-wider">
+                            #{tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <MarkdownRenderer
+                    linkToSectionLabel={t.common.linkToSection}
+                    markdown={markdown || t.admin.articleEditor.previewFallback}
+                  />
                 </div>
-                <MarkdownRenderer
-                  linkToSectionLabel={t.common.linkToSection}
-                  markdown={markdown || t.admin.articleEditor.previewFallback}
-                />
               </div>
-            </div>
+            )}
           </div>
         </div>
       </section>

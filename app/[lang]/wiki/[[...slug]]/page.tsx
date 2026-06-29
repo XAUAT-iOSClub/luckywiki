@@ -5,6 +5,7 @@ import { Calendar, Hash, MessageCircle, User } from "lucide-react";
 import { createCommentAction } from "@/app/actions/comments";
 import { CommentForm } from "@/components/comment-form";
 import { MarkdownRenderer } from "@/components/markdown-renderer";
+import { WikiHtmlRenderer } from "@/components/wiki-html-renderer";
 import { WikiToc } from "@/components/wiki-toc";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -48,7 +49,7 @@ export async function generateMetadata({
   return buildArticleMetadata(
     {
       title: article.title,
-      markdown: article.markdown,
+          markdown: article.markdown,
       path: article.path,
       tags: article.tags,
       publishedAt: article.publishedAt,
@@ -125,10 +126,14 @@ export default async function WikiArticlePage({
         <div className="grid grid-cols-1 gap-10 lg:grid-cols-[1fr_250px]">
           <div className="min-w-0">
             <article className="surface-panel md:p-12! md:shadow-xl shadow-black/5 dark:shadow-black/20 border-border/40 overflow-hidden">
-              <MarkdownRenderer
-                linkToSectionLabel={dictionary.common.linkToSection}
-                markdown={article.markdown}
-              />
+              {article.editor === "html" ? (
+                <WikiHtmlRenderer html={article.markdown} />
+              ) : (
+                <MarkdownRenderer
+                  linkToSectionLabel={dictionary.common.linkToSection}
+                  markdown={article.markdown}
+                />
+              )}
             </article>
 
             <section className="mt-16 space-y-8">
@@ -208,7 +213,7 @@ export default async function WikiArticlePage({
 
           <aside className="hidden lg:block">
             <div className="sticky top-24">
-              <WikiToc markdown={article.markdown} />
+              <WikiToc markdown={article.editor === "html" ? "" : article.markdown} />
             </div>
           </aside>
         </div>
@@ -217,7 +222,7 @@ export default async function WikiArticlePage({
       <ArticleJsonLd
         article={{
           title: article.title,
-          markdown: article.markdown,
+      markdown: article.markdown,
           path: article.path,
           publishedAt: article.publishedAt,
           updatedAt: article.updatedAt,
