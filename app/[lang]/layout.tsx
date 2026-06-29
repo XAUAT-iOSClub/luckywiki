@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
-import { Suspense } from "react";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Suspense, type CSSProperties } from "react";
 import { notFound } from "next/navigation";
 import "../globals.css";
 import { TopRouteProgress } from "@/components/top-route-progress";
@@ -21,17 +20,12 @@ import { getMetadataBase, getSiteSettings } from "@/lib/site";
 import { WebSiteJsonLd } from "@/lib/structured-data";
 import { Analytics } from "@vercel/analytics/next"
 
-const geist = Geist({
-  subsets: ["latin"],
-  variable: "--font-sans",
-  display: "swap",
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-  display: "swap",
-});
+const fontVariables = {
+  "--font-sans":
+    'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+  "--font-geist-mono":
+    '"SFMono-Regular", ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+} as CSSProperties;
 
 type LayoutParams = Promise<{ lang: string }>;
 
@@ -93,7 +87,8 @@ export default async function RootLayout({
   return (
     <html
       lang={getIntlLocale(locale)}
-      className={cn("h-full", "antialiased", geistMono.variable, "font-sans", geist.variable)}
+      className={cn("h-full", "antialiased", "font-sans")}
+      style={fontVariables}
       suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col">
