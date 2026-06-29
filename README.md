@@ -1,8 +1,14 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+This is a [Next.js](https://nextjs.org) project for LuckyWiki.
 
 ## Getting Started
 
-First, run the development server:
+Start by copying the example environment file and filling in the values you need:
+
+```bash
+cp .env.example .env
+```
+
+Then run the development server:
 
 ```bash
 npm run dev
@@ -16,9 +22,26 @@ bun dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+You can start editing the app immediately after that. Changes update automatically in development.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Site Settings
+
+Basic site metadata is configured with environment variables instead of the database.
+
+```bash
+SITE_NAME=LuckyWiki
+SITE_DESCRIPTION=A lightweight knowledge base for your team
+SITE_LOGO_URL=https://example.com/logo.png
+SITE_FAVICON_URL=https://example.com/favicon.ico
+SITE_FOOTER_COPYRIGHT=© 2026 LuckyWiki
+SITE_FOOTER_ICP=
+```
+
+Notes:
+
+- Update these in your deployment environment, then restart or redeploy the app.
+- `SITE_LOGO_URL`, `SITE_FAVICON_URL`, `SITE_FOOTER_COPYRIGHT`, and `SITE_FOOTER_ICP` are optional.
+- If `SITE_FAVICON_URL` is empty, the app falls back to `/favicon.ico`.
 
 ## Authentication
 
@@ -53,6 +76,7 @@ Notes:
 - Email/password remains available even when GitHub or OIDC are disabled.
 - GitHub and OIDC buttons only appear when the required provider environment variables are fully configured.
 - Third-party accounts are linked automatically only when the provider returns a verified email address that matches an existing user.
+- For production, `BETTER_AUTH_SECRET` should be a random secret at least 32 characters long.
 
 ## Image Hosting
 
@@ -137,6 +161,22 @@ After adding the variables, backfill embeddings for existing published articles:
 
 ```bash
 npm run agent:index
+```
+
+## Database Seed
+
+To create the initial root account and default home article:
+
+```bash
+pnpm prisma db seed
+```
+
+Seed behavior is controlled by:
+
+```bash
+ROOT_EMAIL=root@luckywiki.local
+ROOT_PASSWORD=ChangeMe123!
+ROOT_NAME=LuckyWiki Root
 ```
 
 ## Learn More
