@@ -6,14 +6,9 @@ import { buildWikiHref } from "@/lib/wiki/path";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const siteUrl = getSiteUrl();
-  const articles = await listPublishedArticleTreeData();
-
   const entries: MetadataRoute.Sitemap = [];
 
   for (const locale of locales) {
-    const localeTag = getIntlLocale(locale);
-
-    // Static pages
     entries.push({
       url: `${siteUrl}${localizeHref(locale, "/wiki/home")}`,
       changeFrequency: "monthly",
@@ -35,27 +30,46 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     });
   }
 
-  // Article pages — one entry per (locale, article)
-  for (const article of articles) {
-    for (const locale of locales) {
-      const localeTag = getIntlLocale(locale);
-      const wikiPath = buildWikiHref(article.path, locale);
+  try {
+    const articles = await listPublishedArticleTreeData();
 
-      entries.push({
-        url: `${siteUrl}${wikiPath}`,
-        lastModified: article.updatedAt,
-        changeFrequency: "weekly",
-        alternates: {
-          languages: Object.fromEntries(
-            locales.map((l) => [
-              getIntlLocale(l),
-              `${siteUrl}${buildWikiHref(article.path, l)}`,
-            ]),
-          ),
-        },
-      });
+    for (const article of articles) {
+      for (const locale of locales) {
+        const wikiPath = buildWikiHref(article.path, locale);
+
+        entries.push({
+          url: `${siteUrl}${wikiPath}`,
+          lastModified: article.updatedAt,
+          changeFrequency: "weekly",
+          alternates: {
+            languages: Object.fromEntries(
+              locales.map((l) => [
+                getIntlLocale(l),
+                `${siteUrl}${buildWikiHref(article.path, l)}`,
+              ]),
+            ),
+          },
+        });
+      }
     }
+  } catch (error) {
+    if (!isDatabaseUnavailableError(error)) {
+      throw error;
+    }
+
+    console.warn(
+      "[sitemap] Falling back to static routes because the database is unavailable during build.",
+    );
   }
 
   return entries;
+}
+
+function isDatabaseUnavailableError(error: unknown) {
+  if (!error || typeof error !== "object") {
+    return false;
+  }
+
+  const prismaError = error as { code?: string };
+  return prismaError.code === "P1001" || prismaError.code === "P1002";
 }

@@ -11,7 +11,6 @@ import {
   getIntlLocale,
   hasLocale,
   type Locale,
-  locales,
 } from "@/lib/i18n/config";
 import { I18nProvider } from "@/lib/i18n/provider";
 import { SearchProvider } from "@/components/search-provider";
@@ -29,9 +28,7 @@ const fontVariables = {
 
 type LayoutParams = Promise<{ lang: string }>;
 
-export function generateStaticParams() {
-  return locales.map((lang) => ({ lang }));
-}
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata({
   params,
@@ -63,7 +60,7 @@ export async function generateMetadata({
       follow: true,
     },
     icons: {
-      icon: "/favicon.ico",
+      icon: siteSettings.faviconUrl || "/favicon.ico",
     },
   };
 }
