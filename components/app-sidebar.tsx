@@ -98,12 +98,7 @@ export function AppSidebar({
           title: t.common.contributors,
           url: localizeHref(locale, "/admin/users"),
           icon: Users,
-        },
-        {
-          title: t.common.settings,
-          url: localizeHref(locale, "/admin/settings"),
-          icon: Settings,
-        },
+        }
       ]
     : [
         {

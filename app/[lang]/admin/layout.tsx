@@ -40,7 +40,7 @@ export default async function AdminLayout({
       <AppSidebar user={user} siteName={siteSettings.siteName} />
       <SidebarInset>
         <AdminHeader />
-        <div className="flex flex-1 flex-col min-h-0 gap-4 p-4 md:p-8 md:pt-6 admin-layout-container">
+        <div className="flex flex-1 flex-col min-h-0 gap-4 admin-layout-container">
           <div className="mx-auto w-full max-w-6xl flex-1 flex flex-col min-h-0 admin-layout-content">{children}</div>
         </div>
         <SiteFooter />

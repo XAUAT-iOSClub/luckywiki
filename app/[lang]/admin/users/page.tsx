@@ -41,7 +41,7 @@ export default async function AdminUsersPage({
   const authorCount = users.filter((user) => user.role === Role.AUTHOR).length;
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6 p-4 md:p-8 md:pt-6">
       <section className="surface-panel">
         <p className="eyebrow">{dictionary.admin.contributorsEyebrow}</p>
         <div className="mt-3 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">

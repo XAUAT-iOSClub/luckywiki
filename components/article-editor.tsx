@@ -466,7 +466,7 @@ export function ArticleEditor({
       <input type="hidden" name="markdown" value={markdown} />
 
       {/* Main Working Area: Editor & Preview */}
-      <section className="flex-1 flex flex-col min-h-0 rounded-t-[2.5rem] lg:rounded-[2.5rem] border border-border/40 bg-white/60 dark:bg-zinc-900/60 overflow-hidden backdrop-blur-2xl">
+      <section className="flex-1 flex flex-col min-h-0 bg-white/60 dark:bg-zinc-900/60 overflow-hidden">
         {/* Unified Header Toolbar */}
         <div className="flex flex-wrap items-center justify-between gap-4 p-3 border-b border-border/20 bg-white/60 dark:bg-black/60 backdrop-blur-xl shrink-0 sticky top-0 z-40">
           {/* Left: Tools */}
@@ -975,14 +975,7 @@ export function ArticleEditor({
         .admin-layout-content {
           max-width: none !important;
           height: 100% !important;
-          padding: 1.5rem !important;
           overflow: hidden !important;
-        }
-
-        @media (min-width: 1024px) {
-          .admin-layout-content {
-            padding: 2rem !important;
-          }
         }
         
         /* Ensure the main form takes full height */

@@ -53,7 +53,7 @@ export default async function AdminCommentsPage({
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-4 md:p-8 md:pt-6">
       <section className="surface-panel">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>

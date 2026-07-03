@@ -74,7 +74,7 @@ export default async function AdminLogsPage({
   }));
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6 p-4 md:p-8 md:pt-6">
       <section className="surface-panel">
         <p className="eyebrow">{dictionary.admin.logsEyebrow}</p>
         <div className="space-y-2">
