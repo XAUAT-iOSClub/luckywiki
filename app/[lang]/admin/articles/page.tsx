@@ -9,6 +9,7 @@ import { buildWikiHref } from "@/lib/wiki/path";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import {
   Pagination,
   PaginationContent,
@@ -131,7 +132,7 @@ export default async function AdminArticlesPage({
         />
       </section>
 
-      <Card className="rounded-[2rem] border-border/50 bg-background/80 shadow-sm">
+      <Card className="rounded-xl border-border/50 bg-background/80 shadow-sm">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Filter className="size-5 text-primary" />
@@ -141,21 +142,25 @@ export default async function AdminArticlesPage({
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           <form className="grid gap-4 lg:grid-cols-[minmax(0,1.3fr)_repeat(3,minmax(0,1fr))_auto]">
-            <label className="field-block">
+            <label className="flex flex-col gap-1.5 text-sm font-medium">
               <span>{dictionary.common.search}</span>
               <div className="relative">
-                <Search className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                <input
-                  className="field-input pl-10"
+                <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  className="pl-8"
                   defaultValue={query}
                   name="q"
                   placeholder={dictionary.admin.searchPlaceholder}
                 />
               </div>
             </label>
-            <label className="field-block">
+            <label className="flex flex-col gap-1.5 text-sm font-medium">
               <span>{dictionary.common.status}</span>
-              <select className="field-input" defaultValue={status ?? ""} name="status">
+              <select
+                className="h-8 w-full min-w-0 rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                defaultValue={status ?? ""}
+                name="status"
+              >
                 {statusOptions.map((option) => (
                   <option key={option.label} value={option.value}>
                     {option.label}
@@ -163,9 +168,13 @@ export default async function AdminArticlesPage({
                 ))}
               </select>
             </label>
-            <label className="field-block">
+            <label className="flex flex-col gap-1.5 text-sm font-medium">
               <span>{dictionary.common.tag}</span>
-              <select className="field-input" defaultValue={tag} name="tag">
+              <select
+                className="h-8 w-full min-w-0 rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                defaultValue={tag}
+                name="tag"
+              >
                 <option value="">{dictionary.common.allTags}</option>
                 {taxonomy.tags.slice(0, 100).map((item) => (
                   <option key={item.tag} value={item.tag}>
@@ -174,9 +183,13 @@ export default async function AdminArticlesPage({
                 ))}
               </select>
             </label>
-            <label className="field-block">
+            <label className="flex flex-col gap-1.5 text-sm font-medium">
               <span>{dictionary.common.section}</span>
-              <select className="field-input" defaultValue={section} name="section">
+              <select
+                className="h-8 w-full min-w-0 rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                defaultValue={section}
+                name="section"
+              >
                 <option value="">{dictionary.common.allSections}</option>
                 {taxonomy.sections.map((item) => (
                   <option key={item.slug || "root"} value={item.slug}>
@@ -220,7 +233,7 @@ export default async function AdminArticlesPage({
         </CardContent>
       </Card>
 
-      <Card className="rounded-[2rem] border-border/50 bg-background/80 shadow-sm overflow-hidden">
+      <Card className="rounded-xl border-border/50 bg-background/80 shadow-sm overflow-hidden">
         <CardHeader>
           <CardTitle>{dictionary.admin.articleLibrary}</CardTitle>
           <CardDescription>
@@ -406,7 +419,7 @@ function SummaryCard({
   value: number;
 }) {
   return (
-    <Card className="rounded-[2rem] border-border/50 bg-background/80 shadow-sm">
+    <Card className="rounded-xl border-border/50 bg-background/80 shadow-sm">
       <CardHeader>
         <CardDescription>{title}</CardDescription>
         <CardTitle className="text-3xl font-semibold">{value}</CardTitle>

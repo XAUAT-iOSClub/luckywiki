@@ -103,7 +103,7 @@ export default async function AdminHomePage({
               <Link
                 key={link.href}
                 href={link.href}
-                className="rounded-[1.75rem] border border-border/60 bg-background/80 p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md"
+                className="rounded-xl border border-border/60 bg-background/80 p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md"
               >
                 <div className="mb-4 inline-flex size-10 items-center justify-center rounded-2xl bg-primary/10 text-primary">
                   <link.icon className="size-5" />
@@ -159,7 +159,7 @@ export default async function AdminHomePage({
       </section>
 
       <section className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
-        <Card className="rounded-[2rem] border-border/50 bg-background/80 shadow-sm overflow-hidden">
+        <Card className="border-border/50 bg-background/80 shadow-sm overflow-hidden">
           <CardHeader>
             <CardTitle>{dictionary.admin.recentlyUpdated}</CardTitle>
             <CardDescription>{dictionary.admin.recentlyUpdatedDescription}</CardDescription>
@@ -223,7 +223,7 @@ export default async function AdminHomePage({
         </Card>
 
         <div className="grid gap-6">
-          <Card className="rounded-[2rem] border-border/50 bg-background/80 shadow-sm overflow-hidden">
+          <Card className="rounded-xl border-border/50 bg-background/80 shadow-sm overflow-hidden">
             <CardHeader>
               <CardTitle>{dictionary.admin.pendingComments}</CardTitle>
               <CardDescription>{dictionary.admin.pendingCommentsDescription}</CardDescription>
@@ -269,7 +269,7 @@ export default async function AdminHomePage({
           </Card>
 
 
-          <Card className="rounded-[2rem] border-border/50 bg-background/80 shadow-sm">
+          <Card className="rounded-xl border-border/50 bg-background/80 shadow-sm">
             <CardHeader>
               <CardTitle>{dictionary.admin.contentStructure}</CardTitle>
               <CardDescription>{dictionary.admin.contentStructureDescription}</CardDescription>
@@ -337,7 +337,7 @@ function MetricCard({
   value: number;
 }) {
   return (
-    <Card className="rounded-[2rem] border-border/50 bg-background/80 shadow-sm">
+    <Card className="rounded-xl border-border/50 bg-background/80 shadow-sm">
       <CardHeader>
         <CardDescription>{title}</CardDescription>
         <CardTitle className="text-3xl font-semibold">{value}</CardTitle>

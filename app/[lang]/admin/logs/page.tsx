@@ -85,7 +85,7 @@ export default async function AdminLogsPage({
         </div>
       </section>
 
-      <Card className="rounded-[2rem] border-border/50 bg-background/80 shadow-sm">
+      <Card className="rounded-xl border-border/50 bg-background/80 shadow-sm">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <ScrollText className="size-5 text-primary" />
@@ -95,9 +95,13 @@ export default async function AdminLogsPage({
         </CardHeader>
         <CardContent>
           <form className="grid gap-4 lg:grid-cols-[repeat(2,minmax(0,1fr))_auto]">
-            <label className="field-block">
+            <label className="flex flex-col gap-1.5 text-sm font-medium">
               <span>{dictionary.common.action}</span>
-              <select className="field-input" defaultValue={action ?? ""} name="action">
+              <select
+                className="h-8 w-full min-w-0 rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                defaultValue={action ?? ""}
+                name="action"
+              >
                 <option value="">{dictionary.common.allActions}</option>
                 {actionOptions.map((a) => (
                   <option key={a} value={a}>
@@ -106,9 +110,13 @@ export default async function AdminLogsPage({
                 ))}
               </select>
             </label>
-            <label className="field-block">
+            <label className="flex flex-col gap-1.5 text-sm font-medium">
               <span>{dictionary.common.user}</span>
-              <select className="field-input" defaultValue={userId} name="userId">
+              <select
+                className="h-8 w-full min-w-0 rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                defaultValue={userId}
+                name="userId"
+              >
                 <option value="">{dictionary.common.allUsers}</option>
                 {userOptions.map((u) => (
                   <option key={u.id} value={u.id}>
@@ -129,7 +137,7 @@ export default async function AdminLogsPage({
         </CardContent>
       </Card>
 
-      <Card className="rounded-[2rem] border-border/50 bg-background/80 shadow-sm overflow-hidden">
+      <Card className="rounded-xl border-border/50 bg-background/80 shadow-sm overflow-hidden">
         <CardHeader>
           <CardTitle>{dictionary.common.logs}</CardTitle>
           <CardDescription>

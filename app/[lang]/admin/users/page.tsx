@@ -79,7 +79,7 @@ export default async function AdminUsersPage({
         </div>
       </section>
 
-      <Card className="rounded-[2rem] border-border/50 bg-background/80 shadow-sm overflow-hidden">
+      <Card className="rounded-xl border-border/50 bg-background/80 shadow-sm overflow-hidden">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Users className="size-5 text-primary" />

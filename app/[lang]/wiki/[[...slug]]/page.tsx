@@ -183,7 +183,7 @@ export default async function WikiArticlePage({
                   )}
                 </div>
 
-                <div className="max-w-xl">
+                <div className="w-full">
                   <div className="rounded-[2rem] border border-border/50 bg-muted/30 p-6 backdrop-blur-sm">
                     <h3 className="font-bold mb-4">{dictionary.wiki.joinDiscussion}</h3>
                     {canPostComment ? (
@@ -222,7 +222,7 @@ export default async function WikiArticlePage({
       <ArticleJsonLd
         article={{
           title: article.title,
-      markdown: article.markdown,
+          markdown: article.markdown,
           path: article.path,
           publishedAt: article.publishedAt,
           updatedAt: article.updatedAt,
