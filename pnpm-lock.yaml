@@ -24,8 +24,8 @@ importers:
         specifier: ^1.4.5
         version: 1.4.5(@langchain/core@1.1.45(openai@6.37.0(zod@4.4.3)))
       '@luckyfishes/markdown-core':
-        specifier: 0.3.1
-        version: 0.3.1
+        specifier: 0.4.1
+        version: 0.4.1
       '@monaco-editor/react':
         specifier: ^4.7.0
         version: 4.7.0(monaco-editor@0.55.1)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
@@ -1201,8 +1201,8 @@ packages:
   '@langchain/protocol@0.0.15':
     resolution: {integrity: sha512-MllvbpMjqHevUm+v94M422mH7XKN+wGCvJRBVROTWBotEDOATYB4Ktk2UheYP859y9o2LlhtPek5t1T9eyfAbQ==}
 
-  '@luckyfishes/markdown-core@0.3.1':
-    resolution: {integrity: sha512-MzqNM0oTSyS00W6sVVfrFHSKtlxG5qj3HUDIlCgcJSwJTxdQepYvEVr0YhrC2PVfY0pCHjLYIaD0kEEuFttQUg==}
+  '@luckyfishes/markdown-core@0.4.1':
+    resolution: {integrity: sha512-0qw15iG/kN2uSrZWPmUSh62Lv2BtS6QYN+u7jMYZXGmNg1dl0c1h9PiZ1Zc9U/WIGcFPlC1nyCwjvHSHMc9uSg==}
 
   '@mermaid-js/parser@1.1.0':
     resolution: {integrity: sha512-gxK9ZX2+Fex5zu8LhRQoMeMPEHbc73UKZ0FQ54YrQtUxE1VVhMwzeNtKRPAu5aXks4FasbMe4xB4bWrmq6Jlxw==}
@@ -7870,7 +7870,7 @@ snapshots:
 
   '@langchain/protocol@0.0.15': {}
 
-  '@luckyfishes/markdown-core@0.3.1':
+  '@luckyfishes/markdown-core@0.4.1':
     dependencies:
       github-slugger: 2.0.0
       gray-matter: 4.0.3
