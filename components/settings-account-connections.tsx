@@ -127,7 +127,7 @@ export function SettingsAccountConnections({
           return (
             <div
               key={account.providerId}
-              className="flex flex-col gap-4 rounded-2xl border border-border/60 bg-background/70 p-4 md:flex-row md:items-center md:justify-between"
+              className="flex flex-col gap-4 rounded-2xl p-4 md:flex-row md:items-center md:justify-between"
             >
               <div className="flex items-start gap-3">
                 <div className="rounded-xl bg-muted p-2">
