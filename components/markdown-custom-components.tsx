@@ -31,6 +31,69 @@ import {
 import { useT } from "@/lib/i18n/provider";
 import mermaid from "mermaid";
 
+const SEQUENCE_DIAGRAM_RE = /^\s*sequenceDiagram\b/i;
+const SEQUENCE_NOTE_START_RE =
+  /^(\s*Note\s+(?:left|right)\s+of\s+.+?:\s*)(.*)$/i;
+const SEQUENCE_CONTROL_LINE_RE =
+  /^\s*(?:Note\b|participant\b|actor\b|activate\b|deactivate\b|destroy\b|create\b|autonumber\b|title\b|loop\b|alt\b|opt\b|par\b|and\b|else\b|break\b|critical\b|option\b|rect\b|box\b|end\b|%%)/i;
+const SEQUENCE_ARROW_RE =
+  /(?:<<->>|<->>|-->>|->>|-->|->|<<-->>|<<--|<<-|--x|-x|x--|x-)/;
+
+function looksLikeSequenceStatement(line: string) {
+  const trimmed = line.trimStart();
+
+  if (!trimmed) {
+    return false;
+  }
+
+  return (
+    SEQUENCE_CONTROL_LINE_RE.test(trimmed) || SEQUENCE_ARROW_RE.test(trimmed)
+  );
+}
+
+export function normalizeMermaidChart(chart: string) {
+  if (!SEQUENCE_DIAGRAM_RE.test(chart)) {
+    return chart;
+  }
+
+  const lines = chart.split("\n");
+  const normalized: string[] = [];
+
+  for (let index = 0; index < lines.length; index += 1) {
+    const currentLine = lines[index] ?? "";
+    const noteMatch = currentLine.match(SEQUENCE_NOTE_START_RE);
+
+    if (!noteMatch) {
+      normalized.push(currentLine);
+      continue;
+    }
+
+    const prefix = noteMatch[1] ?? "";
+    const fragments = [noteMatch[2] ?? ""];
+    let cursor = index + 1;
+
+    while (cursor < lines.length) {
+      const nextLine = lines[cursor] ?? "";
+
+      if (!nextLine.trim()) {
+        break;
+      }
+
+      if (looksLikeSequenceStatement(nextLine)) {
+        break;
+      }
+
+      fragments.push(nextLine.trim());
+      cursor += 1;
+    }
+
+    normalized.push(`${prefix}${fragments.join("<br/>")}`);
+    index = cursor - 1;
+  }
+
+  return normalized.join("\n");
+}
+
 const Icon = lazy(() =>
   import("./markdown-custom-components/icon").then((m) => ({
     default: m.Icon,
@@ -614,6 +677,8 @@ function MarkdownMermaid({ chart }: { chart?: string }) {
   useEffect(() => {
     if (!chart) return;
 
+    const normalizedChart = normalizeMermaidChart(chart);
+
     mermaid.initialize({
       startOnLoad: false,
       theme: resolvedTheme === "dark" ? "dark" : "default",
@@ -621,7 +686,7 @@ function MarkdownMermaid({ chart }: { chart?: string }) {
     });
 
     mermaid
-      .render(id.current, chart)
+      .render(id.current, normalizedChart)
       .then((result) => {
         setSvg(result.svg);
       })

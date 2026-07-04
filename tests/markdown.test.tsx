@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { renderToStaticMarkup } from "react-dom/server";
+import mermaid from "mermaid";
 import { I18nProvider } from "@/lib/i18n/provider";
 import { en } from "@/lib/i18n/dictionaries/en";
 
@@ -224,4 +225,33 @@ test("markdown renderer aligns heading anchor hrefs with generated ids", async (
 
   assert.match(html, /<h1 id="user-content-title"[^>]*>Title<a class="" aria-label="Link to section" href="#user-content-title">/);
   assert.match(html, /<h2 id="user-content-section"[^>]*>Section<a class="" aria-label="Link to section" href="#user-content-section">/);
+});
+
+test("markdown mermaid normalizer converts multiline sequence notes into a Mermaid 11 compatible form", async () => {
+  const { normalizeMermaidChart } = await import(
+    "@/components/markdown-custom-components"
+  );
+
+  const chart = `sequenceDiagram
+    Alice ->> Bob: Hello Bob, how are you?
+    Bob-->>John: How about you John?
+    Bob--x Alice: I am good thanks!
+    Bob-x John: I am good thanks!
+    Note right of John: Bob thinks a long
+long time, so long
+that the text does
+not fit on a row.
+
+    Bob-->Alice: Checking with John...
+    Alice->John: Yes... John, how are you?`;
+
+  const normalized = normalizeMermaidChart(chart);
+
+  assert.match(
+    normalized,
+    /Note right of John: Bob thinks a long<br\/>long time, so long<br\/>that the text does<br\/>not fit on a row\./,
+  );
+
+  mermaid.initialize({ startOnLoad: false, securityLevel: "loose" });
+  await assert.doesNotReject(() => mermaid.parse(normalized));
 });
