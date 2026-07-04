@@ -7,6 +7,7 @@ import { MarkdownRenderer } from "@/components/markdown-renderer";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { resolveAgentMessageContentOnError } from "@/lib/agent/message-state";
 import { buildWikiHref } from "@/lib/wiki/path";
 import { useLocale, useT } from "@/lib/i18n/provider";
 import type { AgentToolCallEvent } from "@/types/agent";
@@ -179,7 +180,10 @@ export function WikiAgent() {
                 entry.id === assistantId
                   ? {
                       ...entry,
-                      content: message,
+                      content: resolveAgentMessageContentOnError(
+                        entry.content,
+                        message || t.agent.errors.generic,
+                      ),
                     }
                   : entry,
               ),
@@ -193,7 +197,10 @@ export function WikiAgent() {
           message.id === assistantId
             ? {
                 ...message,
-                content: error instanceof Error ? error.message : t.agent.errors.generic,
+                content: resolveAgentMessageContentOnError(
+                  message.content,
+                  error instanceof Error ? error.message : t.agent.errors.generic,
+                ),
               }
             : message,
         ),

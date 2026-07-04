@@ -191,7 +191,9 @@ function createWikiChatModel() {
     model: process.env.OPENAI_RESPONSES_MODEL ?? defaultResponsesModel,
     temperature: 0.2,
     streamUsage: false,
-    useResponsesApi: true,
+    // Work around a late-stream parsing bug in @langchain/openai 1.4.5 that
+    // can throw after the full answer has already been emitted.
+    useResponsesApi: false,
     configuration: {
       baseURL,
     },
