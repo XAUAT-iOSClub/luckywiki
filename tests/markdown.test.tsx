@@ -133,6 +133,37 @@ tabs: ["社团官网", "iOS 社团AI", "建大Wiki/百科"]
   assert.match(html, /data-slot="tabs-content"/);
 });
 
+test("markdown renderer renders alerts inside tabs content", async () => {
+  const { MarkdownRenderer } = await import("@/components/markdown-renderer");
+  const html = renderToStaticMarkup(
+    <I18nProvider dictionary={en} locale="en">
+      <MarkdownRenderer
+        markdown={`
+::tabs
+tabs: ["志愿公益类", "学术科技类"]
+
+---
+![天协二维码](https://example.com/a.webp)
+
+> [!TIP]
+>
+> 注: 这张图中的X-library(原五育知行社)为学术科技类
+
+---
+第二屏
+::
+`}
+      />
+    </I18nProvider>,
+  );
+
+  assert.match(html, /data-slot="tabs-content"/);
+  assert.match(html, /markdown-alert-content/);
+  assert.match(html, /Tip/);
+  assert.match(html, /注: 这张图中的X-library\(原五育知行社\)为学术科技类/);
+  assert.doesNotMatch(html, /<p[^>]*>\[!TIP\]<\/p>/);
+});
+
 test("markdown renderer can render the 社团总览 article with multiple tabs blocks", async () => {
   const { MarkdownRenderer } = await import("@/components/markdown-renderer");
   const markdown = await readFile(

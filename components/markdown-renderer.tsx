@@ -512,8 +512,8 @@ export function MarkdownRenderer({
     rehypeAddSourceLine,
   ];
   const remarkPlugins: NonNullable<ReactMarkdownOptions["remarkPlugins"]> = [
-    remarkAlert,
     remarkSafeCustomSyntax,
+    remarkAlert,
     [remarkFixTabsLabels, markdown],
     [remarkGfm, { singleTilde: false }],
     remarkMath,
