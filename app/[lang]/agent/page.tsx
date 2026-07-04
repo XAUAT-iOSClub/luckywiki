@@ -41,9 +41,5 @@ export default async function AgentPage({
     notFound();
   }
 
-  return (
-    <div className="mx-auto max-w-6xl px-4 py-10 md:px-8 lg:px-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
-      <WikiAgent />
-    </div>
-  );
+  return <WikiAgent />;
 }
