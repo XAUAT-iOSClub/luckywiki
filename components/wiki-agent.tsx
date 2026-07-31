@@ -5,13 +5,28 @@ import { startTransition, useCallback, useEffect, useMemo, useRef, useState } fr
 import {
   ArrowUp,
   Cpu,
+  FileText,
   RefreshCcw,
   Sparkles,
   Square,
 } from "lucide-react";
 import { MarkdownRenderer } from "@/components/markdown-renderer";
-import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Bubble, BubbleContent } from "@/components/ui/bubble";
 import { Button } from "@/components/ui/button";
+import {
+  Marker,
+  MarkerContent,
+  MarkerIcon,
+} from "@/components/ui/marker";
+import {
+  Message,
+  MessageAvatar,
+  MessageContent,
+  MessageFooter,
+  MessageGroup,
+} from "@/components/ui/message";
+import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
 import { resolveAgentMessageContentOnError } from "@/lib/agent/message-state";
 import { buildWikiHref } from "@/lib/wiki/path";
@@ -33,16 +48,6 @@ type AgentMessage = {
 
 const storageKeyPrefix = "luckywiki-agent:";
 
-function TypingDots() {
-  return (
-    <span className="inline-flex items-center gap-1">
-      <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-muted-foreground/60 [animation-delay:0ms]" />
-      <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-muted-foreground/60 [animation-delay:150ms]" />
-      <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-muted-foreground/60 [animation-delay:300ms]" />
-    </span>
-  );
-}
-
 export function WikiAgent() {
   const locale = useLocale();
   const t = useT();
@@ -50,7 +55,6 @@ export function WikiAgent() {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -287,90 +291,95 @@ export function WikiAgent() {
           className="flex-1 overflow-y-auto"
         >
           <div className="mx-auto max-w-3xl px-4 py-8">
-            <div className="space-y-8">
+            <MessageGroup className="gap-8">
               {messages.map((message) => (
-                <article key={message.id} className="group">
-                  <div
-                    className={
-                      message.role === "user"
-                        ? "flex justify-end"
-                        : "flex gap-4"
-                    }
-                  >
-                    {message.role === "assistant" && (
-                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary ring-1 ring-primary/10">
-                        <Sparkles className="h-4 w-4" />
-                      </div>
-                    )}
+                <Message
+                  align={message.role === "user" ? "end" : "start"}
+                  key={message.id}
+                >
+                  {/* {message.role === "assistant" && (
+                    <MessageAvatar>
+                      <Avatar>
+                        <AvatarFallback>
+                          <Sparkles />
+                        </AvatarFallback>
+                      </Avatar>
+                    </MessageAvatar>
+                  )} */}
 
-                    <div
-                      className={
-                        message.role === "user"
-                          ? "max-w-[85%] rounded-2xl rounded-br-md bg-secondary/80 px-5 py-3 shadow-sm"
-                          : "min-w-0 flex-1 pt-1"
-                      }
-                    >
-                      {message.role === "assistant" ? (
-                        message.content ? (
-                          <div className="prose-sm prose-p:my-2 prose-headings:mb-3 prose-headings:mt-5 prose-ul:my-2 prose-ol:my-2 prose-li:my-1 prose-pre:my-3 prose-code:text-inherit dark:prose-invert">
+                  <MessageContent>
+                    {message.role === "assistant" ? (
+                      message.content ? (
+                        <Bubble variant="ghost">
+                          <BubbleContent className="prose-sm prose-p:my-2 prose-headings:mb-3 prose-headings:mt-5 prose-ul:my-2 prose-ol:my-2 prose-li:my-1 prose-pre:my-3 prose-code:text-inherit dark:prose-invert">
                             <MarkdownRenderer
                               linkToSectionLabel={t.common.linkToSection}
                               markdown={message.content}
                             />
-                          </div>
-                        ) : isLoading ? (
-                          <TypingDots />
-                        ) : null
-                      ) : (
-                        <p className="whitespace-pre-wrap text-sm leading-7">
-                          {message.content}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  {message.role === "assistant" &&
-                    message.toolCalls &&
-                    message.toolCalls.length > 0 && (
-                      <div className="mt-3 ml-12 flex flex-wrap gap-2">
-                        {message.toolCalls.map((call, index) => (
-                          <span
-                            key={`${call.name}-${index}`}
-                            className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/5 px-3 py-1.5 text-xs font-medium text-primary"
-                          >
-                            <Cpu className="h-3.5 w-3.5" />
-                            {call.summary
-                              ? `${call.label}: ${call.summary}`
-                              : call.label}
+                          </BubbleContent>
+                        </Bubble>
+                      ) : isLoading ? (
+                        <Marker role="status">
+                          <MarkerIcon>
+                            <Spinner />
+                          </MarkerIcon>
+                          <MarkerContent className="sr-only">
+                            {t.agent.title}
+                          </MarkerContent>
+                        </Marker>
+                      ) : null
+                    ) : (
+                      <Bubble>
+                        <BubbleContent>
+                          <span className="whitespace-pre-wrap">
+                            {message.content}
                           </span>
-                        ))}
-                      </div>
+                        </BubbleContent>
+                      </Bubble>
                     )}
+                    {message.role === "assistant" &&
+                      message.toolCalls &&
+                      message.toolCalls.length > 0 && (
+                        <MessageFooter className="flex-col items-start gap-2 px-0">
+                          {message.toolCalls.map((call, index) => (
+                            <Marker key={`${call.name}-${index}`} variant="border">
+                              <MarkerIcon>
+                                <Cpu />
+                              </MarkerIcon>
+                              <MarkerContent>
+                                {call.summary
+                                  ? `${call.label}: ${call.summary}`
+                                  : call.label}
+                              </MarkerContent>
+                            </Marker>
+                          ))}
+                        </MessageFooter>
+                      )}
 
-                  {message.role === "assistant" &&
-                    message.sources &&
-                    message.sources.length > 0 && (
-                      <div className="mt-3 ml-12 flex flex-wrap gap-2">
-                        {message.sources.map((source) => (
-                          <Badge
-                            asChild
-                            key={source.path}
-                            variant="secondary"
-                            className="rounded-full border border-border/60 bg-background/80 px-3 py-1.5 text-xs font-medium hover:bg-background"
-                          >
-                            <Link
-                              href={buildWikiHref(source.path, locale)}
+                    {message.role === "assistant" &&
+                      message.sources &&
+                      message.sources.length > 0 && (
+                        <MessageFooter className="flex-col items-start gap-2 px-0">
+                          {message.sources.map((source) => (
+                            <Marker
+                              asChild
+                              key={source.path}
                             >
-                              {source.title}
-                            </Link>
-                          </Badge>
-                        ))}
-                      </div>
-                    )}
-                </article>
+                              <Link href={buildWikiHref(source.path, locale)}>
+                                <MarkerIcon>
+                                  <FileText />
+                                </MarkerIcon>
+                                <MarkerContent>{source.title}</MarkerContent>
+                              </Link>
+                            </Marker>
+                          ))}
+                        </MessageFooter>
+                      )}
+                  </MessageContent>
+                </Message>
               ))}
               <div ref={bottomRef} />
-            </div>
+            </MessageGroup>
           </div>
         </div>
       )}
