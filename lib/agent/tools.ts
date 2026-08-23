@@ -209,7 +209,15 @@ export async function searchWikiKnowledge(
     };
   }
 
-  const chunks = await deps.retrieveRelevantChunks(normalized);
+  let chunks: RetrievedAgentChunk[] = [];
+
+  try {
+    chunks = await deps.retrieveRelevantChunks(normalized);
+  } catch (error) {
+    // Semantic search is an enhancement; path and article tools still work
+    // when the configured embedding model is unavailable at the gateway.
+    console.error("[agent] semantic tool search failed", error);
+  }
 
   if (chunks.length > 0) {
     return {

@@ -90,6 +90,44 @@ test("agent route still streams when wiki retrieval misses", async () => {
   assert.match(text, /请先查看学校总览/);
 });
 
+test("agent route continues when semantic retrieval is unavailable", async () => {
+  let streamAnswerCalled = false;
+
+  const response = await createAgentRouteResponse(
+    new Request("http://localhost/api/agent", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        locale: "zh",
+        messages: [{ role: "user", content: "校园卡怎么补办？" }],
+      }),
+    }),
+    {
+      async getDictionary() {
+        return zh;
+      },
+      async retrieveRelevantChunks() {
+        throw new Error("embedding model is unavailable");
+      },
+      async findSuggestedSources() {
+        return [];
+      },
+      async streamAnswer({ onDelta }) {
+        streamAnswerCalled = true;
+        onDelta("请查看校园卡文章。");
+      },
+    },
+  );
+
+  const text = await response.text();
+
+  assert.equal(streamAnswerCalled, true);
+  assert.match(text, /请查看校园卡文章/);
+  assert.match(text, /event: done/);
+});
+
 test("agent route ignores empty assistant placeholder messages", async () => {
   const response = await createAgentRouteResponse(
     new Request("http://localhost/api/agent", {

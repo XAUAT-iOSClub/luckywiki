@@ -58,7 +58,16 @@ export async function createAgentRouteResponse(
     );
   }
 
-  const chunks = await deps.retrieveRelevantChunks(latestMessage.content);
+  let chunks: RetrievedAgentChunk[] = [];
+
+  try {
+    chunks = await deps.retrieveRelevantChunks(latestMessage.content);
+  } catch (error) {
+    // Embedding providers are optional for the chat path. Let the agent use
+    // its article/path tools when semantic retrieval is unavailable.
+    console.error("[agent] semantic retrieval failed", error);
+  }
+
   const sources =
     chunks.length > 0
       ? dedupeSources(chunks)
@@ -94,9 +103,9 @@ export async function createAgentRouteResponse(
         sendEvent("done", {});
         controller.close();
       } catch (error) {
+        console.error("[agent] response stream failed", error);
         sendEvent("error", {
-          message:
-            error instanceof Error ? error.message : dictionary.agent.errors.generic,
+          message: dictionary.agent.errors.generic,
         });
         controller.close();
       }

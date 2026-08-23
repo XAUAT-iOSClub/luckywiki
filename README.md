@@ -153,9 +153,15 @@ OPENAI_RESPONSES_MODEL=gpt-4.1-mini
 # Optional. Defaults to text-embedding-3-small.
 OPENAI_EMBEDDING_MODEL=text-embedding-3-small
 
-# Optional when you proxy OpenAI through a compatible gateway.
+# Optional when you proxy OpenAI through a compatible gateway. The root URL
+# is also accepted and will be normalized to its `/v1` API endpoint.
 OPENAI_API_BASE_URL=https://api.openai.com/v1
 ```
+
+The chat model and embedding model must both be enabled and priced in the
+gateway. If the gateway does not provide embeddings, chat still works with
+article/path tools, but semantic retrieval and `npm run agent:index` cannot
+run until an embedding model is configured.
 
 After adding the variables, backfill embeddings for existing published articles:
 

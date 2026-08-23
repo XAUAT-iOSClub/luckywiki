@@ -8,6 +8,29 @@ export type { AgentChatMessage, AgentToolCallEvent, StreamAgentAnswerInput } fro
 const defaultApiBaseUrl = "https://api.openai.com/v1";
 const defaultResponsesModel = "gpt-4.1-mini";
 
+/**
+ * OpenAI-compatible gateways are commonly configured with either their root
+ * URL or the complete `/v1` API URL. Keep both forms working for the SDK and
+ * the direct embeddings request.
+ */
+export function normalizeOpenAiBaseUrl(value: string) {
+  const trimmed = value.trim().replace(/\/+$/, "");
+
+  if (!trimmed) {
+    return defaultApiBaseUrl;
+  }
+
+  const url = new URL(trimmed);
+
+  if (url.pathname === "") {
+    url.pathname = "/v1";
+  } else if (url.pathname === "/") {
+    url.pathname = "/v1";
+  }
+
+  return url.toString().replace(/\/$/, "");
+}
+
 export type WikiAgentRuntime = {
   createAgent: (input: {
     locale: StreamAgentAnswerInput["locale"];
@@ -185,7 +208,7 @@ export const defaultWikiAgentRuntime: WikiAgentRuntime = {
 };
 
 function createWikiChatModel() {
-  const baseURL = process.env.OPENAI_API_BASE_URL ?? defaultApiBaseUrl;
+  const baseURL = normalizeOpenAiBaseUrl(process.env.OPENAI_API_BASE_URL ?? defaultApiBaseUrl);
 
   return new ChatOpenAI({
     model: process.env.OPENAI_RESPONSES_MODEL ?? defaultResponsesModel,
@@ -239,7 +262,7 @@ function buildSystemPrompt(
 }
 
 function buildOpenAiUrl(pathname: string) {
-  const baseUrl = process.env.OPENAI_API_BASE_URL ?? defaultApiBaseUrl;
+  const baseUrl = normalizeOpenAiBaseUrl(process.env.OPENAI_API_BASE_URL ?? defaultApiBaseUrl);
   const normalizedBase = baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`;
   const normalizedPath = pathname.startsWith("/") ? pathname.slice(1) : pathname;
   return new URL(normalizedPath, normalizedBase).toString();

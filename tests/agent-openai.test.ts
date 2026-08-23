@@ -1,6 +1,21 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { streamAgentAnswer, type WikiAgentRuntime } from "@/lib/agent/openai";
+import {
+  normalizeOpenAiBaseUrl,
+  streamAgentAnswer,
+  type WikiAgentRuntime,
+} from "@/lib/agent/openai";
+
+test("normalizeOpenAiBaseUrl accepts gateway roots and preserves /v1", () => {
+  assert.equal(
+    normalizeOpenAiBaseUrl("https://newapi.example.com"),
+    "https://newapi.example.com/v1",
+  );
+  assert.equal(
+    normalizeOpenAiBaseUrl("https://newapi.example.com/v1/"),
+    "https://newapi.example.com/v1",
+  );
+});
 
 test("streamAgentAnswer forwards messages into the agent runtime and streams deltas", async () => {
   const deltas: string[] = [];
