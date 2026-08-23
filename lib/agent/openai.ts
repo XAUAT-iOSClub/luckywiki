@@ -2,6 +2,8 @@ import { ChatOpenAI } from "@langchain/openai";
 import { createAgent as createLangChainAgent } from "langchain";
 import type { AgentChatMessage, AgentToolCallEvent, StreamAgentAnswerInput } from "@/types/agent";
 import { createWikiAgentTools } from "@/lib/agent/tools";
+import { createWikiQaGraph, type WikiQaGraphInput } from "@/lib/agent/graph";
+import { retrieveRelevantAgentChunks } from "@/lib/agent/search";
 
 export type { AgentChatMessage, AgentToolCallEvent, StreamAgentAnswerInput } from "@/types/agent";
 
@@ -36,6 +38,14 @@ export type WikiAgentRuntime = {
     locale: StreamAgentAnswerInput["locale"];
     context: StreamAgentAnswerInput["context"];
   }) => Promise<WikiAgentLike> | WikiAgentLike;
+  createGraph?: (input: {
+    locale: StreamAgentAnswerInput["locale"];
+    context: StreamAgentAnswerInput["context"];
+    onDelta: (delta: string) => void;
+    onToolCall?: (event: AgentToolCallEvent) => void;
+  }) => {
+    invoke: (input: WikiQaGraphInput) => Promise<unknown>;
+  };
 };
 
 type WikiAgentLike = {
@@ -166,6 +176,23 @@ export async function streamAgentAnswer(
   input: StreamAgentAnswerInput,
   runtime: WikiAgentRuntime = defaultWikiAgentRuntime,
 ) {
+  if (runtime.createGraph) {
+    const graph = runtime.createGraph({
+      locale: input.locale,
+      context: input.context,
+      onDelta: input.onDelta,
+      onToolCall: input.onToolCall,
+    });
+
+    await graph.invoke({
+      locale: input.locale,
+      context: input.context,
+      messages: input.messages,
+      signal: input.signal,
+    });
+    return;
+  }
+
   const agent = await runtime.createAgent({
     locale: input.locale,
     context: input.context,
@@ -203,6 +230,18 @@ export const defaultWikiAgentRuntime: WikiAgentRuntime = {
       model: createWikiChatModel(),
       tools: createWikiAgentTools(),
       systemPrompt: buildSystemPrompt(locale, context),
+    });
+  },
+  createGraph({ onDelta, onToolCall }) {
+    return createWikiQaGraph({
+      createAgent: ({ locale: agentLocale, context: agentContext }) =>
+        defaultWikiAgentRuntime.createAgent({
+          locale: agentLocale,
+          context: agentContext,
+        }),
+      retrieveRelevantChunks: retrieveRelevantAgentChunks,
+      onDelta,
+      onToolCall,
     });
   },
 };
