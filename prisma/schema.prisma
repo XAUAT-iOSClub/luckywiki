@@ -131,6 +131,10 @@ model AgentChunk {
   heading    String?
   content    String
   embedding  String
+  // Kept alongside the JSON value for backwards compatibility with existing
+  // records and embedding models. ParadeDB/pgvector uses this column for
+  // indexed cosine-distance queries.
+  embeddingVector Unsupported("vector(1024)")? @map("embedding_vector")
   createdAt  DateTime @default(now()) @map("created_at")
   updatedAt  DateTime @updatedAt @map("updated_at")
   article    Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)

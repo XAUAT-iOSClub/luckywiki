@@ -169,6 +169,48 @@ After adding the variables, backfill embeddings for existing published articles:
 npm run agent:index
 ```
 
+### ParadeDB hybrid retrieval
+
+For production search, point `DATABASE_URL` at a ParadeDB instance and apply
+the latest Prisma migration. It enables `pg_search` BM25 indexes for article
+and chunk text plus a `pgvector` HNSW index for chunk embeddings. The wiki
+search endpoint uses BM25 first, while the agent fuses BM25 lexical recall
+with cosine-similarity ANN results. If either extension or its index is not
+available yet, the existing `pg_trgm` and application-level cosine fallbacks
+remain active.
+
+```bash
+pnpm prisma migrate deploy
+npm run agent:index
+```
+
+When the database is behind a busy pooler, the embedding writer accepts
+optional transaction tuning variables (milliseconds):
+
+```bash
+PRISMA_TRANSACTION_MAX_WAIT_MS=15000
+PRISMA_TRANSACTION_TIMEOUT_MS=60000
+```
+
+If your ParadeDB endpoint is plain TCP (common for self-hosted instances),
+remove the SSL mode from its URL or set:
+
+```bash
+PARADEDB_SSL_MODE=disable
+```
+
+If Prisma reports `P3018` after an interrupted migration, mark only this
+migration as rolled back and deploy again:
+
+```bash
+pnpm prisma migrate resolve --rolled-back 20260829090000_paradedb_hybrid_search
+pnpm prisma migrate deploy
+```
+
+The vector index currently targets 1024-dimensional `BAAI/bge-m3` embeddings.
+Set `AGENT_EMBEDDING_DIMENSIONS` and adjust the migration's `vector(N)` column
+before switching to a model with a different dimension.
+
 ## Database Seed
 
 To create the initial root account and default home article:

@@ -95,6 +95,65 @@ async function searchWithPgTrgm(
   };
 }
 
+/**
+ * ParadeDB's BM25 index is substantially better at ranking long markdown
+ * documents than an ILIKE predicate. Keep this query isolated so a missing
+ * or incompatible pg_search index can safely fall back to pg_trgm below.
+ */
+async function searchWithParadeDb(
+  query: string,
+  page: number,
+  pageSize: number,
+): Promise<SearchResults> {
+  const offset = (page - 1) * pageSize;
+
+  const result = await prisma.$queryRaw<
+    Array<{
+      id: string;
+      path: string;
+      title: string;
+      description: string | null;
+      tags: string[];
+      markdown: string;
+      updatedAt: Date;
+      score: number;
+      totalCount: number;
+    }>
+  >(
+    Prisma.sql`
+      WITH matched AS (
+        SELECT
+          a.id, a.path, a.title, a.description, a.tags, a.markdown,
+          a.updated_at AS "updatedAt",
+          paradedb.score(a.id) AS score
+        FROM articles a
+        WHERE a.status = 'PUBLISHED'
+          AND (a.title @@@ ${query} OR a.description @@@ ${query} OR a.markdown @@@ ${query})
+      ), counted AS (
+        SELECT COUNT(*)::int AS "totalCount" FROM matched
+      )
+      SELECT m.*, c."totalCount"
+      FROM matched m, counted c
+      ORDER BY m.score DESC, m."updatedAt" DESC
+      LIMIT ${pageSize} OFFSET ${offset}
+    `,
+  );
+
+  const totalCount = result[0]?.totalCount ?? 0;
+  return {
+    results: result.map((row) => ({
+      ...row,
+      excerpt: generateExcerpt(row.markdown, query),
+      matchField: getMatchField(row.title, row.description, row.markdown, query),
+    })),
+    totalCount,
+    page,
+    pageSize,
+    totalPages: Math.max(1, Math.ceil(totalCount / pageSize)),
+    query,
+  };
+}
+
 async function searchWithFallback(
   query: string,
   page: number,
@@ -257,6 +316,16 @@ export async function searchArticles(options: {
     };
   }
 
+  if (await isPgSearchAvailable()) {
+    try {
+      return await searchWithParadeDb(query, page, pageSize);
+    } catch (error) {
+      // A ParadeDB index may not have been created yet; keep search usable
+      // while an operator runs the migration or reindex command.
+      console.warn("[search] ParadeDB BM25 query unavailable", error);
+    }
+  }
+
   const hasTrgm = await isPgTrgmAvailable();
 
   if (hasTrgm) {
@@ -264,6 +333,19 @@ export async function searchArticles(options: {
   }
   return searchWithFallback(query, page, pageSize);
 }
+
+const isPgSearchAvailable = cache(async (): Promise<boolean> => {
+  try {
+    const result = await prisma.$queryRaw<Array<{ installed: boolean }>>`
+      SELECT EXISTS (
+        SELECT 1 FROM pg_extension WHERE extname = 'pg_search'
+      ) AS "installed"
+    `;
+    return result[0]?.installed ?? false;
+  } catch {
+    return false;
+  }
+});
 
 const isPgTrgmAvailable = cache(async (): Promise<boolean> => {
   try {

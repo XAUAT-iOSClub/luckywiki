@@ -1,7 +1,31 @@
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@/generated/prisma/client";
 
-const connectionString = process.env.DATABASE_URL;
+// Prefer the direct/ParadeDB URL when it is present. DATABASE_URL is often a
+// Prisma/pgBouncer URL that does not expose ParadeDB extensions.
+const configuredConnectionString =
+  process.env.PARADEDB_DATABASE_URL ??
+  process.env.DIRECT_URL ??
+  process.env.PRISMA_DATABASE_URL ??
+  process.env.POSTGRES_URL ??
+  process.env.DATABASE_URL;
+
+const connectionString = normalizeConnectionString(configuredConnectionString);
+
+function normalizeConnectionString(value: string | undefined) {
+  if (!value || process.env.PARADEDB_SSL_MODE !== "disable") {
+    return value;
+  }
+
+  try {
+    const url = new URL(value);
+    url.searchParams.delete("sslmode");
+    url.searchParams.delete("ssl");
+    return url.toString();
+  } catch {
+    return value;
+  }
+}
 
 const READ_OPERATIONS = new Set([
   "findFirst",
