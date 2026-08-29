@@ -60,7 +60,7 @@ export default async function AdminTaxonomyPage({
       </section>
 
       <div className="grid gap-6 xl:grid-cols-2">
-        <Card className="rounded-xl border-border/50 bg-background/80 shadow-sm overflow-hidden">
+        <Card className="admin-card">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <FolderTree className="size-5 text-primary" />
@@ -125,7 +125,7 @@ export default async function AdminTaxonomyPage({
           </CardContent>
         </Card>
 
-        <Card className="rounded-xl border-border/50 bg-background/80 shadow-sm overflow-hidden">
+        <Card className="admin-card">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Tags className="size-5 text-primary" />

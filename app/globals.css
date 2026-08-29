@@ -53,40 +53,40 @@
 }
 
 :root {
-  --primary: oklch(0.5 0.134 242.749);
-  --primary-foreground: oklch(0.977 0.013 236.62);
-  --secondary: oklch(0.967 0.001 286.375);
-  --secondary-foreground: oklch(0.21 0.006 285.885);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --radius: 0.625rem;
+  --background: #f5f5f7;
+  --foreground: #1d1d1f;
+  --card: #ffffff;
+  --card-foreground: #1d1d1f;
+  --popover: #ffffff;
+  --popover-foreground: #1d1d1f;
+  --primary: #0071e3;
+  --primary-foreground: #ffffff;
+  --secondary: #f5f5f7;
+  --secondary-foreground: #1d1d1f;
+  --muted: #f5f5f7;
+  --muted-foreground: #6e6e73;
+  --accent: #f2f2f7;
+  --accent-foreground: #1d1d1f;
+  --destructive: #ff3b30;
+  --border: #e5e5ea;
+  --input: #e5e5ea;
+  --ring: #0071e3;
+  --radius: 0.75rem;
 
-  --sidebar-background: oklch(0.98 0.01 250);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.588 0.158 241.966);
-  --sidebar-primary-foreground: oklch(0.977 0.013 236.62);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
+  --sidebar-background: #f2f2f7;
+  --sidebar-foreground: #1d1d1f;
+  --sidebar-primary: #0071e3;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #e8e8ed;
+  --sidebar-accent-foreground: #1d1d1f;
+  --sidebar-border: #e5e5ea;
+  --sidebar-ring: #0071e3;
+  --sidebar: #f2f2f7;
   --chart-1: oklch(0.865 0.127 207.078);
   --chart-2: oklch(0.715 0.143 215.221);
   --chart-3: oklch(0.609 0.126 221.723);
   --chart-4: oklch(0.52 0.105 223.128);
   --chart-5: oklch(0.45 0.085 224.283);
-  --sidebar: oklch(0.985 0 0);
 
   /* hljs light */
   --hljs-color: #24292e;
@@ -100,39 +100,39 @@
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --primary: oklch(0.443 0.11 240.79);
-  --primary-foreground: oklch(0.977 0.013 236.62);
-  --secondary: oklch(0.274 0.006 286.033);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
+  --background: #000000;
+  --foreground: #f5f5f7;
+  --primary: #0a84ff;
+  --primary-foreground: #ffffff;
+  --secondary: #1c1c1e;
+  --secondary-foreground: #f5f5f7;
+  --muted: #1c1c1e;
+  --muted-foreground: #98989d;
+  --border: #2c2c2e;
+  --input: #2c2c2e;
+  --ring: #0a84ff;
 
-  --sidebar-background: oklch(0.14 0.02 255);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.685 0.169 237.323);
-  --sidebar-primary-foreground: oklch(0.293 0.066 243.157);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
+  --sidebar-background: #0d0d0f;
+  --sidebar-foreground: #f5f5f7;
+  --sidebar-primary: #0a84ff;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #1c1c1e;
+  --sidebar-accent-foreground: #f5f5f7;
+  --sidebar-border: #2c2c2e;
+  --sidebar-ring: #0a84ff;
+  --card: #1c1c1e;
+  --card-foreground: #f5f5f7;
+  --popover: #1c1c1e;
+  --popover-foreground: #f5f5f7;
+  --accent: #2c2c2e;
+  --accent-foreground: #f5f5f7;
+  --destructive: #ff453a;
   --chart-1: oklch(0.865 0.127 207.078);
   --chart-2: oklch(0.715 0.143 215.221);
   --chart-3: oklch(0.609 0.126 221.723);
   --chart-4: oklch(0.52 0.105 223.128);
   --chart-5: oklch(0.45 0.085 224.283);
-  --sidebar: oklch(0.205 0 0);
+  --sidebar: #0d0d0f;
 
   /* hljs dark */
   --hljs-color: #c9d1d9;
@@ -156,14 +156,6 @@
 
   body {
     @apply min-h-screen antialiased bg-background text-foreground;
-    background-image:
-      radial-gradient(circle at top left, var(--background-grad-1, rgba(56, 189, 248, 0.14)), transparent 26%),
-      radial-gradient(circle at bottom right, var(--background-grad-2, rgba(37, 99, 235, 0.12)), transparent 30%);
-  }
-
-  .dark body {
-    --background-grad-1: rgba(56, 189, 248, 0.05);
-    --background-grad-2: rgba(37, 99, 235, 0.04);
   }
 
   button:not(:disabled),
@@ -188,15 +180,30 @@
   }
 
   .surface-panel {
-    @apply md:rounded-3xl! md:border md:border-border/40 md:bg-white/70 md:p-8 md:shadow-[0_32px_64px_-16px_rgba(0,0,0,0.08)] backdrop-blur-2xl transition-all duration-300;
+    @apply md:rounded-3xl md:border md:border-border/60 md:bg-card md:p-8 md:shadow-[0_1px_2px_rgba(0,0,0,0.03),0_16px_40px_-24px_rgba(0,0,0,0.12)] transition-all duration-300;
   }
 
   .dark .surface-panel {
-    @apply md:border-white/5 md:bg-zinc-900/50 md:shadow-[0_32px_64px_-16px_rgba(0,0,0,0.4)];
+    @apply md:border-white/10 md:bg-card md:shadow-[0_1px_2px_rgba(0,0,0,0.3),0_16px_40px_-24px_rgba(0,0,0,0.6)];
   }
 
   .apple-blur {
     @apply bg-white/60 backdrop-blur-xl dark:bg-black/60;
+  }
+
+  /* Apple-style admin surface: hairline border + soft elevation, hairline removed on
+     mobile so content sits directly on the canvas like a native list. */
+  .admin-card {
+    @apply overflow-hidden rounded-none border-0 bg-transparent shadow-none md:rounded-2xl md:border md:border-border/60 md:bg-card md:shadow-[0_1px_2px_rgba(0,0,0,0.03),0_8px_24px_-16px_rgba(0,0,0,0.08)];
+  }
+
+  .dark .admin-card {
+    @apply md:border-white/10 md:bg-card md:shadow-[0_1px_2px_rgba(0,0,0,0.3),0_12px_32px_-16px_rgba(0,0,0,0.5)];
+  }
+
+  /* Native <select> matching shadcn Input/SelectTrigger metrics. */
+  .select-native {
+    @apply h-8 w-full min-w-0 appearance-none rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30 dark:hover:bg-input/50;
   }
 
   .eyebrow {
@@ -204,15 +211,19 @@
   }
 
   .button-primary {
-    @apply inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition-all hover:bg-primary/90 hover:translate-y-[-1px] active:translate-y-[0px] disabled:cursor-not-allowed disabled:opacity-60;
+    @apply inline-flex items-center justify-center gap-2 rounded-full bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.25),0_1px_2px_rgba(0,0,0,0.18)] transition-all hover:bg-primary/90 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-60;
+  }
+
+  .dark .button-primary {
+    @apply shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_1px_2px_rgba(0,0,0,0.5)];
   }
 
   .button-secondary {
-    @apply inline-flex items-center gap-2 rounded-xl border border-border/50 bg-white/50 px-5 py-3 text-sm font-semibold text-foreground backdrop-blur-md transition-all hover:bg-white hover:border-primary/20;
+    @apply inline-flex items-center justify-center gap-2 rounded-full border border-border/60 bg-card px-6 py-2.5 text-sm font-semibold text-foreground transition-all hover:bg-secondary active:scale-[0.97];
   }
 
   .dark .button-secondary {
-    @apply bg-zinc-800/50 hover:bg-zinc-800;
+    @apply bg-card hover:bg-secondary;
   }
 
   .field-block {

@@ -85,7 +85,7 @@ export default async function AdminLogsPage({
         </div>
       </section>
 
-      <Card className="rounded-xl border-border/50 bg-background/80 shadow-sm">
+      <Card className="admin-card">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <ScrollText className="size-5 text-primary" />
@@ -98,7 +98,7 @@ export default async function AdminLogsPage({
             <label className="flex flex-col gap-1.5 text-sm font-medium">
               <span>{dictionary.common.action}</span>
               <select
-                className="h-8 w-full min-w-0 rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                className="select-native"
                 defaultValue={action ?? ""}
                 name="action"
               >
@@ -113,7 +113,7 @@ export default async function AdminLogsPage({
             <label className="flex flex-col gap-1.5 text-sm font-medium">
               <span>{dictionary.common.user}</span>
               <select
-                className="h-8 w-full min-w-0 rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                className="select-native"
                 defaultValue={userId}
                 name="userId"
               >
@@ -137,7 +137,7 @@ export default async function AdminLogsPage({
         </CardContent>
       </Card>
 
-      <Card className="rounded-xl border-border/50 bg-background/80 shadow-sm overflow-hidden">
+      <Card className="admin-card">
         <CardHeader>
           <CardTitle>{dictionary.common.logs}</CardTitle>
           <CardDescription>

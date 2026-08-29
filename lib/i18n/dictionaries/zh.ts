@@ -292,7 +292,7 @@ export const zh = {
     control: "管理控制台",
     operationsCenter: "运营中心",
     dashboardTitle: "让你的 Wiki 始终井井有条、经过审核并可随时发布。",
-    dashboardDescription: "现在的后台不止是两个列表，而是覆盖了内容健康、结构、元数据、贡献者与审核流程。",
+    dashboardDescription: "在这里，你可以查看文章、评论、分类结构和贡献者的最新动态，并快速访问管理功能。",
     quickLinks: {
       articlesTitle: "文章库",
       articlesDescription: "在一个地方搜索、筛选并更新所有文章。",

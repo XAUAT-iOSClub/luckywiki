@@ -13,6 +13,7 @@ import { ArticleStatus } from "@/generated/prisma/enums";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { StatCard } from "@/components/admin/stat-card";
 import {
   Table,
   TableBody,
@@ -103,7 +104,7 @@ export default async function AdminHomePage({
               <Link
                 key={link.href}
                 href={link.href}
-                className="rounded-xl border border-border/60 bg-background/80 p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md"
+                className="rounded-xl p-4 hover:shadow-md transition hover:-translate-y-0.5"
               >
                 <div className="mb-4 inline-flex size-10 items-center justify-center rounded-2xl bg-primary/10 text-primary">
                   <link.icon className="size-5" />
@@ -124,7 +125,7 @@ export default async function AdminHomePage({
       </section>
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <MetricCard
+        <StatCard
           detail={formatTemplate(dictionary.admin.metrics.articlesDetail, {
             published: formatNumber(lang, dashboard.totals.publishedArticles),
             drafts: formatNumber(lang, dashboard.totals.draftArticles),
@@ -132,7 +133,7 @@ export default async function AdminHomePage({
           title={dictionary.admin.metrics.articles}
           value={dashboard.totals.articles}
         />
-        <MetricCard
+        <StatCard
           detail={formatTemplate(dictionary.admin.metrics.moderationDetail, {
             approved: formatNumber(lang, dashboard.totals.approvedComments),
             rejected: formatNumber(lang, dashboard.totals.rejectedComments),
@@ -140,14 +141,14 @@ export default async function AdminHomePage({
           title={dictionary.admin.metrics.moderation}
           value={dashboard.totals.pendingComments}
         />
-        <MetricCard
+        <StatCard
           detail={formatTemplate(dictionary.admin.metrics.structureDetail, {
             tags: formatNumber(lang, dashboard.totals.tags),
           })}
           title={dictionary.admin.metrics.structure}
           value={dashboard.totals.sections}
         />
-        <MetricCard
+        <StatCard
           detail={formatTemplate(dictionary.admin.metrics.contributorsDetail, {
             verified: formatNumber(lang, dashboard.totals.verifiedUsers),
             authors: formatNumber(lang, dashboard.totals.authorUsers),
@@ -159,7 +160,7 @@ export default async function AdminHomePage({
       </section>
 
       <section className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
-        <Card className="border-border/50 bg-background/80 shadow-sm overflow-hidden">
+        <Card className="admin-card">
           <CardHeader>
             <CardTitle>{dictionary.admin.recentlyUpdated}</CardTitle>
             <CardDescription>{dictionary.admin.recentlyUpdatedDescription}</CardDescription>
@@ -223,7 +224,7 @@ export default async function AdminHomePage({
         </Card>
 
         <div className="grid gap-6">
-          <Card className="rounded-xl border-border/50 bg-background/80 shadow-sm overflow-hidden">
+          <Card className="admin-card">
             <CardHeader>
               <CardTitle>{dictionary.admin.pendingComments}</CardTitle>
               <CardDescription>{dictionary.admin.pendingCommentsDescription}</CardDescription>
@@ -269,7 +270,7 @@ export default async function AdminHomePage({
           </Card>
 
 
-          <Card className="rounded-xl border-border/50 bg-background/80 shadow-sm">
+          <Card className="admin-card">
             <CardHeader>
               <CardTitle>{dictionary.admin.contentStructure}</CardTitle>
               <CardDescription>{dictionary.admin.contentStructureDescription}</CardDescription>
@@ -324,27 +325,5 @@ export default async function AdminHomePage({
         </div>
       </section>
     </div>
-  );
-}
-
-function MetricCard({
-  detail,
-  title,
-  value,
-}: {
-  detail: string;
-  title: string;
-  value: number;
-}) {
-  return (
-    <Card className="rounded-xl border-border/50 bg-background/80 shadow-sm">
-      <CardHeader>
-        <CardDescription>{title}</CardDescription>
-        <CardTitle className="text-3xl font-semibold">{value}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <p className="text-sm text-muted-foreground">{detail}</p>
-      </CardContent>
-    </Card>
   );
 }

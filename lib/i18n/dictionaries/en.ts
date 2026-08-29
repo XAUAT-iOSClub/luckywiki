@@ -292,7 +292,7 @@ export const en = {
     control: "Admin Control",
     operationsCenter: "Operations Center",
     dashboardTitle: "Keep your wiki organized, reviewed, and ready to publish.",
-    dashboardDescription: "Admin now covers content health, structure, metadata, contributors, and moderation instead of just two isolated lists.",
+    dashboardDescription: "Here you can view the latest updates on articles, comments, category structure, and contributors, and quickly access management features.",
     quickLinks: {
       articlesTitle: "Article Library",
       articlesDescription: "Search, filter, and update every article in one place.",

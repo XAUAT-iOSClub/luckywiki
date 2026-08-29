@@ -83,7 +83,7 @@ export default async function AdminCommentsPage({
         </div>
       </section>
 
-      <Card className="rounded-xl border-border/50 bg-background/80 shadow-sm overflow-hidden">
+      <Card className="admin-card">
         <CardContent className="p-0">
           {comments.length === 0 ? (
             <div className="p-8 text-center text-sm text-muted-foreground">

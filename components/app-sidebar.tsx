@@ -157,9 +157,9 @@ export function AppSidebar({
       <SidebarFooter>
         <SidebarMenu>
           <SidebarMenuItem>
-            <div className="px-2">
+            <div className="px-2 group-data-[collapsible=icon]:hidden">
               <React.Suspense fallback={null}>
-                <LocaleSwitcher className="w-full justify-center" />
+                <LocaleSwitcher className="w-full justify-center group-data-[collapsible=icon]:hidden" />
               </React.Suspense>
             </div>
           </SidebarMenuItem>

@@ -9,6 +9,7 @@ import { buildWikiHref } from "@/lib/wiki/path";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { StatCard } from "@/components/admin/stat-card";
 import { Input } from "@/components/ui/input";
 import {
   Pagination,
@@ -102,7 +103,7 @@ export default async function AdminArticlesPage({
       </section>
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <SummaryCard
+        <StatCard
           detail={
             activeFilterCount > 0
               ? formatTemplate(dictionary.admin.metrics.activeFilters, {
@@ -113,17 +114,17 @@ export default async function AdminArticlesPage({
           title={dictionary.admin.metrics.results}
           value={totalCount}
         />
-        <SummaryCard
+        <StatCard
           detail={dictionary.admin.metrics.acrossAllSections}
           title={dictionary.admin.metrics.drafts}
           value={taxonomy.sections.reduce((count, item) => count + item.draftArticles, 0)}
         />
-        <SummaryCard
+        <StatCard
           detail={dictionary.admin.metrics.visibleOnWiki}
           title={dictionary.admin.metrics.published}
           value={taxonomy.sections.reduce((count, item) => count + item.publishedArticles, 0)}
         />
-        <SummaryCard
+        <StatCard
           detail={formatTemplate(dictionary.admin.metrics.sectionsInUse, {
             count: formatNumber(lang, taxonomy.sections.length),
           })}
@@ -132,7 +133,7 @@ export default async function AdminArticlesPage({
         />
       </section>
 
-      <Card className="rounded-xl border-border/50 bg-background/80 shadow-sm">
+      <Card className="admin-card">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Filter className="size-5 text-primary" />
@@ -157,7 +158,7 @@ export default async function AdminArticlesPage({
             <label className="flex flex-col gap-1.5 text-sm font-medium">
               <span>{dictionary.common.status}</span>
               <select
-                className="h-8 w-full min-w-0 rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                className="select-native"
                 defaultValue={status ?? ""}
                 name="status"
               >
@@ -171,7 +172,7 @@ export default async function AdminArticlesPage({
             <label className="flex flex-col gap-1.5 text-sm font-medium">
               <span>{dictionary.common.tag}</span>
               <select
-                className="h-8 w-full min-w-0 rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                className="select-native"
                 defaultValue={tag}
                 name="tag"
               >
@@ -186,7 +187,7 @@ export default async function AdminArticlesPage({
             <label className="flex flex-col gap-1.5 text-sm font-medium">
               <span>{dictionary.common.section}</span>
               <select
-                className="h-8 w-full min-w-0 rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                className="select-native"
                 defaultValue={section}
                 name="section"
               >
@@ -233,7 +234,7 @@ export default async function AdminArticlesPage({
         </CardContent>
       </Card>
 
-      <Card className="rounded-xl border-border/50 bg-background/80 shadow-sm overflow-hidden">
+      <Card className="admin-card">
         <CardHeader>
           <CardTitle>{dictionary.admin.articleLibrary}</CardTitle>
           <CardDescription>
@@ -406,28 +407,6 @@ export default async function AdminArticlesPage({
         </CardContent>
       </Card>
     </div>
-  );
-}
-
-function SummaryCard({
-  detail,
-  title,
-  value,
-}: {
-  detail: string;
-  title: string;
-  value: number;
-}) {
-  return (
-    <Card className="rounded-xl border-border/50 bg-background/80 shadow-sm">
-      <CardHeader>
-        <CardDescription>{title}</CardDescription>
-        <CardTitle className="text-3xl font-semibold">{value}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <p className="text-sm text-muted-foreground">{detail}</p>
-      </CardContent>
-    </Card>
   );
 }
 
