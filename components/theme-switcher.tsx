@@ -3,12 +3,14 @@ import { Tabs, TabsList, TabsTrigger } from "./ui/tabs";
 import { Moon, Sun, MonitorSmartphone } from "lucide-react";
 import { useT } from "@/lib/i18n/provider";
 import { cn } from "@/lib/utils";
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export function ThemeSwitcher({className}: {className?: string}) {
     const { setTheme, theme } = useTheme();
     const t = useT();
     const transitioning = useRef(false);
+    const [mounted, setMounted] = useState(false);
+    useEffect(() => setMounted(true), []);
 
     const toggleTheme = (newTheme: string, event?: React.MouseEvent | React.KeyboardEvent) => {
         if (newTheme === theme || transitioning.current) return;
@@ -62,7 +64,7 @@ export function ThemeSwitcher({className}: {className?: string}) {
     }
 
     return (
-        <Tabs value={theme} className={cn("items-center w-full", className)}>
+        <Tabs value={mounted ? theme : undefined} className={cn("items-center w-full", className)}>
             <TabsList>
                 <TabsTrigger
                     value="light"

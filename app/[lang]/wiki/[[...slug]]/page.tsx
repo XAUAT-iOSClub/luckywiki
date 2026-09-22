@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { Calendar, Hash, MessageCircle, User } from "lucide-react";
 import { createCommentAction } from "@/app/actions/comments";
 import { CommentForm } from "@/components/comment-form";
@@ -73,8 +73,8 @@ export default async function WikiArticlePage({
 
   const path = safeCanonicalize(slug);
 
-  if (path === null) {
-    notFound();
+  if (path === null || path === "") {
+    redirect(localizeHref(lang, "/wiki/home"));
   }
 
   const [article, session, dictionary] = await Promise.all([

@@ -15,7 +15,7 @@ export function LocaleSwitcher({ className }: { className?: string }) {
   const currentHref = `${pathname}${search ? `?${search}` : ""}`;
 
   return (
-    <Tabs defaultValue={locale} className={cn("items-center gap-1 p-1", className)} onValueChange={(value) => {window.location.href = localizeHref(value as ('zh' | 'en'), currentHref);}}>
+    <Tabs defaultValue={locale} suppressHydrationWarning className={cn("items-center gap-1 p-1", className)} onValueChange={(value) => {window.location.href = localizeHref(value as ('zh' | 'en'), currentHref);}}>
       <TabsList>
         {locales.map((targetLocale) => (
           <TabsTrigger
