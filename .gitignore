@@ -42,5 +42,7 @@ next-env.d.ts
 
 generated/prisma/
 /articles/
+/articles-scraped/
+.pnpm-store/
 
 *.pyc

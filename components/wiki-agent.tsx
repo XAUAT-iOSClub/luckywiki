@@ -337,6 +337,7 @@ export function WikiAgent() {
                         </BubbleContent>
                       </Bubble>
                     )}
+                    {/* 工具调用记录已隐藏
                     {message.role === "assistant" &&
                       message.toolCalls &&
                       message.toolCalls.length > 0 && (
@@ -354,7 +355,7 @@ export function WikiAgent() {
                             </Marker>
                           ))}
                         </MessageFooter>
-                      )}
+                      )} */}
 
                     {message.role === "assistant" &&
                       message.sources &&

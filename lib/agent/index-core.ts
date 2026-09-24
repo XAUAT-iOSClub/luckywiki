@@ -1,6 +1,6 @@
 import { ArticleStatus } from "@/generated/prisma/enums";
 import { buildArticleChunks, type ChunkableArticle } from "@/lib/agent/chunks";
-import { embedTexts, isAgentConfigured } from "@/lib/agent/openai";
+import { embedTexts, isAgentConfiguredAsync } from "@/lib/agent/openai";
 
 export type AgentChunkRecord = {
   chunkIndex: number;
@@ -18,7 +18,7 @@ export async function syncArticleEmbeddingsWithRepository({
   article,
   repository,
   embed = embedTexts,
-  enabled = isAgentConfigured(),
+  enabled,
 }: {
   article: ChunkableArticle;
   repository: AgentChunkRepository;
@@ -37,7 +37,9 @@ export async function syncArticleEmbeddingsWithRepository({
     return { chunkCount: 0, skipped: false };
   }
 
-  if (!enabled) {
+  const isEnabled = enabled ?? (await isAgentConfiguredAsync());
+
+  if (!isEnabled) {
     return { chunkCount: 0, skipped: true };
   }
 
