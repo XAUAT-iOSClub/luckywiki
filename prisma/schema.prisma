@@ -181,24 +181,6 @@ model Log {
   @@map("logs")
 }
 
-model SiteSettings {
-  id               String   @id @default("default")
-  siteName         String   @default("LuckyWiki") @map("site_name")
-  description      String?  @map("description")
-  logoUrl          String?  @map("logo_url")
-  faviconUrl       String?  @map("favicon_url")
-  footerCopyright  String?  @map("footer_copyright")
-  footerIcp        String?  @map("footer_icp")
-  // Agent / AI 模型配置（数据库存储，优先于环境变量）
-  agentApiKey      String?  @map("agent_api_key")
-  agentApiBaseUrl  String?  @map("agent_api_base_url")
-  agentChatModel   String?  @map("agent_chat_model")
-  agentEmbedModel  String?  @map("agent_embed_model")
-  updatedAt        DateTime @updatedAt @map("updated_at")
-
-  @@map("site_settings")
-}
-
 // MCP API Key —— 每用户可创建多个，用于外部 AI 服务调用百科 MCP 接口
 model McpApiKey {
   id          String   @id @default(cuid())

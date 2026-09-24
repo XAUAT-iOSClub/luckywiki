@@ -1,12 +1,15 @@
+# pnpm 11: strict-dep-builds 默认为 true，未批准的依赖构建脚本会直接让 install 失败（退出码 1）。
+# 这里显式声明每个带构建脚本的依赖：true = 允许执行，false = 明确不执行。
 allowBuilds:
-  '@prisma/client': set this to true or false
-  '@prisma/engines': set this to true or false
-  better-sqlite3: set this to true or false
-  esbuild: set this to true or false
-  msw: set this to true or false
-  prisma: set this to true or false
-  sharp: set this to true or false
-  unrs-resolver: set this to true or false
-ignoredBuiltDependencies:
-  - sharp
-  - unrs-resolver
+  # Prisma 7 CLI/引擎，项目必需（prisma generate / migrate）
+  prisma: true
+  '@prisma/client': true
+  '@prisma/engines': true
+  # esbuild：tsx 与 Next.js 的构建链路依赖其平台二进制
+  esbuild: true
+  # sharp：Next.js 图片优化使用（darwin-arm64 预编译包已随 optionalDependencies 安装）
+  sharp: true
+  # 以下均为传递依赖，本项目使用 Postgres，不需要它们的原生构建
+  better-sqlite3: false
+  msw: false
+  unrs-resolver: false

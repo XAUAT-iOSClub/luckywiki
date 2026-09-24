@@ -2,7 +2,6 @@
 
 import * as React from "react";
 import {
-  Bot,
   FolderTree,
   FileText,
   KeyRound,
@@ -106,11 +105,6 @@ export function AppSidebar({
           url: localizeHref(locale, "/admin/mcp-keys"),
           icon: KeyRound,
         },
-        {
-          title: "Agent 控制",
-          url: localizeHref(locale, "/admin/agent"),
-          icon: Bot,
-        }
       ]
     : [
         {
@@ -136,11 +130,6 @@ export function AppSidebar({
           title: "MCP Keys",
           url: localizeHref(locale, "/admin/mcp-keys"),
           icon: KeyRound,
-        },
-        {
-          title: "Agent 控制",
-          url: localizeHref(locale, "/admin/agent"),
-          icon: Bot,
         },
       ];
   const secondaryNav = [

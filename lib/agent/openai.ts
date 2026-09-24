@@ -4,7 +4,6 @@ import type { AgentChatMessage, AgentToolCallEvent, StreamAgentAnswerInput } fro
 import { createWikiAgentTools } from "@/lib/agent/tools";
 import { createWikiQaGraph, type WikiQaGraphInput } from "@/lib/agent/graph";
 import { retrieveRelevantAgentChunks } from "@/lib/agent/search";
-import { getAgentSettings } from "@/lib/agent/settings";
 
 export type { AgentChatMessage, AgentToolCallEvent, StreamAgentAnswerInput } from "@/types/agent";
 
@@ -60,24 +59,16 @@ export function isAgentConfigured(env: NodeJS.ProcessEnv = process.env) {
   return Boolean(env.OPENAI_API_KEY);
 }
 
-export async function isAgentConfiguredAsync(): Promise<boolean> {
-  const settings = await getAgentSettings();
-  return Boolean(settings.apiKey);
-}
-
 export async function embedTexts(texts: string[], signal?: AbortSignal) {
   if (texts.length === 0) {
     return [];
   }
 
-  const settings = await getAgentSettings();
-  const baseURL = normalizeOpenAiBaseUrl(settings.apiBaseUrl || defaultApiBaseUrl);
-
-  const response = await fetch(buildOpenAiUrl(baseURL, "/embeddings"), {
+  const response = await fetch(buildOpenAiUrl("/embeddings"), {
     method: "POST",
-    headers: getOpenAiHeaders(settings.apiKey),
+    headers: getOpenAiHeaders(),
     body: JSON.stringify({
-      model: settings.embedModel || "text-embedding-3-small",
+      model: process.env.OPENAI_EMBEDDING_MODEL ?? "text-embedding-3-small",
       input: texts,
     }),
     signal,
@@ -234,20 +225,9 @@ export async function streamAgentAnswer(
 }
 
 export const defaultWikiAgentRuntime: WikiAgentRuntime = {
-  async createAgent({ locale, context }) {
-    const settings = await getAgentSettings();
-    const baseURL = normalizeOpenAiBaseUrl(
-      settings.apiBaseUrl || defaultApiBaseUrl,
-    );
-
+  createAgent({ locale, context }) {
     return createLangChainAgent({
-      model: new ChatOpenAI({
-        model: settings.chatModel || defaultResponsesModel,
-        temperature: 0.2,
-        streamUsage: false,
-        useResponsesApi: false,
-        configuration: { baseURL, apiKey: settings.apiKey },
-      }),
+      model: createWikiChatModel(),
       tools: createWikiAgentTools(),
       systemPrompt: buildSystemPrompt(locale, context),
     });
@@ -265,6 +245,22 @@ export const defaultWikiAgentRuntime: WikiAgentRuntime = {
     });
   },
 };
+
+function createWikiChatModel() {
+  const baseURL = normalizeOpenAiBaseUrl(process.env.OPENAI_API_BASE_URL ?? defaultApiBaseUrl);
+
+  return new ChatOpenAI({
+    model: process.env.OPENAI_RESPONSES_MODEL ?? defaultResponsesModel,
+    temperature: 0.2,
+    streamUsage: false,
+    // Work around a late-stream parsing bug in @langchain/openai 1.4.5 that
+    // can throw after the full answer has already been emitted.
+    useResponsesApi: false,
+    configuration: {
+      baseURL,
+    },
+  });
+}
 
 function buildSystemPrompt(
   locale: StreamAgentAnswerInput["locale"],
@@ -306,13 +302,16 @@ function buildSystemPrompt(
   ].join("\n");
 }
 
-function buildOpenAiUrl(baseUrl: string, pathname: string) {
+function buildOpenAiUrl(pathname: string) {
+  const baseUrl = normalizeOpenAiBaseUrl(process.env.OPENAI_API_BASE_URL ?? defaultApiBaseUrl);
   const normalizedBase = baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`;
   const normalizedPath = pathname.startsWith("/") ? pathname.slice(1) : pathname;
   return new URL(normalizedPath, normalizedBase).toString();
 }
 
-function getOpenAiHeaders(apiKey: string) {
+function getOpenAiHeaders() {
+  const apiKey = process.env.OPENAI_API_KEY;
+
   if (!apiKey) {
     throw new Error("OPENAI_API_KEY is not set.");
   }
