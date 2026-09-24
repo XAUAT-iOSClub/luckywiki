@@ -225,3 +225,52 @@ model McpCallLog {
   @@index([toolName])
   @@map("mcp_call_logs")
 }
+
+enum RagApiKeyStatus {
+  ACTIVE
+  REVOKED
+}
+
+// RAG API Key —— 用于 Flutter 等外部应用调用 RAG 检索接口
+model RagApiKey {
+  id          String          @id @default(cuid())
+  name        String
+  keyHash     String          @unique @map("key_hash")
+  keyPrefix   String          @map("key_prefix")
+  status      RagApiKeyStatus @default(ACTIVE)
+  hourlyLimit Int?            @map("hourly_limit")
+  createdAt   DateTime        @default(now()) @map("created_at")
+  lastUsedAt  DateTime?       @map("last_used_at")
+  revokedAt   DateTime?       @map("revoked_at")
+  createdById String?         @map("created_by_id")
+
+  logs RagCallLog[]
+
+  @@index([status])
+  @@index([createdAt])
+  @@map("rag_api_keys")
+}
+
+// RAG 调用日志
+model RagCallLog {
+  id          String   @id @default(cuid())
+  keyId       String?  @map("key_id")
+  ip          String?
+  userAgent   String?  @map("user_agent")
+  method      String
+  path        String
+  query       String
+  mode        String
+  topK        Int      @map("top_k")
+  latencyMs   Int      @map("latency_ms")
+  resultCount Int      @map("result_count")
+  statusCode  Int      @map("status_code")
+  errorCode   String?  @map("error_code")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  key RagApiKey? @relation(fields: [keyId], references: [id], onDelete: SetNull)
+
+  @@index([keyId, createdAt])
+  @@index([createdAt])
+  @@map("rag_call_logs")
+}
