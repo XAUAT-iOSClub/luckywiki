@@ -1,25 +1,21 @@
-import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
-import { Calendar, Hash, MessageCircle, User } from "lucide-react";
-import { createCommentAction } from "@/app/actions/comments";
-import { CommentForm } from "@/components/comment-form";
+import { Calendar } from "lucide-react";
 import { MarkdownRenderer } from "@/components/markdown-renderer";
 import { WikiHtmlRenderer } from "@/components/wiki-html-renderer";
 import { WikiToc } from "@/components/wiki-toc";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { getPublishedArticleByPath } from "@/lib/articles";
 import { getDictionary } from "@/lib/i18n/get-dictionary";
-import { formatDate, formatNumber, formatTemplate } from "@/lib/i18n/format";
+import { formatDate } from "@/lib/i18n/format";
 import { hasLocale, localizeHref } from "@/lib/i18n/config";
 import { buildWikiHref, canonicalizeSlugSegments } from "@/lib/wiki/path";
-import { canComment } from "@/lib/auth/permissions";
-import { getCurrentSession } from "@/lib/auth/session";
 import { buildArticleMetadata } from "@/lib/metadata";
 import { ArticleJsonLd, BreadcrumbListJsonLd } from "@/lib/structured-data";
+import { WikiComments } from "@/components/wiki-comments";
 
 type Params = Promise<{ lang: string; slug?: string[] }>;
+type SearchParams = Promise<{ commentsPage?: string | string[] }>;
 
 export async function generateMetadata({
   params,
@@ -62,8 +58,10 @@ export async function generateMetadata({
 
 export default async function WikiArticlePage({
   params,
+  searchParams,
 }: {
   params: Params;
+  searchParams: SearchParams;
 }) {
   const { lang, slug } = await params;
 
@@ -77,9 +75,8 @@ export default async function WikiArticlePage({
     redirect(localizeHref(lang, "/wiki/home"));
   }
 
-  const [article, session, dictionary] = await Promise.all([
+  const [article, dictionary] = await Promise.all([
     getPublishedArticleByPath(path),
-    getCurrentSession(),
     getDictionary(lang),
   ]);
 
@@ -87,7 +84,6 @@ export default async function WikiArticlePage({
     notFound();
   }
 
-  const canPostComment = canComment(session?.user ?? null);
   const articleHref = buildWikiHref(article.path, lang);
   const publishedDate = article.publishedAt
     ? formatDate(lang, article.publishedAt, {
@@ -136,79 +132,13 @@ export default async function WikiArticlePage({
               )}
             </article>
 
-            <section className="mt-16 space-y-8">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                  <MessageCircle className="h-5 w-5" />
-                </div>
-                <div>
-                  <h2 className="text-2xl font-bold tracking-tight">{dictionary.wiki.discussion}</h2>
-                  <p className="text-sm text-muted-foreground">
-                    {formatTemplate(dictionary.wiki.commentCount, {
-                      count: formatNumber(lang, article.comments.length),
-                    })}
-                  </p>
-                </div>
-              </div>
-
-              <div className="grid gap-8">
-                <div className="space-y-6">
-                  {article.comments.length === 0 ? (
-                    <div className="rounded-3xl border border-dashed border-border/60 p-10 text-center">
-                      <p className="text-sm text-muted-foreground italic">{dictionary.wiki.noComments}</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-6">
-                      {article.comments.map((comment) => (
-                        <article key={comment.id} className="group rounded-3xl border border-border/50 bg-card/50 p-6 shadow-sm transition-all hover:shadow-md dark:bg-zinc-900/40">
-                          <div className="flex items-center justify-between gap-2 mb-4">
-                            <div className="flex items-center gap-3">
-                              <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center font-bold text-primary">
-                                {comment.author.name.slice(0, 1).toUpperCase()}
-                              </div>
-                              <div>
-                                <p className="font-semibold text-sm">{comment.author.name}</p>
-                                <p className="text-xs text-muted-foreground">
-                                  {formatDate(lang, comment.createdAt)}
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-                          <p className="text-[15px] leading-relaxed text-foreground/90 whitespace-pre-wrap">
-                            {comment.body}
-                          </p>
-                        </article>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                <div className="w-full">
-                  <div className="rounded-[2rem] border border-border/50 bg-muted/30 p-6 backdrop-blur-sm">
-                    <h3 className="font-bold mb-4">{dictionary.wiki.joinDiscussion}</h3>
-                    {canPostComment ? (
-                      <CommentForm
-                        action={createCommentAction.bind(null, lang, article.id, articleHref)}
-                        initialState={{}}
-                      />
-                    ) : (
-                      <div className="space-y-4">
-                        <p className="text-sm text-muted-foreground leading-relaxed">
-                          {session ? dictionary.wiki.verifyToComment : dictionary.wiki.signInToDiscuss}
-                        </p>
-                        {!session ? (
-                          <Button asChild className="w-full rounded-xl">
-                            <Link href={`${localizeHref(lang, "/auth/sign-in")}?next=${encodeURIComponent(articleHref)}`}>
-                              {dictionary.common.signIn}
-                            </Link>
-                          </Button>
-                        ) : null}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </section>
+            <WikiComments
+              articleId={article.id}
+              articleHref={articleHref}
+              dictionary={dictionary}
+              lang={lang}
+              searchParams={searchParams}
+            />
           </div>
 
           <aside className="hidden lg:block">

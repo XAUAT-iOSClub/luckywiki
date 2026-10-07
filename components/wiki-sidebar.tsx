@@ -44,14 +44,14 @@ import Image from "next/image";
 
 export function WikiSidebar({
   tree,
-  user,
-  isAdmin,
   siteName = "LuckyWiki",
+  adminSlot,
+  accountSlot,
 }: {
   tree: WikiTreeNode;
-  user?: { name: string; email: string; image?: string | null } | null;
-  isAdmin?: boolean;
   siteName?: string;
+  adminSlot?: React.ReactNode;
+  accountSlot?: React.ReactNode;
 }) {
   const pathname = usePathname();
   const locale = useLocale();
@@ -82,21 +82,7 @@ export function WikiSidebar({
       </SidebarHeader>
 
       <SidebarContent>
-        {isAdmin && (
-          <SidebarGroup>
-            <SidebarGroupLabel className="text-[10px] uppercase tracking-widest font-bold opacity-40 group-data-[collapsible=icon]:hidden">{t.wiki.management}</SidebarGroupLabel>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip={t.common.dashboard} isActive={pathname.startsWith(`/${locale}/admin`)}>
-                  <Link href={localizeHref(locale, "/admin")} className="rounded-xl">
-                    <ShieldCheck className="size-4" />
-                    <span className="font-medium">{t.wiki.adminPanel}</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroup>
-        )}
+        {adminSlot}
 
         <SidebarGroup>
           <SidebarGroupLabel className="text-[10px] uppercase tracking-widest font-bold opacity-40 group-data-[collapsible=icon]:hidden">{t.common.platform}</SidebarGroupLabel>
@@ -137,18 +123,53 @@ export function WikiSidebar({
           </SidebarMenuItem>
         </SidebarMenu>
 
-        {user ? (
-          <NavUser user={user} />
-        ) : (
-          <div className="px-2 pb-2 group-data-[collapsible=icon]:hidden">
-            <Button asChild variant="outline" className="w-full h-11 rounded-xl border-border/50 bg-background/50 backdrop-blur-sm shadow-sm hover:bg-background transition-all">
-              <Link href={localizeHref(locale, "/auth/sign-in")}>{t.common.signIn}</Link>
-            </Button>
-          </div>
-        )}
+        {accountSlot}
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>
+  );
+}
+
+export function WikiSidebarAdminNavigation() {
+  const pathname = usePathname();
+  const locale = useLocale();
+  const t = useT();
+
+  return (
+    <SidebarGroup>
+      <SidebarGroupLabel className="text-[10px] uppercase tracking-widest font-bold opacity-40 group-data-[collapsible=icon]:hidden">
+        {t.wiki.management}
+      </SidebarGroupLabel>
+      <SidebarMenu>
+        <SidebarMenuItem>
+          <SidebarMenuButton asChild tooltip={t.common.dashboard} isActive={pathname.startsWith(`/${locale}/admin`)}>
+            <Link href={localizeHref(locale, "/admin")} className="rounded-xl">
+              <ShieldCheck className="size-4" />
+              <span className="font-medium">{t.wiki.adminPanel}</span>
+            </Link>
+          </SidebarMenuButton>
+        </SidebarMenuItem>
+      </SidebarMenu>
+    </SidebarGroup>
+  );
+}
+
+export function WikiSidebarAccount({
+  user,
+}: {
+  user?: { name: string; email: string; image?: string | null } | null;
+}) {
+  const locale = useLocale();
+  const t = useT();
+
+  if (user) return <NavUser user={user} />;
+
+  return (
+    <div className="px-2 pb-2 group-data-[collapsible=icon]:hidden">
+      <Button asChild variant="outline" className="w-full h-11 rounded-xl border-border/50 bg-background/50 backdrop-blur-sm shadow-sm hover:bg-background transition-all">
+        <Link href={localizeHref(locale, "/auth/sign-in")}>{t.common.signIn}</Link>
+      </Button>
+    </div>
   );
 }
 
@@ -265,4 +286,3 @@ function TreeItem({
     </Collapsible>
   );
 }
-

@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  cacheComponents: true,
   transpilePackages: ["@luckyfishes/markdown-core"],
   images: {
     formats: ["image/avif", "image/webp"],

@@ -12,21 +12,10 @@ import {
   getIdentityRateLimit,
   type McpIdentity,
 } from "@/lib/mcp/auth";
-import { checkRateLimit, startRateLimitCleanup } from "@/lib/mcp/rate-limit";
+import { checkRateLimit } from "@/lib/mcp/rate-limit";
 import { createMcpError, MCP_ERRORS } from "@/lib/mcp/errors";
 import { incrementKeyUsage, logMcpCall } from "@/lib/mcp/api-keys";
-
-export const dynamic = "force-dynamic";
-export const runtime = "nodejs";
-
-// 启动限流清理定时器（只执行一次）
-let cleanupStarted = false;
-function ensureCleanup() {
-  if (!cleanupStarted) {
-    startRateLimitCleanup();
-    cleanupStarted = true;
-  }
-}
+import { RateLimitConfigurationError } from "@/lib/rate-limit";
 
 // 内存中的 SSE 会话映射（单实例够用，多实例需 Redis Pub/Sub）
 type SseSession = {
@@ -80,8 +69,6 @@ function extractMethodInfo(req: McpRequest | McpRequest[]): {
  * 支持 Last-Event-ID 重连（客户端断连后自动带上最后收到的 id）
  */
 export async function GET(request: NextRequest) {
-  ensureCleanup();
-
   // 鉴权
   const identity = await validateMcpApiKey(request);
   if (!identity) {
@@ -95,7 +82,15 @@ export async function GET(request: NextRequest) {
   const idKey = getIdentityKey(identity);
   const limit = getIdentityRateLimit(identity);
   if (limit !== null && limit > 0) {
-    const rateCheck = checkRateLimit(idKey, limit, 60 * 60 * 1000);
+    let rateCheck;
+    try {
+      rateCheck = await checkRateLimit(idKey, limit, 60 * 60 * 1000);
+    } catch (error) {
+      if (error instanceof RateLimitConfigurationError) {
+        return rateLimitUnavailableResponse();
+      }
+      throw error;
+    }
     if (!rateCheck.allowed) {
       return new Response(
         JSON.stringify(
@@ -186,8 +181,6 @@ export async function GET(request: NextRequest) {
  * 支持批量请求（JSON-RPC 数组）
  */
 export async function POST(request: NextRequest) {
-  ensureCleanup();
-
   const start = Date.now();
 
   // 鉴权
@@ -203,7 +196,15 @@ export async function POST(request: NextRequest) {
   const idKey = getIdentityKey(identity);
   const limit = getIdentityRateLimit(identity);
   if (limit !== null && limit > 0) {
-    const rateCheck = checkRateLimit(idKey, limit, 60 * 60 * 1000);
+    let rateCheck;
+    try {
+      rateCheck = await checkRateLimit(idKey, limit, 60 * 60 * 1000);
+    } catch (error) {
+      if (error instanceof RateLimitConfigurationError) {
+        return rateLimitUnavailableResponse();
+      }
+      throw error;
+    }
     if (!rateCheck.allowed) {
       // 记录限流日志
       if (identity.type === "api-key") {
@@ -244,7 +245,7 @@ export async function POST(request: NextRequest) {
   const session = sessionId ? sseSessions.get(sessionId) : null;
 
   // 如果有 SSE 会话，通过 SSE 发响应；否则直接在 POST 响应里返回
-  let responses: Array<Record<string, unknown>> = [];
+  const responses: Array<Record<string, unknown>> = [];
   const send = session
     ? session.send
     : (_event: string, data: Record<string, unknown>) => {
@@ -275,7 +276,7 @@ export async function POST(request: NextRequest) {
         ipAddress: getClientIp(request),
       }).catch(() => {});
     }
-  } catch (error) {
+  } catch {
     // handleMcpRequest 内部已经处理了错误并通过 send 发出去了
     // 这里记录错误日志
     if (identity.type === "api-key") {
@@ -307,4 +308,11 @@ export async function POST(request: NextRequest) {
     status: 200,
     headers: { "Content-Type": "application/json" },
   });
+}
+
+function rateLimitUnavailableResponse() {
+  return new Response(
+    JSON.stringify(createMcpError(null, MCP_ERRORS.INTERNAL_ERROR)),
+    { status: 503, headers: { "Content-Type": "application/json" } },
+  );
 }

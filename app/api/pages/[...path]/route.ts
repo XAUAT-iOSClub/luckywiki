@@ -1,12 +1,21 @@
 import { NextResponse } from "next/server";
-import { getPublishedArticleByPath } from "@/lib/articles";
+import {
+  getPublishedArticleByPath,
+  listPublishedArticleComments,
+} from "@/lib/articles";
 
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ path: string[] }> },
 ) {
   const { path } = await params;
   const articlePath = path.join("/");
+  const searchParams = new URL(request.url).searchParams;
+  const commentsPage = Math.max(1, Number.parseInt(searchParams.get("commentsPage") ?? "1", 10) || 1);
+  const commentsPageSize = Math.min(
+    100,
+    Math.max(1, Number.parseInt(searchParams.get("commentsPageSize") ?? "20", 10) || 20),
+  );
 
   try {
     const article = await getPublishedArticleByPath(articlePath);
@@ -18,7 +27,20 @@ export async function GET(
       );
     }
 
-    return NextResponse.json({ data: article });
+    const comments = await listPublishedArticleComments(
+      article.id,
+      commentsPage,
+      commentsPageSize,
+    );
+    return NextResponse.json({
+      data: {
+        ...article,
+        comments: comments.comments,
+        commentsPage: comments.page,
+        totalComments: comments.totalCount,
+        totalCommentPages: comments.totalPages,
+      },
+    });
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to fetch article." },

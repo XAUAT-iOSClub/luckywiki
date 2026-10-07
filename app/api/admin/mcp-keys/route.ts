@@ -2,8 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentSession } from "@/lib/auth/session";
 import { createApiKey, listUserApiKeys, revokeApiKey } from "@/lib/mcp/api-keys";
 
-export const dynamic = "force-dynamic";
-
 // 获取当前用户的所有 MCP API Key
 export async function GET() {
   const session = await getCurrentSession();

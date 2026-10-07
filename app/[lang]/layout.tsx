@@ -10,6 +10,7 @@ import { getDictionary } from "@/lib/i18n/get-dictionary";
 import {
   getIntlLocale,
   hasLocale,
+  locales,
   type Locale,
 } from "@/lib/i18n/config";
 import { I18nProvider } from "@/lib/i18n/provider";
@@ -28,7 +29,9 @@ const fontVariables = {
 
 type LayoutParams = Promise<{ lang: string }>;
 
-export const dynamic = "force-dynamic";
+export function generateStaticParams() {
+  return locales.map((lang) => ({ lang }));
+}
 
 export async function generateMetadata({
   params,

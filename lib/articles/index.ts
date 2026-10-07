@@ -1,7 +1,19 @@
 import { ArticleStatus, CommentStatus } from "@/generated/prisma/enums";
+import { cacheLife, cacheTag } from "next/cache";
+import {
+  articleCacheTag,
+  articleCommentsCacheTag,
+  ARTICLES_CACHE_TAG,
+} from "@/lib/cache-tags";
 import { prisma } from "@/lib/prisma";
 
+export const PUBLIC_COMMENTS_PAGE_SIZE = 20;
+
 export async function listPublishedArticleTreeData() {
+  "use cache";
+  cacheLife("max");
+  cacheTag(ARTICLES_CACHE_TAG);
+
   return prisma.article.findMany({
     where: {
       status: ArticleStatus.PUBLISHED,
@@ -19,6 +31,10 @@ export async function listPublishedArticleTreeData() {
 }
 
 export async function getPublishedArticleByPath(path: string) {
+  "use cache";
+  cacheLife("max");
+  cacheTag(articleCacheTag(path));
+
   return prisma.article.findFirst({
     where: {
       path,
@@ -30,23 +46,45 @@ export async function getPublishedArticleByPath(path: string) {
           name: true,
         },
       },
-      comments: {
-        where: {
-          status: CommentStatus.APPROVED,
-        },
-        orderBy: {
-          createdAt: "asc",
-        },
-        include: {
-          author: {
-            select: {
-              name: true,
-            },
-          },
-        },
-      },
     },
   });
+}
+
+export async function listPublishedArticleComments(
+  articleId: string,
+  page = 1,
+  pageSize = PUBLIC_COMMENTS_PAGE_SIZE,
+) {
+  "use cache";
+  cacheLife("max");
+  cacheTag(articleCommentsCacheTag(articleId));
+
+  const requestedPage = Math.max(1, Math.floor(page) || 1);
+  const normalizedPageSize = Math.min(
+    100,
+    Math.max(1, Math.floor(pageSize) || PUBLIC_COMMENTS_PAGE_SIZE),
+  );
+  const where = { articleId, status: CommentStatus.APPROVED };
+  const totalCount = await prisma.comment.count({ where });
+  const totalPages = Math.max(1, Math.ceil(totalCount / normalizedPageSize));
+  const normalizedPage = Math.min(requestedPage, totalPages);
+  const comments = await prisma.comment.findMany({
+    where,
+    orderBy: { createdAt: "asc" },
+    skip: (normalizedPage - 1) * normalizedPageSize,
+    take: normalizedPageSize,
+    include: {
+      author: { select: { name: true } },
+    },
+  });
+
+  return {
+    comments,
+    page: normalizedPage,
+    pageSize: normalizedPageSize,
+    totalCount,
+    totalPages,
+  };
 }
 
 export async function listAdminArticles(options?: {

@@ -2,8 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentSession } from "@/lib/auth/session";
 import { revokeApiKey } from "@/lib/mcp/api-keys";
 
-export const dynamic = "force-dynamic";
-
 // 撤销（删除）一个 MCP API Key
 export async function DELETE(
   _request: NextRequest,

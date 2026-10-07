@@ -169,6 +169,38 @@ After adding the variables, backfill embeddings for existing published articles:
 npm run agent:index
 ```
 
+### Background embedding jobs
+
+Article create, update, and publish actions enqueue embedding synchronization on
+Vercel Queues, so the editor response no longer waits for chunking or the
+embedding provider. The worker is registered in `vercel.json` as the
+`article-embedding-sync` topic. Link the Vercel project and pull its
+environment before running it locally:
+
+```bash
+vc link
+vc env pull
+```
+
+The queue SDK uses Vercel OIDC and the deployment region automatically in
+production. Retries use exponential backoff and a message is discarded after
+five failed delivery attempts; inspect the Vercel Queue dashboard for failed
+jobs.
+
+### Distributed rate limiting
+
+MCP API keys and anonymous public search requests use a shared Upstash Redis
+sliding window. Configure these server-only variables in every environment:
+
+```bash
+UPSTASH_REDIS_REST_URL=https://your-database.upstash.io
+UPSTASH_REDIS_REST_TOKEN=your-upstash-token
+```
+
+Search is limited to 30 requests per minute per forwarded client IP. MCP keeps
+the configured per-key hourly limit. Production requests fail closed with a
+service-unavailable response if Upstash is not configured.
+
 ### ParadeDB hybrid retrieval
 
 For production search, point `DATABASE_URL` at a ParadeDB instance and apply

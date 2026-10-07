@@ -1,10 +1,15 @@
 import { prisma } from "@/lib/prisma";
 import { extractMarkdownPlainText } from "@/lib/text";
 import { Prisma } from "@/generated/prisma/client";
+import { ArticleStatus } from "@/generated/prisma/enums";
 import { cache } from "react";
 
 const SEARCH_PAGE_SIZE = 10;
+export const MAX_SEARCH_QUERY_LENGTH = 128;
+export const MAX_SEARCH_PAGE_SIZE = 20;
 const EXCERPT_WINDOW = 150;
+
+export class SearchInputError extends Error {}
 
 export type SearchResult = {
   id: string;
@@ -159,16 +164,18 @@ async function searchWithFallback(
   page: number,
   pageSize: number,
 ): Promise<SearchResults> {
-  const articles = await prisma.article.findMany({
-    where: {
-      status: "PUBLISHED",
-      OR: [
-        { title: { contains: query, mode: "insensitive" } },
-        { description: { contains: query, mode: "insensitive" } },
-        { markdown: { contains: query, mode: "insensitive" } },
-        { tags: { has: query } },
-      ],
-    },
+  const where: Prisma.ArticleWhereInput = {
+    status: ArticleStatus.PUBLISHED,
+    OR: [
+      { title: { contains: query, mode: "insensitive" } },
+      { description: { contains: query, mode: "insensitive" } },
+      { markdown: { contains: query, mode: "insensitive" } },
+      { tags: { has: query } },
+    ],
+  };
+  const [articles, totalCount] = await Promise.all([
+    prisma.article.findMany({
+      where,
     select: {
       id: true,
       path: true,
@@ -178,7 +185,12 @@ async function searchWithFallback(
       markdown: true,
       updatedAt: true,
     },
-  });
+      orderBy: [{ updatedAt: "desc" }, { path: "asc" }],
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    }),
+    prisma.article.count({ where }),
+  ]);
 
   const scored = articles
     .map((article) => ({
@@ -193,11 +205,8 @@ async function searchWithFallback(
     }))
     .sort((a, b) => b.score - a.score);
 
-  const totalCount = scored.length;
-  const sliced = scored.slice((page - 1) * pageSize, page * pageSize);
-
   return {
-    results: sliced.map((a) => ({
+    results: scored.map((a) => ({
       ...a,
       excerpt: generateExcerpt(a.markdown, query),
     })),
@@ -302,8 +311,15 @@ export async function searchArticles(options: {
   pageSize?: number;
 }): Promise<SearchResults> {
   const query = options.query.trim();
-  const page = options.page ?? 1;
-  const pageSize = options.pageSize ?? SEARCH_PAGE_SIZE;
+  const page = Math.max(1, Math.floor(options.page ?? 1) || 1);
+  const pageSize = Math.min(
+    MAX_SEARCH_PAGE_SIZE,
+    Math.max(1, Math.floor(options.pageSize ?? SEARCH_PAGE_SIZE) || SEARCH_PAGE_SIZE),
+  );
+
+  if (query.length > MAX_SEARCH_QUERY_LENGTH) {
+    throw new SearchInputError(`Query must be ${MAX_SEARCH_QUERY_LENGTH} characters or fewer.`);
+  }
 
   if (!query) {
     return {

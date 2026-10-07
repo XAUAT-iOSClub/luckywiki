@@ -9,8 +9,6 @@ import { requireAuthorSession } from "@/lib/auth/session";
 
 type Params = Promise<{ lang: string }>;
 
-export const dynamic = "force-dynamic";
-
 export default async function AdminLayout({
   children,
   params,

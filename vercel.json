@@ -1,0 +1,13 @@
+{
+  "functions": {
+    "app/api/queue/article-embedding-sync/route.ts": {
+      "experimentalTriggers": [
+        {
+          "type": "queue/v2beta",
+          "topic": "article-embedding-sync",
+          "retryAfterSeconds": 30
+        }
+      ]
+    }
+  }
+}

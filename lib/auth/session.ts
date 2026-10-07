@@ -1,5 +1,6 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { cache } from "react";
 import type { Locale } from "@/lib/i18n/config";
 import { localizeHref } from "@/lib/i18n/config";
 import { auth } from "@/lib/auth";
@@ -9,11 +10,11 @@ import {
   canManageUsers,
 } from "@/lib/auth/permissions";
 
-export async function getCurrentSession() {
+export const getCurrentSession = cache(async () => {
   return auth.api.getSession({
     headers: await headers(),
   });
-}
+});
 
 export async function requireSession(locale: Locale, nextPath: string) {
   const session = await getCurrentSession();
