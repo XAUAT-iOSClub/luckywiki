@@ -29,7 +29,13 @@ export async function syncArticleEmbeddingsForArticleId(articleId: string) {
   });
 }
 
-export async function reindexAllPublishedArticleEmbeddings() {
+export async function reindexAllPublishedArticleEmbeddings({
+  concurrency = getReindexConcurrency(),
+  onProgress,
+}: {
+  concurrency?: number;
+  onProgress?: (completed: number, total: number) => void;
+} = {}) {
   const articles = await prisma.article.findMany({
     where: { status: ArticleStatus.PUBLISHED },
     select: {
@@ -44,16 +50,32 @@ export async function reindexAllPublishedArticleEmbeddings() {
     },
   });
 
-  const results = [];
+  const results: Array<{ chunkCount: number; skipped: boolean }> = new Array(articles.length);
+  let nextIndex = 0;
+  let completed = 0;
 
-  for (const article of articles) {
-    results.push(
-      await syncArticleEmbeddingsWithRepository({
+  async function worker() {
+    while (true) {
+      const index = nextIndex;
+      nextIndex += 1;
+      const article = articles[index];
+
+      if (!article) {
+        return;
+      }
+
+      results[index] = await syncArticleEmbeddingsWithRepository({
         article,
         repository: prismaAgentChunkRepository,
-      }),
-    );
+      });
+      completed += 1;
+      onProgress?.(completed, articles.length);
+    }
   }
+
+  await Promise.all(
+    Array.from({ length: Math.min(Math.max(1, concurrency), articles.length) }, worker),
+  );
 
   return results;
 }
@@ -146,4 +168,9 @@ function isClosedConnectionError(error: unknown) {
 function positiveMilliseconds(value: string | undefined, fallback: number) {
   const parsed = Number(value);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function getReindexConcurrency() {
+  const parsed = Number(process.env.AGENT_REINDEX_CONCURRENCY);
+  return Number.isInteger(parsed) && parsed > 0 ? Math.min(parsed, 8) : 4;
 }

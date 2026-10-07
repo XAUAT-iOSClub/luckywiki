@@ -1,7 +1,10 @@
 import { ChatOpenAI } from "@langchain/openai";
 import { createAgent as createLangChainAgent } from "langchain";
 import type { AgentChatMessage, AgentToolCallEvent, StreamAgentAnswerInput } from "@/types/agent";
-import { getEmbeddingDimensions } from "@/lib/agent/embedding-dimensions";
+import {
+  getEmbeddingDimensions,
+  getEmbeddingRequestDimensions,
+} from "@/lib/agent/embedding-dimensions";
 import { createWikiAgentTools } from "@/lib/agent/tools";
 import { createWikiQaGraph, type WikiQaGraphInput } from "@/lib/agent/graph";
 import { retrieveRelevantAgentChunks } from "@/lib/agent/search";
@@ -65,16 +68,26 @@ export async function embedTexts(texts: string[], signal?: AbortSignal) {
     return [];
   }
 
-  const response = await fetch(buildOpenAiUrl("/embeddings"), {
-    method: "POST",
-    headers: getOpenAiHeaders(),
-    body: JSON.stringify({
-      model: process.env.OPENAI_EMBEDDING_MODEL ?? "text-embedding-3-small",
-      input: texts,
-      dimensions: getEmbeddingDimensions(),
-    }),
-    signal,
-  });
+  const timeout = AbortSignal.timeout(getEmbeddingTimeoutMs());
+  const requestSignal = signal ? AbortSignal.any([signal, timeout]) : timeout;
+  let response: Response;
+
+  try {
+    response = await fetch(buildOpenAiUrl("/embeddings"), {
+      method: "POST",
+      headers: getOpenAiHeaders(),
+      body: JSON.stringify(buildEmbeddingRequest(texts)),
+      signal: requestSignal,
+    });
+  } catch (error) {
+    if (timeout.aborted && !signal?.aborted) {
+      throw new Error(
+        `OpenAI embeddings request timed out after ${getEmbeddingTimeoutMs()}ms.`,
+        { cause: error },
+      );
+    }
+    throw error;
+  }
 
   if (!response.ok) {
     throw new Error(`OpenAI embeddings request failed: ${await response.text()}`);
@@ -85,6 +98,31 @@ export async function embedTexts(texts: string[], signal?: AbortSignal) {
   };
 
   return payload.data.map((entry) => entry.embedding);
+}
+
+export function buildEmbeddingRequest(
+  texts: string[],
+  env: Partial<NodeJS.ProcessEnv> = process.env,
+) {
+  const dimensions = getEmbeddingRequestDimensions(env);
+  const expectedDimensions = getEmbeddingDimensions(env);
+
+  if (dimensions !== undefined && dimensions !== expectedDimensions) {
+    throw new Error(
+      "OPENAI_EMBEDDING_DIMENSIONS must match AGENT_EMBEDDING_DIMENSIONS.",
+    );
+  }
+
+  return {
+    model: env.OPENAI_EMBEDDING_MODEL ?? "text-embedding-3-small",
+    input: texts,
+    ...(dimensions === undefined ? {} : { dimensions }),
+  };
+}
+
+function getEmbeddingTimeoutMs(env: NodeJS.ProcessEnv = process.env) {
+  const parsed = Number(env.OPENAI_EMBEDDING_TIMEOUT_MS);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 60_000;
 }
 
 const TOOL_LABELS: Record<string, string> = {

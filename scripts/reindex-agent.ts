@@ -3,7 +3,13 @@ import { prisma } from "../lib/prisma";
 import { reindexAllPublishedArticleEmbeddings } from "../lib/agent/index";
 
 async function main() {
-  const results = await reindexAllPublishedArticleEmbeddings();
+  const results = await reindexAllPublishedArticleEmbeddings({
+    onProgress(completed, total) {
+      if (completed === total || completed % 10 === 0) {
+        console.info(`Reindexed ${completed}/${total} published article(s).`);
+      }
+    },
+  });
   const totalChunks = results.reduce((sum, entry) => sum + entry.chunkCount, 0);
   console.info(`Reindexed ${results.length} published article(s) into ${totalChunks} agent chunk(s).`);
 }

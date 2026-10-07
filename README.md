@@ -240,10 +240,16 @@ pnpm prisma migrate deploy
 ```
 
 The vector index stores one 1024-dimensional embedding per chunk. Keep
-`AGENT_EMBEDDING_DIMENSIONS=1024` (the default) and use an embedding provider
-that honors the OpenAI-compatible `dimensions` request field. After deploying
-the embedding-consolidation migration, run `npm run agent:index` once to
-regenerate any legacy chunks that used a different dimension.
+`AGENT_EMBEDDING_DIMENSIONS=1024` (the default). For a gateway whose embedding
+model already returns 1024 dimensions, leave `OPENAI_EMBEDDING_DIMENSIONS`
+unset. For OpenAI `text-embedding-3-*`, set it to `1024` so the API requests a
+matching vector. After deploying the embedding-consolidation migration, run
+`npm run agent:index` once to regenerate any legacy chunks that used a
+different dimension. Set `OPENAI_EMBEDDING_TIMEOUT_MS` if an embedding gateway
+needs a request timeout other than the default 60 seconds. `pnpm agent:index`
+processes four articles in parallel by default; set
+`AGENT_REINDEX_CONCURRENCY` to a value from 1 to 8 if the gateway needs a
+different request rate.
 
 ## Database Seed
 

@@ -1,10 +1,41 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  buildEmbeddingRequest,
   normalizeOpenAiBaseUrl,
   streamAgentAnswer,
   type WikiAgentRuntime,
 } from "@/lib/agent/openai";
+
+test("embedding requests omit dimensions unless the provider supports it", () => {
+  assert.deepEqual(
+    buildEmbeddingRequest(["hello"], {
+      OPENAI_EMBEDDING_MODEL: "bge-m3",
+      AGENT_EMBEDDING_DIMENSIONS: "1024",
+    }),
+    { model: "bge-m3", input: ["hello"] },
+  );
+
+  assert.deepEqual(
+    buildEmbeddingRequest(["hello"], {
+      OPENAI_EMBEDDING_MODEL: "text-embedding-3-small",
+      AGENT_EMBEDDING_DIMENSIONS: "1024",
+      OPENAI_EMBEDDING_DIMENSIONS: "1024",
+    }),
+    { model: "text-embedding-3-small", input: ["hello"], dimensions: 1024 },
+  );
+});
+
+test("embedding request dimensions must match the vector column", () => {
+  assert.throws(
+    () =>
+      buildEmbeddingRequest(["hello"], {
+        AGENT_EMBEDDING_DIMENSIONS: "1024",
+        OPENAI_EMBEDDING_DIMENSIONS: "1536",
+      }),
+    /must match/,
+  );
+});
 
 test("normalizeOpenAiBaseUrl accepts gateway roots and preserves /v1", () => {
   assert.equal(
