@@ -1,4 +1,4 @@
-type AuthEnv = NodeJS.ProcessEnv;
+type AuthEnv = Partial<NodeJS.ProcessEnv>;
 
 export const oidcProviderId = "oidc";
 

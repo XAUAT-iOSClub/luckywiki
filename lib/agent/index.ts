@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { randomUUID } from "node:crypto";
 import { ArticleStatus } from "@/generated/prisma/enums";
 import {
   type AgentChunkRepository,
@@ -76,31 +77,6 @@ const prismaAgentChunkRepository: AgentChunkRepository = {
   },
   async replaceArticleChunks(articleId, records) {
     await replaceChunksWithRetry(articleId, records);
-
-    // Prisma does not expose pgvector as a native scalar. Populate the
-    // indexed column through SQL while retaining JSON for compatibility with
-    // older databases and embedding models.
-    for (const record of records) {
-      const embedding = parseEmbedding(record.embedding);
-
-      if (embedding.length !== embeddingDimensions()) {
-        continue;
-      }
-
-      try {
-        await prisma.$executeRaw`
-          UPDATE "agent_chunks"
-          SET "embedding_vector" = ${JSON.stringify(embedding)}::vector
-          WHERE "article_id" = ${articleId}
-            AND "chunk_index" = ${record.chunkIndex}
-        `;
-      } catch (error) {
-        // The JSON column remains the source of truth until the migration is
-        // applied, so an older database must not fail reindexing altogether.
-        console.warn("[agent] pgvector column unavailable", error);
-        break;
-      }
-    }
   },
 };
 
@@ -121,21 +97,21 @@ async function replaceChunksWithRetry(
     try {
       // ParadeDB deployments commonly sit behind a pooler and can take a few
       // seconds to hand out a transaction. Prisma's default maxWait is 2s.
-      await prisma.$transaction(
-        [
-          prisma.agentChunk.deleteMany({ where: { articleId } }),
-          prisma.agentChunk.createMany({
-            data: records.map((record) => ({
-              articleId,
-              chunkIndex: record.chunkIndex,
-              heading: record.heading,
-              content: record.content,
-              embedding: record.embedding,
-            })),
-          }),
-        ],
-        { maxWait, timeout },
-      );
+      await prisma.$transaction(async (transaction) => {
+        await transaction.agentChunk.deleteMany({ where: { articleId } });
+
+        for (const record of records) {
+          await transaction.$executeRaw`
+            INSERT INTO "agent_chunks" (
+              "id", "article_id", "chunk_index", "heading", "content",
+              "embedding", "created_at", "updated_at"
+            ) VALUES (
+              ${randomUUID()}, ${articleId}, ${record.chunkIndex}, ${record.heading}, ${record.content},
+              ${JSON.stringify(record.embedding)}::vector, NOW(), NOW()
+            )
+          `;
+        }
+      }, { maxWait, timeout });
       return;
     } catch (error) {
       if (attempt === 2 || !isRetryableTransactionError(error)) {
@@ -170,19 +146,4 @@ function isClosedConnectionError(error: unknown) {
 function positiveMilliseconds(value: string | undefined, fallback: number) {
   const parsed = Number(value);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
-}
-
-function embeddingDimensions() {
-  return positiveMilliseconds(process.env.AGENT_EMBEDDING_DIMENSIONS, 1024);
-}
-
-function parseEmbedding(value: string): number[] {
-  try {
-    const parsed = JSON.parse(value) as unknown;
-    return Array.isArray(parsed) && parsed.every((item) => typeof item === "number")
-      ? parsed
-      : [];
-  } catch {
-    return [];
-  }
 }

@@ -34,27 +34,23 @@ export async function retrieveRelevantAgentChunks(query: string) {
     return limitRetrievedChunks(sqlResults, !hasRelevantSemantic);
   }
 
-  const chunks = await prisma.agentChunk.findMany({
-    include: {
-      article: {
-        select: {
-          path: true,
-          title: true,
-          status: true,
-        },
-      },
-    },
-    where: {
-      article: {
-        status: ArticleStatus.PUBLISHED,
-      },
-    },
-  });
+  const chunks = await prisma.$queryRaw<Array<{
+    path: string;
+    title: string;
+    heading: string | null;
+    content: string;
+    embedding: string;
+  }>>`
+    SELECT a.path, a.title, c.heading, c.content, c.embedding::text AS embedding
+    FROM agent_chunks c
+    JOIN articles a ON a.id = c.article_id
+    WHERE a.status = 'PUBLISHED'
+  `;
 
   const ranked = rankChunksBySimilarity(
     chunks.map((chunk) => ({
-      path: chunk.article.path,
-      title: chunk.article.title,
+      path: chunk.path,
+      title: chunk.title,
       heading: chunk.heading,
       content: chunk.content,
       embedding: safeParseEmbedding(chunk.embedding),
@@ -132,11 +128,11 @@ async function retrieveWithParadeDb(
       score: number;
     }>>`
       SELECT c.id, a.path, a.title, c.heading, c.content,
-        1 - (c.embedding_vector <=> ${vector}::vector) AS score
+        1 - (c.embedding <=> ${vector}::vector) AS score
       FROM agent_chunks c
       JOIN articles a ON a.id = c.article_id
-      WHERE a.status = 'PUBLISHED' AND c.embedding_vector IS NOT NULL
-      ORDER BY c.embedding_vector <=> ${vector}::vector
+      WHERE a.status = 'PUBLISHED'
+      ORDER BY c.embedding <=> ${vector}::vector
       LIMIT 24
     `;
 
@@ -271,7 +267,7 @@ const isPgVectorAvailable = cache(async (): Promise<boolean> => {
       SELECT EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'vector')
         AND EXISTS (
           SELECT 1 FROM information_schema.columns
-          WHERE table_name = 'agent_chunks' AND column_name = 'embedding_vector'
+          WHERE table_name = 'agent_chunks' AND column_name = 'embedding'
         ) AS "available"
     `;
     return result[0]?.available ?? false;

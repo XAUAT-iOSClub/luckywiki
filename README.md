@@ -239,9 +239,11 @@ pnpm prisma migrate resolve --rolled-back 20260829090000_paradedb_hybrid_search
 pnpm prisma migrate deploy
 ```
 
-The vector index currently targets 1024-dimensional `BAAI/bge-m3` embeddings.
-Set `AGENT_EMBEDDING_DIMENSIONS` and adjust the migration's `vector(N)` column
-before switching to a model with a different dimension.
+The vector index stores one 1024-dimensional embedding per chunk. Keep
+`AGENT_EMBEDDING_DIMENSIONS=1024` (the default) and use an embedding provider
+that honors the OpenAI-compatible `dimensions` request field. After deploying
+the embedding-consolidation migration, run `npm run agent:index` once to
+regenerate any legacy chunks that used a different dimension.
 
 ## Database Seed
 

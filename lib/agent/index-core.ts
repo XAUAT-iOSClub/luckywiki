@@ -1,12 +1,13 @@
 import { ArticleStatus } from "@/generated/prisma/enums";
 import { buildArticleChunks, type ChunkableArticle } from "@/lib/agent/chunks";
+import { getEmbeddingDimensions } from "@/lib/agent/embedding-dimensions";
 import { embedTexts, isAgentConfigured } from "@/lib/agent/openai";
 
 export type AgentChunkRecord = {
   chunkIndex: number;
   heading: string | null;
   content: string;
-  embedding: string;
+  embedding: number[];
 };
 
 export type AgentChunkRepository = {
@@ -47,12 +48,28 @@ export async function syncArticleEmbeddingsWithRepository({
     ),
   );
 
+  if (embeddings.length !== chunks.length) {
+    throw new Error(
+      `Embedding provider returned ${embeddings.length} vectors for ${chunks.length} chunks.`,
+    );
+  }
+
+  const dimensions = getEmbeddingDimensions();
+
   const records = chunks.map((chunk, index) => ({
+    embedding: embeddings[index] ?? [],
     chunkIndex: chunk.chunkIndex,
     heading: chunk.heading,
     content: chunk.content,
-    embedding: JSON.stringify(embeddings[index] ?? []),
   }));
+
+  for (const record of records) {
+    if (record.embedding.length !== dimensions) {
+      throw new Error(
+        `Embedding provider returned ${record.embedding.length} dimensions; expected ${dimensions}.`,
+      );
+    }
+  }
 
   await repository.replaceArticleChunks(article.id, records);
   return { chunkCount: records.length, skipped: false };

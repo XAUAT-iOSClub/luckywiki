@@ -1,6 +1,7 @@
 import { ChatOpenAI } from "@langchain/openai";
 import { createAgent as createLangChainAgent } from "langchain";
 import type { AgentChatMessage, AgentToolCallEvent, StreamAgentAnswerInput } from "@/types/agent";
+import { getEmbeddingDimensions } from "@/lib/agent/embedding-dimensions";
 import { createWikiAgentTools } from "@/lib/agent/tools";
 import { createWikiQaGraph, type WikiQaGraphInput } from "@/lib/agent/graph";
 import { retrieveRelevantAgentChunks } from "@/lib/agent/search";
@@ -70,6 +71,7 @@ export async function embedTexts(texts: string[], signal?: AbortSignal) {
     body: JSON.stringify({
       model: process.env.OPENAI_EMBEDDING_MODEL ?? "text-embedding-3-small",
       input: texts,
+      dimensions: getEmbeddingDimensions(),
     }),
     signal,
   });

@@ -164,10 +164,10 @@ tabs: ["志愿公益类", "学术科技类"]
   assert.doesNotMatch(html, /<p[^>]*>\[!TIP\]<\/p>/);
 });
 
-test("markdown renderer can render the 社团总览 article with multiple tabs blocks", async () => {
+test("markdown renderer can render a fixture with multiple tabs blocks", async () => {
   const { MarkdownRenderer } = await import("@/components/markdown-renderer");
   const markdown = await readFile(
-    new URL("../articles/社团简介/社团总览.md", import.meta.url),
+    new URL("./fixtures/markdown/multiple-tabs.md", import.meta.url),
     "utf8",
   );
 

@@ -18,7 +18,8 @@ test("syncArticleEmbeddingsWithRepository replaces article chunks after markdown
     },
   };
 
-  const embed = async (texts: string[]) => texts.map((_, index) => [index + 1, 0, 0]);
+  const embed = async (texts: string[]) =>
+    texts.map((_, index) => [index + 1, ...Array.from({ length: 1023 }, () => 0)]);
 
   await syncArticleEmbeddingsWithRepository({
     article: {
