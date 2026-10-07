@@ -1,7 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  buildWikiCategoryHref,
   buildWikiHref,
+  buildWikiTagHref,
   canonicalizePath,
   canonicalizeSlugSegments,
 } from "@/lib/wiki/path";
@@ -31,6 +33,8 @@ test("canonicalizes catch-all slug segments into path", () => {
 test("builds hrefs with encoded segments", () => {
   assert.equal(buildWikiHref("指南/next-16/入门", "zh"), "/zh/wiki/%E6%8C%87%E5%8D%97/next-16/%E5%85%A5%E9%97%A8");
   assert.equal(buildWikiHref("", "en"), "/en/wiki");
+  assert.equal(buildWikiTagHref("C++ & Web", "zh"), "/zh/wiki/tag/C%2B%2B%20%26%20Web");
+  assert.equal(buildWikiCategoryHref("指南", "en"), "/en/wiki/category/%E6%8C%87%E5%8D%97");
 });
 
 test("rejects invalid path segments", () => {

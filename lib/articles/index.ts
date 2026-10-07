@@ -9,6 +9,34 @@ import { prisma } from "@/lib/prisma";
 
 export const PUBLIC_COMMENTS_PAGE_SIZE = 20;
 
+const publicArticleListSelect = {
+  path: true,
+  title: true,
+  description: true,
+  tags: true,
+  publishedAt: true,
+  updatedAt: true,
+} as const;
+
+export type PublishedArticleListItem = {
+  path: string;
+  title: string;
+  description: string | null;
+  tags: string[];
+  publishedAt: Date | null;
+  updatedAt: Date;
+};
+
+export type PublishedSectionSummary = {
+  slug: string;
+  articleCount: number;
+};
+
+export type PublishedTagSummary = {
+  tag: string;
+  articleCount: number;
+};
+
 export async function listPublishedArticleTreeData() {
   "use cache";
   cacheLife("max");
@@ -48,6 +76,76 @@ export async function getPublishedArticleByPath(path: string) {
       },
     },
   });
+}
+
+export async function listPublishedArticlesByTag(tag: string) {
+  "use cache";
+  cacheLife("max");
+  cacheTag(ARTICLES_CACHE_TAG);
+
+  return prisma.article.findMany({
+    where: {
+      status: ArticleStatus.PUBLISHED,
+      tags: { has: tag },
+    },
+    select: publicArticleListSelect,
+    orderBy: [{ updatedAt: "desc" }, { path: "asc" }],
+  });
+}
+
+export async function listPublishedArticlesBySection(section: string) {
+  "use cache";
+  cacheLife("max");
+  cacheTag(ARTICLES_CACHE_TAG);
+
+  return prisma.article.findMany({
+    where: {
+      status: ArticleStatus.PUBLISHED,
+      OR: [
+        { path: section },
+        { path: { startsWith: `${section}/` } },
+      ],
+    },
+    select: publicArticleListSelect,
+    orderBy: [{ updatedAt: "desc" }, { path: "asc" }],
+  });
+}
+
+export async function listPublishedTaxonomy() {
+  "use cache";
+  cacheLife("max");
+  cacheTag(ARTICLES_CACHE_TAG);
+
+  const articles = await prisma.article.findMany({
+    where: { status: ArticleStatus.PUBLISHED },
+    select: {
+      path: true,
+      tags: true,
+    },
+  });
+
+  const sections = new Map<string, number>();
+  const tags = new Map<string, number>();
+
+  for (const article of articles) {
+    const section = article.path.split("/")[0] ?? "";
+    sections.set(section, (sections.get(section) ?? 0) + 1);
+
+    for (const tag of article.tags) {
+      tags.set(tag, (tags.get(tag) ?? 0) + 1);
+    }
+  }
+
+  return {
+    sections: Array.from(sections, ([slug, articleCount]) => ({ slug, articleCount }))
+      .filter((section) => section.slug)
+      .sort((left, right) => right.articleCount - left.articleCount || left.slug.localeCompare(right.slug)),
+    tags: Array.from(tags, ([tag, articleCount]) => ({ tag, articleCount }))
+      .sort((left, right) => right.articleCount - left.articleCount || left.tag.localeCompare(right.tag)),
+  } satisfies {
+    sections: PublishedSectionSummary[];
+    tags: PublishedTagSummary[];
+  };
 }
 
 export async function listPublishedArticleComments(

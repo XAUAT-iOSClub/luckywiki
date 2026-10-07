@@ -1,8 +1,8 @@
 import type { MetadataRoute } from "next";
 import { getSiteUrl } from "@/lib/site";
 import { localizeHref, locales, getIntlLocale } from "@/lib/i18n/config";
-import { listPublishedArticleTreeData } from "@/lib/articles";
-import { buildWikiHref } from "@/lib/wiki/path";
+import { listPublishedArticleTreeData, listPublishedTaxonomy } from "@/lib/articles";
+import { buildWikiCategoryHref, buildWikiHref, buildWikiTagHref } from "@/lib/wiki/path";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const siteUrl = getSiteUrl();
@@ -28,10 +28,25 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         ),
       },
     });
+
+    for (const taxonomyPath of ["/wiki/tag", "/wiki/category"]) {
+      entries.push({
+        url: `${siteUrl}${localizeHref(locale, taxonomyPath)}`,
+        changeFrequency: "weekly",
+        alternates: {
+          languages: Object.fromEntries(
+            locales.map((l) => [getIntlLocale(l), `${siteUrl}${localizeHref(l, taxonomyPath)}`]),
+          ),
+        },
+      });
+    }
   }
 
   try {
-    const articles = await listPublishedArticleTreeData();
+    const [articles, taxonomy] = await Promise.all([
+      listPublishedArticleTreeData(),
+      listPublishedTaxonomy(),
+    ]);
 
     for (const article of articles) {
       for (const locale of locales) {
@@ -46,6 +61,42 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
               locales.map((l) => [
                 getIntlLocale(l),
                 `${siteUrl}${buildWikiHref(article.path, l)}`,
+              ]),
+            ),
+          },
+        });
+      }
+    }
+
+    for (const section of taxonomy.sections) {
+      for (const locale of locales) {
+        const categoryPath = buildWikiCategoryHref(section.slug, locale);
+        entries.push({
+          url: `${siteUrl}${categoryPath}`,
+          changeFrequency: "weekly",
+          alternates: {
+            languages: Object.fromEntries(
+              locales.map((l) => [
+                getIntlLocale(l),
+                `${siteUrl}${buildWikiCategoryHref(section.slug, l)}`,
+              ]),
+            ),
+          },
+        });
+      }
+    }
+
+    for (const tag of taxonomy.tags) {
+      for (const locale of locales) {
+        const tagPath = buildWikiTagHref(tag.tag, locale);
+        entries.push({
+          url: `${siteUrl}${tagPath}`,
+          changeFrequency: "weekly",
+          alternates: {
+            languages: Object.fromEntries(
+              locales.map((l) => [
+                getIntlLocale(l),
+                `${siteUrl}${buildWikiTagHref(tag.tag, l)}`,
               ]),
             ),
           },

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
+import Link from "next/link";
 import { Calendar } from "lucide-react";
 import { MarkdownRenderer } from "@/components/markdown-renderer";
 import { WikiHtmlRenderer } from "@/components/wiki-html-renderer";
@@ -9,7 +10,12 @@ import { getPublishedArticleByPath } from "@/lib/articles";
 import { getDictionary } from "@/lib/i18n/get-dictionary";
 import { formatDate } from "@/lib/i18n/format";
 import { hasLocale, localizeHref } from "@/lib/i18n/config";
-import { buildWikiHref, canonicalizeSlugSegments } from "@/lib/wiki/path";
+import {
+  buildWikiCategoryHref,
+  buildWikiHref,
+  buildWikiTagHref,
+  canonicalizeSlugSegments,
+} from "@/lib/wiki/path";
 import { buildArticleMetadata } from "@/lib/metadata";
 import { ArticleJsonLd, BreadcrumbListJsonLd } from "@/lib/structured-data";
 import { WikiComments } from "@/components/wiki-comments";
@@ -85,6 +91,7 @@ export default async function WikiArticlePage({
   }
 
   const articleHref = buildWikiHref(article.path, lang);
+  const category = article.path.split("/")[0] ?? "";
   const publishedDate = article.publishedAt
     ? formatDate(lang, article.publishedAt, {
       month: "long",
@@ -111,10 +118,15 @@ export default async function WikiArticlePage({
 
             {article.tags.length > 0 ? (
               article.tags.map((tag) => (
-                <Badge key={tag} variant="secondary">
-                  {tag}
+                <Badge key={tag} asChild variant="secondary">
+                  <Link href={buildWikiTagHref(tag, lang)}>{tag}</Link>
                 </Badge>
               ))
+            ) : null}
+            {category ? (
+              <Badge asChild variant="outline">
+                <Link href={buildWikiCategoryHref(category, lang)}>{category}</Link>
+              </Badge>
             ) : null}
           </div>
         </header>

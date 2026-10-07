@@ -40,6 +40,14 @@ export function buildWikiHref(path: string, locale: Locale) {
   return localizeHref(locale, `/wiki/${encoded.join("/")}`);
 }
 
+export function buildWikiTagHref(tag: string, locale: Locale) {
+  return localizeHref(locale, `/wiki/tag/${encodeURIComponent(tag)}`);
+}
+
+export function buildWikiCategoryHref(category: string, locale: Locale) {
+  return localizeHref(locale, `/wiki/category/${encodeURIComponent(category)}`);
+}
+
 export function getWikiPathFromPathname(pathname: string) {
   const nonLocalizedPath = stripLocaleFromPathname(pathname);
 

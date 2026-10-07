@@ -6,7 +6,9 @@ import {
   ChevronRight,
   FileText,
   Folder,
+  FolderTree,
   ShieldCheck,
+  Tags,
 } from "lucide-react";
 
 import {
@@ -99,6 +101,40 @@ export function WikiSidebar({
         </SidebarGroup>
 
         <SidebarGroup>
+          <SidebarGroupLabel className="text-[10px] uppercase tracking-widest font-bold opacity-40 group-data-[collapsible=icon]:hidden">
+            {t.common.taxonomy}
+          </SidebarGroupLabel>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                asChild
+                isActive={isPathInSection(pathname, localizeHref(locale, "/wiki/category"))}
+                tooltip={t.common.sections}
+                className="rounded-xl"
+              >
+                <Link href={localizeHref(locale, "/wiki/category")}>
+                  <FolderTree className="size-4 text-muted-foreground" />
+                  <span className="font-medium">{t.common.sections}</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                asChild
+                isActive={isPathInSection(pathname, localizeHref(locale, "/wiki/tag"))}
+                tooltip={t.common.tags}
+                className="rounded-xl"
+              >
+                <Link href={localizeHref(locale, "/wiki/tag")}>
+                  <Tags className="size-4 text-muted-foreground" />
+                  <span className="font-medium">{t.common.tags}</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarGroup>
+
+        <SidebarGroup>
           <SidebarGroupLabel className="text-[10px] uppercase tracking-widest font-bold opacity-40 group-data-[collapsible=icon]:hidden">{t.common.articles}</SidebarGroupLabel>
           <SidebarMenu>
             <TreeNav
@@ -171,6 +207,10 @@ export function WikiSidebarAccount({
       </Button>
     </div>
   );
+}
+
+function isPathInSection(pathname: string, sectionPath: string) {
+  return pathname === sectionPath || pathname.startsWith(`${sectionPath}/`);
 }
 
 function TreeNav({
