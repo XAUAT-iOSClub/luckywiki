@@ -51,7 +51,8 @@ export async function generateMetadata({
   return buildArticleMetadata(
     {
       title: article.title,
-          markdown: article.markdown,
+      markdown: article.markdown,
+      description: article.description,
       path: article.path,
       tags: article.tags,
       publishedAt: article.publishedAt,
@@ -107,6 +108,12 @@ export default async function WikiArticlePage({
           <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-balance text-foreground">
             {article.title}
           </h1>
+
+          {article.description?.trim() ? (
+            <p className="text-pretty text-lg leading-relaxed text-muted-foreground">
+              {article.description.trim()}
+            </p>
+          ) : null}
 
           <div className="flex flex-wrap items-center gap-6 text-sm text-muted-foreground">
             {publishedDate ? (
@@ -165,6 +172,7 @@ export default async function WikiArticlePage({
         article={{
           title: article.title,
           markdown: article.markdown,
+          description: article.description,
           path: article.path,
           publishedAt: article.publishedAt,
           updatedAt: article.updatedAt,

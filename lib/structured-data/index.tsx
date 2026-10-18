@@ -2,7 +2,7 @@ import { getIntlLocale, localizeHref, type Locale } from "@/lib/i18n/config";
 import { buildWikiHref, splitPath } from "@/lib/wiki/path";
 import { getSiteSettings, getSiteUrl } from "@/lib/site";
 import { getDictionary } from "@/lib/i18n/get-dictionary";
-import { extractMarkdownDescription } from "@/lib/text";
+import { resolveArticleDescription } from "@/lib/text";
 
 function jsonLd<T>(data: T) {
   return (
@@ -46,6 +46,7 @@ export async function ArticleJsonLd({
   article: {
     title: string;
     markdown: string;
+    description?: string | null;
     path: string;
     publishedAt?: Date | null;
     updatedAt?: Date;
@@ -61,9 +62,8 @@ export async function ArticleJsonLd({
   ]);
   const articleUrl = `${siteUrl}${buildWikiHref(article.path, locale)}`;
 
-  const description = article.markdown
-    ? extractMarkdownDescription(article.markdown)
-    : "";
+  const description =
+    resolveArticleDescription(article.description, article.markdown) || undefined;
 
   const data = {
     "@context": "https://schema.org",

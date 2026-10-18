@@ -2,11 +2,12 @@ import type { Metadata } from "next";
 import { getSiteSettings, getSiteUrl } from "@/lib/site";
 import { locales, getIntlLocale, localizeHref, type Locale } from "@/lib/i18n/config";
 import { buildWikiHref } from "@/lib/wiki/path";
-import { extractMarkdownDescription } from "@/lib/text";
+import { resolveArticleDescription } from "@/lib/text";
 
 type ArticleMetadataInput = {
   title: string;
   markdown: string;
+  description?: string | null;
   path: string;
   tags?: string[];
   publishedAt?: Date | null;
@@ -54,7 +55,10 @@ export async function buildArticleMetadata(
   const siteUrl = getSiteUrl();
   const siteSettings = await getSiteSettings();
   const siteName = siteSettings.siteName;
-  const description = extractMarkdownDescription(article.markdown);
+  const description = resolveArticleDescription(
+    article.description,
+    article.markdown,
+  );
   const ogImage = getOgImageUrl(article.title, lang);
   const articlePath = buildWikiHref(article.path, lang as Locale);
   const { canonical, languages } = buildAlternates(articlePath, lang);

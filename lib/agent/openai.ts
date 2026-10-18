@@ -8,34 +8,18 @@ import {
 import { createWikiAgentTools } from "@/lib/agent/tools";
 import { createWikiQaGraph, type WikiQaGraphInput } from "@/lib/agent/graph";
 import { retrieveRelevantAgentChunks } from "@/lib/agent/search";
+import {
+  buildOpenAiUrl,
+  defaultApiBaseUrl,
+  getOpenAiHeaders,
+  isOpenAiConfigured,
+  normalizeOpenAiBaseUrl,
+} from "@/lib/openai/base-url";
 
 export type { AgentChatMessage, AgentToolCallEvent, StreamAgentAnswerInput } from "@/types/agent";
+export { normalizeOpenAiBaseUrl };
 
-const defaultApiBaseUrl = "https://api.openai.com/v1";
 const defaultResponsesModel = "gpt-4.1-mini";
-
-/**
- * OpenAI-compatible gateways are commonly configured with either their root
- * URL or the complete `/v1` API URL. Keep both forms working for the SDK and
- * the direct embeddings request.
- */
-export function normalizeOpenAiBaseUrl(value: string) {
-  const trimmed = value.trim().replace(/\/+$/, "");
-
-  if (!trimmed) {
-    return defaultApiBaseUrl;
-  }
-
-  const url = new URL(trimmed);
-
-  if (url.pathname === "") {
-    url.pathname = "/v1";
-  } else if (url.pathname === "/") {
-    url.pathname = "/v1";
-  }
-
-  return url.toString().replace(/\/$/, "");
-}
 
 export type WikiAgentRuntime = {
   createAgent: (input: {
@@ -60,7 +44,7 @@ type WikiAgentLike = {
 };
 
 export function isAgentConfigured(env: NodeJS.ProcessEnv = process.env) {
-  return Boolean(env.OPENAI_API_KEY);
+  return isOpenAiConfigured(env);
 }
 
 export async function embedTexts(texts: string[], signal?: AbortSignal) {
@@ -340,26 +324,6 @@ function buildSystemPrompt(
     "Available wiki context:",
     contextText,
   ].join("\n");
-}
-
-function buildOpenAiUrl(pathname: string) {
-  const baseUrl = normalizeOpenAiBaseUrl(process.env.OPENAI_API_BASE_URL ?? defaultApiBaseUrl);
-  const normalizedBase = baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`;
-  const normalizedPath = pathname.startsWith("/") ? pathname.slice(1) : pathname;
-  return new URL(normalizedPath, normalizedBase).toString();
-}
-
-function getOpenAiHeaders() {
-  const apiKey = process.env.OPENAI_API_KEY;
-
-  if (!apiKey) {
-    throw new Error("OPENAI_API_KEY is not set.");
-  }
-
-  return {
-    "Content-Type": "application/json",
-    Authorization: `Bearer ${apiKey}`,
-  };
 }
 
 function extractTextChunk(chunk: unknown): string {
