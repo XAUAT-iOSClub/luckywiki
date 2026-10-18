@@ -1124,7 +1124,7 @@ lib/agent/openai.ts → LangGraph 图（lib/agent/graph.ts）
 
 | 变量 | 默认 | 说明 |
 |---|---|---|
-| `OPENAI_API_KEY` | 空 | 未设置时 Agent/嵌入不可用 |
+| `OPENAI_API_KEY` | 空 | 未设置时 Agent/嵌入/摘要不可用 |
 | `OPENAI_RESPONSES_MODEL` | `gpt-4.1-mini` | 聊天模型 |
 | `OPENAI_EMBEDDING_MODEL` | `text-embedding-3-small` | 嵌入模型 |
 | `OPENAI_API_BASE_URL` | `https://api.openai.com/v1` | 兼容网关；根 URL 会自动补 `/v1` |
@@ -1655,6 +1655,7 @@ article-comments:{articleId}  // 单篇评论
 | 创建/更新文章 | `articles`、新旧 `article:{path}`、`article-comments:{id}`；revalidate `/wiki` 与文章 URL |
 | 发布/转草稿 | 同上 |
 | 审核评论 | `article-comments:{id}`；revalidate 管理页与文章 URL |
+| AI 摘要生成（仅生成） | 不失效缓存（不写数据库）；用户保存文章时按“创建/更新文章”处理 |
 | 更新个人资料 | revalidate `/settings`、`/wiki`、`/agent`（双语） |
 | 导入文章 | 不主动失效；脚本流程通常需要重新部署或手动 revalidate（导入后重索引只影响向量） |
 
