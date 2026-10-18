@@ -89,7 +89,7 @@ LuckyWiki 是一个 **以 Markdown 为核心、按路径组织内容、支持中
 | 限流 | Upstash Redis + `@upstash/ratelimit` | 搜索 / MCP 分布式滑动窗口 |
 | 队列 | `@vercel/queue` | 文章嵌入异步同步 |
 | 邮件 | Resend HTTP API（可选） | 验证邮件；未配置时打印到日志 |
-| 测试 | Node `node:test` + `tsx` | 21 个测试文件（含 `article-summary.test.ts`） |
+| 测试 | Node `node:test` + `tsx` | 22 个测试文件（含 `article-summary.test.ts`） |
 | 包管理 | pnpm 11.20.0 | `pnpm-workspace.yaml` 控制依赖构建脚本 |
 
 ---
@@ -185,7 +185,7 @@ luckywiki/
 └──────────────────────────────────────────────────────────────────┘
         │                    │                   │
    OpenAI / 网关        Upstash Redis        Vercel Blob / S3
-   （聊天 + 嵌入）       （分布式限流）        （图片）
+   （聊天/摘要 + 嵌入）  （分布式限流）        （图片）
                          Vercel Queue（嵌入同步）/ Resend（邮件）
 ```
 
@@ -1544,7 +1544,7 @@ JSON-RPC 入口校验：必须 `jsonrpc === "2.0"`、`method` 为字符串、`id
 | 字段 | 类型 | 说明 |
 |---|---|---|
 | `title` | string | 覆盖正文 H1 |
-| `description` | string | 描述 |
+| `description` | string | 摘要/描述（与编辑器 `Article.description` 同一字段） |
 | `published` | boolean | 覆盖 CLI 的默认状态 |
 | `date` | string/Date | 覆盖发布时间 |
 | `tags` | string 或 string[] | 标签 |
@@ -1554,6 +1554,7 @@ JSON-RPC 入口校验：必须 `jsonrpc === "2.0"`、`method` 为字符串、`id
 - 未知字段只警告，不失败；
 - 类型错误（如 `published: yes`、非法日期）直接失败；
 - 正文第一个 `# H1` 会被提取为标题并从正文移除；
+- **导入会用 frontmatter 的 `description` 覆盖已有摘要**；如果希望保留编辑器里 AI 生成的摘要，请在 frontmatter 中保留对应内容或导入后重新生成。
 - 没有 H1 时按路径最后一段生成人类可读标题（`next-16` → `Next 16`；根路径 → `Home`）。
 
 **写入策略**
@@ -2090,7 +2091,7 @@ pnpm agent:index
 | `lib/mcp/api-keys.ts` | Key 生成/校验/撤销/统计 |
 | `lib/mcp/rate-limit.ts` | MCP 限流封装 |
 | `lib/mcp/errors.ts` | JSON-RPC 错误 |
-| `lib/search.ts` | 三级搜索与摘要 |
+| `lib/search.ts` | 三级搜索与结果摘要（excerpt） |
 | `lib/text.ts` | Markdown 纯文本、描述/摘要截断工具 |
 | `lib/image-hosting.ts` | Blob/S3 上传 |
 | `lib/embedding-queue.ts` | 队列投递 |
