@@ -6,29 +6,21 @@ import { RestoreRevisionForm } from "@/components/admin/restore-revision-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
   Pagination,
   PaginationContent,
-  PaginationEllipsis,
   PaginationItem,
-  PaginationLink,
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+  AdminEmpty,
+  AdminList,
+  AdminListRow,
+  AdminPage,
+  AdminPageHeader,
+  AdminPanel,
+  StatusDot,
+} from "@/components/admin/admin-ui";
 import { getArticleById } from "@/lib/articles";
 import {
   ARTICLE_REVISIONS_PAGE_SIZE,
@@ -77,198 +69,163 @@ export default async function ArticleHistoryPage({
   const labels = dictionary.admin.revisionHistory;
 
   return (
-    <div className="flex flex-col gap-6 p-4 md:p-8 md:pt-6">
-      <section className="surface-panel">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div className="space-y-3">
-            <p className="eyebrow">{labels.eyebrow}</p>
-            <div className="space-y-2">
-              <h1 className="text-3xl font-semibold tracking-tight">
-                {article.title}
-              </h1>
-              <p className="max-w-3xl text-sm leading-7 text-muted-foreground">
-                {labels.description}
-              </p>
-            </div>
-            <p className="font-mono text-xs text-muted-foreground">
-              {article.path}
-            </p>
-          </div>
-          <Button asChild className="rounded-full px-6" variant="outline">
+    <AdminPage>
+      <AdminPageHeader
+        actions={
+          <Button asChild size="sm" variant="outline">
             <Link href={editorHref}>
-              <ArrowLeft />
+              <ArrowLeft data-icon="inline-start" />
               {labels.backToArticle}
             </Link>
           </Button>
-        </div>
-      </section>
+        }
+        description={
+          <span className="block space-y-1">
+            <span className="block">{labels.description}</span>
+            <span className="block font-mono text-[11.5px] text-muted-foreground/80">
+              /{article.path}
+            </span>
+          </span>
+        }
+        title={article.title}
+      />
 
-      <Card className="admin-card">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <History className="size-5 text-primary" />
+      <AdminPanel
+        description={
+          totalCount === 0
+            ? labels.noRevisions
+            : `${formatTemplate(labels.totalVersions, {
+                count: String(totalCount),
+              })} · ${pageLabel(page, totalPages)}`
+        }
+        title={
+          <span className="inline-flex items-center gap-2">
+            <History className="size-4 text-muted-foreground" />
             {labels.history}
-          </CardTitle>
-          <CardDescription>
-            {totalCount === 0
-              ? labels.noRevisions
-              : `${formatTemplate(labels.totalVersions, {
-                  count: String(totalCount),
-                })} · ${labels.revisionsDescription}`}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="p-0">
-          {revisions.length === 0 ? (
-            <div className="border-t border-dashed p-8 text-center text-sm text-muted-foreground">
-              {labels.noRevisions}
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="pl-6">{labels.versionColumn}</TableHead>
-                  <TableHead>{dictionary.common.title}</TableHead>
-                  <TableHead className="hidden md:table-cell">
-                    {dictionary.common.author}
-                  </TableHead>
-                  <TableHead className="hidden sm:table-cell">
-                    {dictionary.common.time}
-                  </TableHead>
-                  <TableHead className="pr-6 text-right">
-                    {dictionary.common.action}
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {revisions.map((revision, index) => {
-                  const version =
-                    totalCount - ((page - 1) * pageSize + index);
-                  const isLatest = version === totalCount;
-                  const diffHref = localizeHref(
-                    lang,
-                    `/admin/articles/${article.id}/history/${revision.id}`,
-                  );
+          </span>
+        }
+      >
+        {revisions.length === 0 ? (
+          <AdminEmpty
+            description={labels.noRevisions}
+            icon={History}
+            title={labels.noRevisions}
+          />
+        ) : (
+          <AdminList>
+            {revisions.map((revision, index) => {
+              const version = totalCount - ((page - 1) * pageSize + index);
+              const isLatest = version === totalCount;
+              const diffHref = localizeHref(
+                lang,
+                `/admin/articles/${article.id}/history/${revision.id}`,
+              );
 
-                  return (
-                    <TableRow key={revision.id}>
-                      <TableCell className="pl-6 py-4">
-                        <div className="flex flex-wrap items-center gap-1.5">
-                          <Badge
-                            className="font-mono text-[10px]"
-                            variant="outline"
-                          >
-                            {formatTemplate(labels.version, {
-                              version: String(version),
-                            })}
-                          </Badge>
-                          {isLatest ? (
-                            <Badge className="text-[10px]" variant="secondary">
-                              {labels.latest}
-                            </Badge>
-                          ) : null}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Link
-                          className="font-medium text-sm transition-colors hover:text-primary"
-                          href={diffHref}
-                        >
-                          {revision.title || article.title}
-                        </Link>
-                      </TableCell>
-                      <TableCell className="hidden md:table-cell">
-                        <p className="text-xs font-medium">
-                          {revision.author.name || revision.author.email}
-                        </p>
-                        <p className="text-[10px] text-muted-foreground">
-                          {revision.author.email}
-                        </p>
-                      </TableCell>
-                      <TableCell className="hidden whitespace-nowrap text-xs text-muted-foreground sm:table-cell">
+              return (
+                <AdminListRow key={revision.id}>
+                  <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-4 gap-y-2 md:grid-cols-[84px_minmax(0,1fr)_160px_auto] md:items-center">
+                    <div className="flex items-center gap-2 md:block">
+                      <Badge className="font-mono" variant="outline">
+                        {formatTemplate(labels.version, {
+                          version: String(version),
+                        })}
+                      </Badge>
+                      {isLatest ? (
+                        <StatusDot className="md:mt-1.5" tone="info">
+                          {labels.latest}
+                        </StatusDot>
+                      ) : null}
+                    </div>
+
+                    <div className="col-span-2 min-w-0 md:col-span-1">
+                      <Link
+                        className="truncate text-[13.5px] font-medium text-foreground transition-colors hover:text-primary"
+                        href={diffHref}
+                      >
+                        {revision.title || article.title}
+                      </Link>
+                      <p className="mt-0.5 text-[11.5px] text-muted-foreground md:hidden">
+                        {revision.author.name || revision.author.email}
+                        <span className="px-1.5 text-border">·</span>
                         {formatDateTime(lang, revision.createdAt)}
-                      </TableCell>
-                      <TableCell className="pr-6">
-                        <div className="flex flex-col items-end gap-2">
-                          <Button asChild size="sm" variant="ghost">
-                            <Link href={diffHref}>
-                              <FileDiff className="size-3.5" />
-                              {labels.viewDiff}
-                            </Link>
-                          </Button>
-                          {!isLatest ? (
-                            <RestoreRevisionForm
-                              action={restoreArticleRevisionAction.bind(
-                                null,
-                                article.id,
-                                lang,
-                              )}
-                              label={labels.restore}
-                              revisionId={revision.id}
-                            />
-                          ) : null}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          )}
+                      </p>
+                    </div>
 
-          {totalPages > 1 ? (
-            <div className="border-t p-4">
-              <Pagination className="justify-end">
-                <PaginationContent>
-                  <PaginationItem>
-                    <PaginationPrevious
-                      className={
-                        page === 1 ? "pointer-events-none opacity-40" : ""
-                      }
-                      href={
-                        page > 1
-                          ? buildHistoryHref(lang, article.id, page - 1)
-                          : "#"
-                      }
-                    />
-                  </PaginationItem>
-                  {buildPageNumbers(page, totalPages).map((pageNumber, index) =>
-                    pageNumber === "ellipsis" ? (
-                      <PaginationItem key={`ellipsis-${index}`}>
-                        <PaginationEllipsis />
-                      </PaginationItem>
-                    ) : (
-                      <PaginationItem key={pageNumber}>
-                        <PaginationLink
-                          href={buildHistoryHref(lang, article.id, pageNumber)}
-                          isActive={pageNumber === page}
-                        >
-                          {pageNumber}
-                        </PaginationLink>
-                      </PaginationItem>
-                    ),
-                  )}
-                  <PaginationItem>
-                    <PaginationNext
-                      className={
-                        page === totalPages
-                          ? "pointer-events-none opacity-40"
-                          : ""
-                      }
-                      href={
-                        page < totalPages
-                          ? buildHistoryHref(lang, article.id, page + 1)
-                          : "#"
-                      }
-                    />
-                  </PaginationItem>
-                </PaginationContent>
-              </Pagination>
-            </div>
-          ) : null}
-        </CardContent>
-      </Card>
-    </div>
+                    <div className="hidden min-w-0 md:block">
+                      <p className="truncate text-[12px] text-foreground/80">
+                        {revision.author.name || revision.author.email}
+                      </p>
+                      <p className="mt-0.5 text-[11.5px] text-muted-foreground">
+                        {formatDateTime(lang, revision.createdAt)}
+                      </p>
+                    </div>
+
+                    <div className="col-span-2 flex items-center justify-end gap-1 md:col-span-1">
+                      <Button asChild size="sm" variant="ghost">
+                        <Link href={diffHref}>
+                          <FileDiff data-icon="inline-start" />
+                          {labels.viewDiff}
+                        </Link>
+                      </Button>
+                      {!isLatest ? (
+                        <RestoreRevisionForm
+                          action={restoreArticleRevisionAction.bind(
+                            null,
+                            article.id,
+                            lang,
+                          )}
+                          label={labels.restore}
+                          revisionId={revision.id}
+                        />
+                      ) : null}
+                    </div>
+                  </div>
+                </AdminListRow>
+              );
+            })}
+          </AdminList>
+        )}
+
+        {totalPages > 1 ? (
+          <div className="flex items-center justify-between gap-3 border-t border-border/60 px-5 py-3">
+            <p className="text-[12px] text-muted-foreground">
+              {pageLabel(page, totalPages)}
+            </p>
+            <Pagination className="mx-0 w-auto justify-end">
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious
+                    className={page === 1 ? "pointer-events-none opacity-40" : ""}
+                    href={
+                      page > 1
+                        ? buildHistoryHref(lang, article.id, page - 1)
+                        : "#"
+                    }
+                  />
+                </PaginationItem>
+                <PaginationItem>
+                  <PaginationNext
+                    className={
+                      page === totalPages ? "pointer-events-none opacity-40" : ""
+                    }
+                    href={
+                      page < totalPages
+                        ? buildHistoryHref(lang, article.id, page + 1)
+                        : "#"
+                    }
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          </div>
+        ) : null}
+      </AdminPanel>
+    </AdminPage>
   );
+}
+
+function pageLabel(page: number, totalPages: number) {
+  return `${page} / ${Math.max(totalPages, 1)}`;
 }
 
 function getSingleParam(
@@ -282,35 +239,4 @@ function getSingleParam(
 function buildHistoryHref(locale: "zh" | "en", articleId: string, page: number) {
   const search = page > 1 ? `?page=${page}` : "";
   return localizeHref(locale, `/admin/articles/${articleId}/history${search}`);
-}
-
-function buildPageNumbers(currentPage: number, totalPages: number) {
-  if (totalPages <= 7) {
-    return Array.from({ length: totalPages }, (_, index) => index + 1);
-  }
-
-  if (currentPage <= 3) {
-    return [1, 2, 3, 4, "ellipsis", totalPages] as const;
-  }
-
-  if (currentPage >= totalPages - 2) {
-    return [
-      1,
-      "ellipsis",
-      totalPages - 3,
-      totalPages - 2,
-      totalPages - 1,
-      totalPages,
-    ] as const;
-  }
-
-  return [
-    1,
-    "ellipsis",
-    currentPage - 1,
-    currentPage,
-    currentPage + 1,
-    "ellipsis",
-    totalPages,
-  ] as const;
 }

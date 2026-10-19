@@ -64,11 +64,12 @@ export function ThemeSwitcher({className}: {className?: string}) {
     }
 
     return (
-        <Tabs value={mounted ? theme : undefined} className={cn("items-center w-full", className)}>
-            <TabsList>
+        <Tabs value={mounted ? theme : undefined} className={cn("w-auto items-center", className)}>
+            <TabsList className="h-7 p-0.5">
                 <TabsTrigger
                     value="light"
                     aria-label={t.common.lightTheme}
+                    className="px-1.5"
                     onClick={(e) => toggleTheme("light", e)}
                 >
                     <Sun className="size-4" />
@@ -76,6 +77,7 @@ export function ThemeSwitcher({className}: {className?: string}) {
                 <TabsTrigger
                     value="system"
                     aria-label={t.common.systemTheme}
+                    className="px-1.5"
                     onClick={(e) => toggleTheme("system", e)}
                 >
                     <MonitorSmartphone className="size-4" />
@@ -83,6 +85,7 @@ export function ThemeSwitcher({className}: {className?: string}) {
                 <TabsTrigger
                     value="dark"
                     aria-label={t.common.darkTheme}
+                    className="px-1.5"
                     onClick={(e) => toggleTheme("dark", e)}
                 >
                     <Moon className="size-4" />

@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { notFound } from "next/navigation";
+import { FileText, MessageSquare } from "lucide-react";
 import { CommentStatus } from "@/generated/prisma/enums";
 import { approveCommentAction, rejectCommentAction } from "@/app/actions/admin";
 import { listCommentsForModeration } from "@/lib/comments";
@@ -6,19 +8,20 @@ import { buildWikiHref } from "@/lib/wiki/path";
 import { formatDateTime, formatTemplate } from "@/lib/i18n/format";
 import { getDictionary } from "@/lib/i18n/get-dictionary";
 import { hasLocale, localizeHref } from "@/lib/i18n/config";
-import { notFound } from "next/navigation";
 import { requireRootSession } from "@/lib/auth/session";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Card, CardContent } from "@/components/ui/card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import {
+  AdminEmpty,
+  AdminList,
+  AdminListRow,
+  AdminPage,
+  AdminPageHeader,
+  AdminPanel,
+  StatusDot,
+  type StatusTone,
+} from "@/components/admin/admin-ui";
+import { cn } from "@/lib/utils";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 type Params = Promise<{ lang: string }>;
@@ -53,115 +56,141 @@ export default async function AdminCommentsPage({
   );
 
   return (
-    <div className="space-y-6 p-4 md:p-8 md:pt-6">
-      <section className="surface-panel">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div>
-            <p className="eyebrow">{dictionary.admin.commentsEyebrow}</p>
-            <h2 className="text-3xl font-semibold tracking-tight">{dictionary.admin.moderateFeedback}</h2>
-          </div>
-          <div className="flex flex-wrap gap-2 text-sm">
+    <AdminPage>
+      <AdminPageHeader
+        description={dictionary.admin.moderateFeedback}
+        title={dictionary.common.comments}
+      />
+
+      <AdminPanel
+        action={
+          <nav
+            aria-label={dictionary.common.status}
+            className="inline-flex items-center gap-0.5 rounded-md border border-border/70 bg-muted/40 p-0.5"
+          >
             {moderationFilters.map((filter) => {
               const href = filter.value
                 ? localizeHref(lang, `/admin/comments?status=${filter.value}`)
                 : localizeHref(lang, "/admin/comments");
-              const active = currentStatus === filter.value || (!currentStatus && !filter.value);
+              const active =
+                currentStatus === filter.value || (!currentStatus && !filter.value);
 
               return (
-                <Button
+                <Link
                   key={filter.label}
-                  variant={active ? "default" : "outline"}
-                  size="sm"
-                  asChild
-                  className="rounded-full"
+                  aria-current={active ? "page" : undefined}
+                  className={cn(
+                    "rounded-[5px] px-2.5 py-1 text-[12px] transition-colors",
+                    active
+                      ? "bg-card font-medium text-foreground"
+                      : "text-muted-foreground hover:text-foreground",
+                  )}
+                  href={href}
                 >
-                  <Link href={href}>{filter.label}</Link>
-                </Button>
+                  {filter.label}
+                </Link>
               );
             })}
-          </div>
-        </div>
-      </section>
+          </nav>
+        }
+        description={dictionary.admin.moderateFeedback}
+        title={dictionary.common.comments}
+      >
+        {comments.length === 0 ? (
+          <AdminEmpty
+            description={dictionary.admin.noCommentsForFilter}
+            icon={MessageSquare}
+            title={dictionary.admin.noCommentsForFilter}
+          />
+        ) : (
+          <AdminList>
+            {comments.map((comment) => (
+              <AdminListRow key={comment.id}>
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                  <div className="flex min-w-0 gap-3">
+                    <Avatar className="size-8 shrink-0 rounded-md">
+                      <AvatarImage
+                        alt={comment.author.name}
+                        src={comment.author.image || ""}
+                      />
+                      <AvatarFallback className="rounded-md text-[11px]">
+                        {comment.author.name.slice(0, 2).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
 
-      <Card className="admin-card">
-        <CardContent className="p-0">
-          {comments.length === 0 ? (
-            <div className="p-8 text-center text-sm text-muted-foreground">
-              {dictionary.admin.noCommentsForFilter}
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="pl-6 w-[200px]">{dictionary.common.author}</TableHead>
-                  <TableHead>{dictionary.common.comments}</TableHead>
-                  <TableHead>{dictionary.common.articles}</TableHead>
-                  <TableHead>{dictionary.common.status}</TableHead>
-                  <TableHead className="pr-6 text-right">{dictionary.common.action}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {comments.map((comment) => (
-                  <TableRow key={comment.id}>
-                    <TableCell className="pl-6 align-top py-4">
-                      <div className="space-y-1">
-                        <p className="font-medium text-sm">{comment.author.name}</p>
-                        <p className="text-xs text-muted-foreground truncate max-w-[180px]">
-                          {comment.author.email}
+                    <div className="min-w-0 space-y-1.5">
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                        <p className="text-[12.5px] font-medium text-foreground">
+                          {comment.author.name}
                         </p>
-                        <p className="text-[10px] text-muted-foreground">
+                        <StatusDot
+                          tone={getCommentStatusTone(comment.status)}
+                        >
+                          {getCommentStatusLabel(comment.status, dictionary)}
+                        </StatusDot>
+                        <span className="text-[11.5px] text-muted-foreground">
                           {formatDateTime(lang, comment.createdAt)}
-                        </p>
+                        </span>
                       </div>
-                    </TableCell>
-                    <TableCell className="align-top py-4 min-w-[300px]">
-                      <div className="space-y-2">
-                        <p className="text-sm leading-6 whitespace-pre-wrap">{comment.body}</p>
-                        {comment.approver ? (
-                          <p className="text-[10px] text-muted-foreground italic">
-                            {formatTemplate(dictionary.admin.moderatedBy, {
-                              name: comment.approver.name,
-                              date: comment.approvedAt ? formatDateTime(lang, comment.approvedAt) : "",
-                            })}
-                          </p>
-                        ) : null}
-                      </div>
-                    </TableCell>
-                    <TableCell className="align-top py-4">
+
+                      <p className="whitespace-pre-wrap text-[13.5px] leading-6 text-foreground/85">
+                        {comment.body}
+                      </p>
+
                       <Link
-                        className="text-xs text-primary hover:underline font-medium block max-w-[200px] truncate"
+                        className="inline-flex items-center gap-1.5 text-[12px] text-muted-foreground transition-colors hover:text-foreground"
                         href={buildWikiHref(comment.article.path, lang)}
                       >
+                        <FileText className="size-3" />
                         {comment.article.title}
                       </Link>
-                    </TableCell>
-                    <TableCell className="align-top py-4">
-                      <Badge variant={comment.status === CommentStatus.APPROVED ? "default" : comment.status === CommentStatus.REJECTED ? "destructive" : "secondary"}>
-                        {getCommentStatusLabel(comment.status, dictionary)}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="pr-6 text-right align-top py-4">
-                      <div className="flex justify-end gap-2">
-                        <form action={approveCommentAction.bind(null, lang, comment.id)}>
-                          <Button size="sm" type="submit" variant="ghost" disabled={comment.status === CommentStatus.APPROVED}>
-                            {dictionary.admin.approve}
-                          </Button>
-                        </form>
-                        <form action={rejectCommentAction.bind(null, lang, comment.id)}>
-                          <Button size="sm" type="submit" variant="ghost" disabled={comment.status === CommentStatus.REJECTED}>
-                            {dictionary.admin.reject}
-                          </Button>
-                        </form>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+
+                      {comment.approver ? (
+                        <p className="text-[11.5px] text-muted-foreground">
+                          {formatTemplate(dictionary.admin.moderatedBy, {
+                            name: comment.approver.name,
+                            date: comment.approvedAt
+                              ? formatDateTime(lang, comment.approvedAt)
+                              : "",
+                          })}
+                        </p>
+                      ) : null}
+                    </div>
+                  </div>
+
+                  <div className="flex shrink-0 items-center gap-1.5 lg:pl-4">
+                    <form
+                      action={approveCommentAction.bind(null, lang, comment.id)}
+                    >
+                      <Button
+                        disabled={comment.status === CommentStatus.APPROVED}
+                        size="sm"
+                        type="submit"
+                        variant="outline"
+                      >
+                        {dictionary.admin.approve}
+                      </Button>
+                    </form>
+                    <form
+                      action={rejectCommentAction.bind(null, lang, comment.id)}
+                    >
+                      <Button
+                        disabled={comment.status === CommentStatus.REJECTED}
+                        size="sm"
+                        type="submit"
+                        variant="ghost"
+                      >
+                        {dictionary.admin.reject}
+                      </Button>
+                    </form>
+                  </div>
+                </div>
+              </AdminListRow>
+            ))}
+          </AdminList>
+        )}
+      </AdminPanel>
+    </AdminPage>
   );
 }
 
@@ -171,6 +200,17 @@ function getSingleSearchParam(
 ) {
   const value = searchParams[key];
   return Array.isArray(value) ? value[0] : value;
+}
+
+function getCommentStatusTone(status: CommentStatus): StatusTone {
+  switch (status) {
+    case CommentStatus.APPROVED:
+      return "success";
+    case CommentStatus.REJECTED:
+      return "danger";
+    default:
+      return "warning";
+  }
 }
 
 function getCommentStatusLabel(

@@ -1,6 +1,14 @@
-import type { ReactNode } from "react";
 import Link from "next/link";
-import { ExternalLink, Filter, History, Plus, Search } from "lucide-react";
+import { notFound } from "next/navigation";
+import {
+  ExternalLink,
+  FileText,
+  History,
+  Plus,
+  Search,
+  X,
+} from "lucide-react";
+import type { ReactNode } from "react";
 import { ArticleStatus } from "@/generated/prisma/enums";
 import { setArticleStatusAction } from "@/app/actions/admin";
 import { listAdminTaxonomy } from "@/lib/admin";
@@ -8,30 +16,26 @@ import { listAdminArticles } from "@/lib/articles";
 import { buildWikiHref } from "@/lib/wiki/path";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { StatCard } from "@/components/admin/stat-card";
 import { Input } from "@/components/ui/input";
 import {
   Pagination,
   PaginationContent,
-  PaginationEllipsis,
   PaginationItem,
-  PaginationLink,
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+  AdminEmpty,
+  AdminList,
+  AdminListRow,
+  AdminPage,
+  AdminPageHeader,
+  AdminPanel,
+  StatusDot,
+} from "@/components/admin/admin-ui";
 import { formatDateTime, formatNumber, formatTemplate } from "@/lib/i18n/format";
 import { getDictionary } from "@/lib/i18n/get-dictionary";
 import { hasLocale, localizeHref, type Locale } from "@/lib/i18n/config";
-import { notFound } from "next/navigation";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 type Params = Promise<{ lang: string }>;
@@ -79,364 +83,310 @@ export default async function AdminArticlesPage({
   ]);
 
   const activeFilterCount = [query, status, tag, section].filter(Boolean).length;
+  const pageLabel = formatTemplate(dictionary.admin.showingPage, {
+    current: formatNumber(lang, currentPage),
+    total: formatNumber(lang, Math.max(totalPages, 1)),
+  });
 
   return (
-    <div className="flex flex-col gap-6 p-4 md:p-8 md:pt-6">
-      <section className="surface-panel">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div className="space-y-3">
-            <p className="eyebrow">{dictionary.admin.articleLibrary}</p>
-            <div className="space-y-2">
-              <h1 className="text-3xl font-semibold tracking-tight">{dictionary.common.articles}</h1>
-              <p className="max-w-3xl text-sm leading-7 text-muted-foreground">
-                {dictionary.admin.filterArticlesDescription}
-              </p>
-            </div>
-          </div>
-          <Button asChild className="rounded-full px-6">
+    <AdminPage>
+      <AdminPageHeader
+        actions={
+          <Button asChild size="sm">
             <Link href={localizeHref(lang, "/admin/articles/new")}>
               <Plus data-icon="inline-start" />
               {dictionary.admin.createArticle}
             </Link>
           </Button>
-        </div>
-      </section>
+        }
+        description={dictionary.admin.filterArticlesDescription}
+        title={dictionary.common.articles}
+      />
 
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <StatCard
-          detail={
-            activeFilterCount > 0
-              ? formatTemplate(dictionary.admin.metrics.activeFilters, {
-                  count: formatNumber(lang, activeFilterCount),
-                })
-              : dictionary.admin.metrics.allArticles
-          }
-          title={dictionary.admin.metrics.results}
-          value={totalCount}
-        />
-        <StatCard
-          detail={dictionary.admin.metrics.acrossAllSections}
-          title={dictionary.admin.metrics.drafts}
-          value={taxonomy.sections.reduce((count, item) => count + item.draftArticles, 0)}
-        />
-        <StatCard
-          detail={dictionary.admin.metrics.visibleOnWiki}
-          title={dictionary.admin.metrics.published}
-          value={taxonomy.sections.reduce((count, item) => count + item.publishedArticles, 0)}
-        />
-        <StatCard
-          detail={formatTemplate(dictionary.admin.metrics.sectionsInUse, {
-            count: formatNumber(lang, taxonomy.sections.length),
-          })}
-          title={dictionary.admin.metrics.tags}
-          value={taxonomy.tags.length}
-        />
-      </section>
-
-      <Card className="admin-card">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Filter className="size-5 text-primary" />
-            {dictionary.admin.filterArticles}
-          </CardTitle>
-          <CardDescription>{dictionary.admin.filterArticlesDescription}</CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-4">
-          <form className="grid gap-4 lg:grid-cols-[minmax(0,1.3fr)_repeat(3,minmax(0,1fr))_auto]">
-            <label className="flex flex-col gap-1.5 text-sm font-medium">
-              <span>{dictionary.common.search}</span>
-              <div className="relative">
-                <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  className="pl-8"
-                  defaultValue={query}
-                  name="q"
-                  placeholder={dictionary.admin.searchPlaceholder}
-                />
-              </div>
-            </label>
-            <label className="flex flex-col gap-1.5 text-sm font-medium">
-              <span>{dictionary.common.status}</span>
-              <select
-                className="select-native"
-                defaultValue={status ?? ""}
-                name="status"
-              >
-                {statusOptions.map((option) => (
-                  <option key={option.label} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="flex flex-col gap-1.5 text-sm font-medium">
-              <span>{dictionary.common.tag}</span>
-              <select
-                className="select-native"
-                defaultValue={tag}
-                name="tag"
-              >
-                <option value="">{dictionary.common.allTags}</option>
-                {taxonomy.tags.slice(0, 100).map((item) => (
-                  <option key={item.tag} value={item.tag}>
-                    {item.tag}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="flex flex-col gap-1.5 text-sm font-medium">
-              <span>{dictionary.common.section}</span>
-              <select
-                className="select-native"
-                defaultValue={section}
-                name="section"
-              >
-                <option value="">{dictionary.common.allSections}</option>
-                {taxonomy.sections.map((item) => (
-                  <option key={item.slug || "root"} value={item.slug}>
-                    {item.slug ? item.label : dictionary.common.root}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <div className="flex items-end gap-3">
-              <Button type="submit">{dictionary.common.apply}</Button>
-              {activeFilterCount > 0 ? (
-                <Button variant="outline" asChild>
-                  <Link href={localizeHref(lang, "/admin/articles")}>{dictionary.common.reset}</Link>
-                </Button>
-              ) : null}
-            </div>
-          </form>
-
-          <div className="flex flex-wrap gap-2">
-            {status ? (
-              <ActiveFilter href={buildArticleHref(lang, { q: query, tag, section })}>
-                {dictionary.common.status.toLowerCase()}: {getStatusLabel(status, dictionary)}
-              </ActiveFilter>
-            ) : null}
-            {tag ? (
-              <ActiveFilter href={buildArticleHref(lang, { q: query, status, section })}>
-                {dictionary.common.tag.toLowerCase()}: {tag}
-              </ActiveFilter>
-            ) : null}
-            {section ? (
-              <ActiveFilter href={buildArticleHref(lang, { q: query, status, tag })}>
-                {dictionary.common.section.toLowerCase()}: {section}
-              </ActiveFilter>
-            ) : null}
-            {query ? (
-              <ActiveFilter href={buildArticleHref(lang, { status, tag, section })}>
-                {dictionary.common.search.toLowerCase()}: {query}
-              </ActiveFilter>
+      <AdminPanel
+        description={
+          totalCount === 0
+            ? dictionary.admin.noArticlesMatchFilters
+            : `${formatTemplate(dictionary.admin.articlesCount, {
+                count: formatNumber(lang, totalCount),
+              })} · ${pageLabel}`
+        }
+        title={dictionary.admin.articleLibrary}
+      >
+        <form className="flex flex-col gap-2 border-b border-border/60 px-5 py-3 lg:flex-row lg:items-center">
+          <div className="relative min-w-0 flex-1 lg:max-w-xs">
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              aria-label={dictionary.common.search}
+              className="h-8 pl-8"
+              defaultValue={query}
+              name="q"
+              placeholder={dictionary.admin.searchPlaceholder}
+            />
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <select
+              aria-label={dictionary.common.status}
+              className="select-native w-auto"
+              defaultValue={status ?? ""}
+              name="status"
+            >
+              {statusOptions.map((option) => (
+                <option key={option.label} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+            <select
+              aria-label={dictionary.common.tag}
+              className="select-native w-auto"
+              defaultValue={tag}
+              name="tag"
+            >
+              <option value="">{dictionary.common.allTags}</option>
+              {taxonomy.tags.slice(0, 100).map((item) => (
+                <option key={item.tag} value={item.tag}>
+                  {item.tag}
+                </option>
+              ))}
+            </select>
+            <select
+              aria-label={dictionary.common.section}
+              className="select-native w-auto"
+              defaultValue={section}
+              name="section"
+            >
+              <option value="">{dictionary.common.allSections}</option>
+              {taxonomy.sections.map((item) => (
+                <option key={item.slug || "root"} value={item.slug}>
+                  {item.slug ? item.label : dictionary.common.root}
+                </option>
+              ))}
+            </select>
+            <Button size="sm" type="submit">
+              {dictionary.common.apply}
+            </Button>
+            {activeFilterCount > 0 ? (
+              <Button asChild size="sm" variant="ghost">
+                <Link href={localizeHref(lang, "/admin/articles")}>
+                  {dictionary.common.reset}
+                </Link>
+              </Button>
             ) : null}
           </div>
-        </CardContent>
-      </Card>
+        </form>
 
-      <Card className="admin-card">
-        <CardHeader>
-          <CardTitle>{dictionary.admin.articleLibrary}</CardTitle>
-          <CardDescription>
-            {totalCount === 0
-              ? dictionary.admin.noArticlesMatchFilters
-              : formatTemplate(dictionary.admin.showingPage, {
-                  current: formatNumber(lang, currentPage),
-                  total: formatNumber(lang, Math.max(totalPages, 1)),
-                })}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="p-0">
-          {articles.length === 0 ? (
-            <div className="p-8 text-center text-sm text-muted-foreground border-t border-dashed">
-              {dictionary.admin.noArticlesFound}
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="pl-6">{dictionary.common.articles}</TableHead>
-                  <TableHead>{dictionary.common.status}</TableHead>
-                  <TableHead>{dictionary.common.tags}</TableHead>
-                  <TableHead>{dictionary.admin.authorLine.split(" · ")[0].replace("{author}", dictionary.common.author)}</TableHead>
-                  <TableHead className="pr-6 text-right">{dictionary.common.action}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {articles.map((article) => {
-                  const targetStatus =
-                    article.status === ArticleStatus.PUBLISHED
-                      ? ArticleStatus.DRAFT
-                      : ArticleStatus.PUBLISHED;
+        {activeFilterCount > 0 ? (
+          <div className="flex flex-wrap items-center gap-1.5 border-b border-border/60 bg-muted/20 px-5 py-2.5">
+            {status ? (
+              <ActiveFilter
+                href={buildArticleHref(lang, { q: query, tag, section })}
+                label={`${dictionary.common.status}: ${getStatusLabel(status, dictionary)}`}
+              />
+            ) : null}
+            {tag ? (
+              <ActiveFilter
+                href={buildArticleHref(lang, { q: query, status, section })}
+                label={`${dictionary.common.tag}: ${tag}`}
+              />
+            ) : null}
+            {section ? (
+              <ActiveFilter
+                href={buildArticleHref(lang, { q: query, status, tag })}
+                label={`${dictionary.common.section}: ${section}`}
+              />
+            ) : null}
+            {query ? (
+              <ActiveFilter
+                href={buildArticleHref(lang, { status, tag, section })}
+                label={`${dictionary.common.search}: ${query}`}
+              />
+            ) : null}
+          </div>
+        ) : null}
 
-                  return (
-                    <TableRow key={article.id}>
-                      <TableCell className="pl-6 py-4">
-                        <div className="space-y-1">
+        {articles.length === 0 ? (
+          <AdminEmpty
+            action={
+              activeFilterCount > 0 ? (
+                <Button asChild size="sm" variant="outline">
+                  <Link href={localizeHref(lang, "/admin/articles")}>
+                    {dictionary.common.reset}
+                  </Link>
+                </Button>
+              ) : null
+            }
+            description={dictionary.admin.noArticlesFound}
+            icon={FileText}
+            title={dictionary.admin.noArticlesMatchFilters}
+          />
+        ) : (
+          <AdminList>
+            {articles.map((article) => {
+              const targetStatus =
+                article.status === ArticleStatus.PUBLISHED
+                  ? ArticleStatus.DRAFT
+                  : ArticleStatus.PUBLISHED;
+
+              return (
+                <AdminListRow key={article.id}>
+                  <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 md:grid-cols-[minmax(0,1fr)_96px_auto]">
+                    <div className="col-span-2 min-w-0 md:col-span-1">
+                      <Link
+                        className="block truncate text-[13.5px] font-medium text-foreground transition-colors hover:text-primary"
+                        href={localizeHref(lang, `/admin/articles/${article.id}`)}
+                      >
+                        {article.title}
+                      </Link>
+                      <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11.5px] text-muted-foreground">
+                        <span className="truncate font-mono">/{article.path}</span>
+                        {article.tags.slice(0, 3).map((item) => (
                           <Link
-                            href={localizeHref(lang, `/admin/articles/${article.id}`)}
-                            className="font-medium hover:text-primary transition-colors block"
-                          >
-                            {article.title}
-                          </Link>
-                          <p className="font-mono text-xs text-muted-foreground">/{article.path}</p>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={article.status === ArticleStatus.PUBLISHED ? "default" : "secondary"}
-                        >
-                          {getStatusLabel(article.status, dictionary)}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-wrap gap-1 max-w-[200px]">
-                          {article.tags.map((item) => (
-                            <Link
-                              key={item}
-                              href={buildArticleHref(lang, { q: query, status, section, tag: item })}
-                            >
-                              <Badge variant={item === tag ? "default" : "outline"} className="text-[10px] px-1.5 py-0 h-5">
-                                {item}
-                              </Badge>
-                            </Link>
-                          ))}
-                          {article.tags.length === 0 ? (
-                            <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-5 text-muted-foreground">{dictionary.admin.untagged}</Badge>
-                          ) : null}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="text-xs space-y-0.5">
-                          <p className="font-medium">{article.author.name}</p>
-                          <p className="text-muted-foreground">{formatDateTime(lang, article.updatedAt)}</p>
-                        </div>
-                      </TableCell>
-                      <TableCell className="pr-6 text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button variant="ghost" size="sm" asChild>
-                            <Link href={localizeHref(lang, `/admin/articles/${article.id}`)}>
-                              {dictionary.common.editArticle}
-                            </Link>
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            asChild
-                            title={dictionary.admin.revisionHistory.history}
-                          >
-                            <Link
-                              aria-label={dictionary.admin.revisionHistory.history}
-                              href={localizeHref(
-                                lang,
-                                `/admin/articles/${article.id}/history`,
-                              )}
-                            >
-                              <History className="size-3.5" />
-                            </Link>
-                          </Button>
-                          {article.status === ArticleStatus.PUBLISHED ? (
-                            <Button variant="ghost" size="sm" asChild>
-                              <Link href={buildWikiHref(article.path, lang)} target="_blank">
-                                <ExternalLink className="size-3.5" />
-                              </Link>
-                            </Button>
-                          ) : null}
-                          <form action={setArticleStatusAction.bind(null, lang, article.id, targetStatus)}>
-                            <Button type="submit" variant="ghost" size="sm">
-                              {article.status === ArticleStatus.PUBLISHED
-                                ? dictionary.admin.moveToDraft
-                                : dictionary.admin.publishNow}
-                            </Button>
-                          </form>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          )}
-
-          {totalPages > 1 ? (
-            <div className="p-4 border-t">
-              <Pagination className="justify-end">
-                <PaginationContent>
-                  <PaginationItem>
-                    <PaginationPrevious
-                      href={
-                        currentPage > 1
-                          ? buildArticleHref(lang, {
+                            key={item}
+                            className="transition-colors hover:text-foreground"
+                            href={buildArticleHref(lang, {
                               q: query,
                               status,
-                              tag,
                               section,
-                              page: currentPage - 1,
-                            })
-                          : "#"
+                              tag: item,
+                            })}
+                          >
+                            #{item}
+                          </Link>
+                        ))}
+                        {article.tags.length === 0 ? (
+                          <span>{dictionary.admin.untagged}</span>
+                        ) : null}
+                      </div>
+                      <p className="mt-0.5 truncate text-[11.5px] text-muted-foreground">
+                        {article.author.name}
+                        <span className="px-1.5 text-border">·</span>
+                        {formatDateTime(lang, article.updatedAt)}
+                      </p>
+                    </div>
+
+                    <StatusDot
+                      tone={
+                        article.status === ArticleStatus.PUBLISHED
+                          ? "success"
+                          : "muted"
                       }
-                      className={currentPage === 1 ? "pointer-events-none opacity-40" : ""}
-                    />
-                  </PaginationItem>
-                  {buildPageNumbers(currentPage, totalPages).map((pageNumber, index) =>
-                    pageNumber === "ellipsis" ? (
-                      <PaginationItem key={`ellipsis-${index}`}>
-                        <PaginationEllipsis />
-                      </PaginationItem>
-                    ) : (
-                      <PaginationItem key={pageNumber}>
-                        <PaginationLink
-                          href={buildArticleHref(lang, {
+                    >
+                      {getStatusLabel(article.status, dictionary)}
+                    </StatusDot>
+
+                    <div className="flex items-center justify-end gap-0.5">
+                      <form
+                        action={setArticleStatusAction.bind(
+                          null,
+                          lang,
+                          article.id,
+                          targetStatus,
+                        )}
+                      >
+                        <Button
+                          className="text-[11.5px] text-muted-foreground hover:text-foreground"
+                          size="sm"
+                          type="submit"
+                          variant="ghost"
+                        >
+                          {article.status === ArticleStatus.PUBLISHED
+                            ? dictionary.admin.moveToDraft
+                            : dictionary.admin.publishNow}
+                        </Button>
+                      </form>
+                      <Button asChild size="icon-xs" variant="ghost">
+                        <Link
+                          aria-label={dictionary.admin.revisionHistory.history}
+                          href={localizeHref(
+                            lang,
+                            `/admin/articles/${article.id}/history`,
+                          )}
+                          title={dictionary.admin.revisionHistory.history}
+                        >
+                          <History />
+                        </Link>
+                      </Button>
+                      {article.status === ArticleStatus.PUBLISHED ? (
+                        <Button asChild size="icon-xs" variant="ghost">
+                          <Link
+                            aria-label={dictionary.common.viewLive}
+                            href={buildWikiHref(article.path, lang)}
+                            target="_blank"
+                            title={dictionary.common.viewLive}
+                          >
+                            <ExternalLink />
+                          </Link>
+                        </Button>
+                      ) : null}
+                    </div>
+                  </div>
+                </AdminListRow>
+              );
+            })}
+          </AdminList>
+        )}
+
+        {totalPages > 1 ? (
+          <div className="flex items-center justify-between gap-3 border-t border-border/60 px-5 py-3">
+            <p className="text-[12px] text-muted-foreground">{pageLabel}</p>
+            <Pagination className="mx-0 w-auto justify-end">
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious
+                    href={
+                      currentPage > 1
+                        ? buildArticleHref(lang, {
                             q: query,
                             status,
                             tag,
                             section,
-                            page: pageNumber,
-                          })}
-                          isActive={pageNumber === currentPage}
-                        >
-                          {pageNumber}
-                        </PaginationLink>
-                      </PaginationItem>
-                    ),
-                  )}
-                  <PaginationItem>
-                    <PaginationNext
-                      href={
-                        currentPage < totalPages
-                          ? buildArticleHref(lang, {
-                              q: query,
-                              status,
-                              tag,
-                              section,
-                              page: currentPage + 1,
-                            })
-                          : "#"
-                      }
-                      className={currentPage === totalPages ? "pointer-events-none opacity-40" : ""}
-                    />
-                  </PaginationItem>
-                </PaginationContent>
-              </Pagination>
-            </div>
-          ) : null}
-        </CardContent>
-      </Card>
-    </div>
+                            page: currentPage - 1,
+                          })
+                        : "#"
+                    }
+                    className={
+                      currentPage === 1 ? "pointer-events-none opacity-40" : ""
+                    }
+                  />
+                </PaginationItem>
+                <PaginationItem>
+                  <PaginationNext
+                    href={
+                      currentPage < totalPages
+                        ? buildArticleHref(lang, {
+                            q: query,
+                            status,
+                            tag,
+                            section,
+                            page: currentPage + 1,
+                          })
+                        : "#"
+                    }
+                    className={
+                      currentPage === totalPages
+                        ? "pointer-events-none opacity-40"
+                        : ""
+                    }
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          </div>
+        ) : null}
+      </AdminPanel>
+    </AdminPage>
   );
 }
 
-function ActiveFilter({
-  href,
-  children,
-}: {
-  href: string;
-  children: ReactNode;
-}) {
+function ActiveFilter({ href, label }: { href: string; label: ReactNode }) {
   return (
-    <Link href={href}>
-      <Badge variant="secondary">{children} x</Badge>
-    </Link>
+    <Badge asChild variant="secondary">
+      <Link className="gap-1.5" href={href}>
+        {label}
+        <X className="size-3 opacity-60" />
+      </Link>
+    </Badge>
   );
 }
 
@@ -466,42 +416,16 @@ function buildArticleHref(
 ) {
   const nextSearchParams = new URLSearchParams();
 
-  if (q) {
-    nextSearchParams.set("q", q);
-  }
-  if (status) {
-    nextSearchParams.set("status", status);
-  }
-  if (tag) {
-    nextSearchParams.set("tag", tag);
-  }
-  if (section) {
-    nextSearchParams.set("section", section);
-  }
-  if (page && page > 1) {
-    nextSearchParams.set("page", String(page));
-  }
+  if (q) nextSearchParams.set("q", q);
+  if (status) nextSearchParams.set("status", status);
+  if (tag) nextSearchParams.set("tag", tag);
+  if (section) nextSearchParams.set("section", section);
+  if (page && page > 1) nextSearchParams.set("page", String(page));
 
   const search = nextSearchParams.toString();
   return search
     ? localizeHref(locale, `/admin/articles?${search}`)
     : localizeHref(locale, "/admin/articles");
-}
-
-function buildPageNumbers(currentPage: number, totalPages: number) {
-  if (totalPages <= 7) {
-    return Array.from({ length: totalPages }, (_, index) => index + 1);
-  }
-
-  if (currentPage <= 3) {
-    return [1, 2, 3, 4, "ellipsis", totalPages] as const;
-  }
-
-  if (currentPage >= totalPages - 2) {
-    return [1, "ellipsis", totalPages - 3, totalPages - 2, totalPages - 1, totalPages] as const;
-  }
-
-  return [1, "ellipsis", currentPage - 1, currentPage, currentPage + 1, "ellipsis", totalPages] as const;
 }
 
 function getStatusLabel(

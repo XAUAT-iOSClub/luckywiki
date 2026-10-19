@@ -17,6 +17,7 @@ export async function listCommentsForModeration(status?: CommentStatus) {
           id: true,
           name: true,
           email: true,
+          image: true,
         },
       },
       approver: {

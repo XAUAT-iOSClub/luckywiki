@@ -8,7 +8,6 @@ import {
   LayoutDashboard,
   MessageSquare,
   ScrollText,
-  Settings,
   Users,
   View,
 } from "lucide-react";
@@ -147,10 +146,16 @@ export function AppSidebar({
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
               <Link href={localizeHref(locale, "/admin")}>
-                <Image src="/favicon.png" alt={siteName} width={32} height={32} />
-                <div className="grid flex-1 text-left text-sm leading-tight md:ml-1">
-                  <span className="truncate font-semibold text-lg tracking-tight">{siteName}</span>
-                  <span className="truncate text-xs opacity-70">{t.admin.control}</span>
+                <Image
+                  alt={siteName}
+                  className="size-7 shrink-0 rounded-md"
+                  height={28}
+                  src="/favicon.png"
+                  width={28}
+                />
+                <div className="grid flex-1 text-left leading-tight">
+                  <span className="truncate text-[15px] font-semibold tracking-[-0.01em]">{siteName}</span>
+                  <span className="truncate text-[11px] text-muted-foreground">{t.admin.control}</span>
                 </div>
               </Link>
             </SidebarMenuButton>
@@ -166,20 +171,12 @@ export function AppSidebar({
         </React.Suspense>
       </SidebarContent>
       <SidebarFooter>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <div className="px-2 group-data-[collapsible=icon]:hidden">
-              <React.Suspense fallback={null}>
-                <LocaleSwitcher className="w-full justify-center group-data-[collapsible=icon]:hidden" />
-              </React.Suspense>
-            </div>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <div className="px-1 group-data-[collapsible=icon]:hidden">
-              <ThemeSwitcher/>
-            </div>
-          </SidebarMenuItem>
-        </SidebarMenu>
+        <div className="flex items-center justify-between gap-1 px-2 group-data-[collapsible=icon]:hidden">
+          <React.Suspense fallback={null}>
+            <LocaleSwitcher className="w-auto justify-center" />
+          </React.Suspense>
+          <ThemeSwitcher />
+        </div>
         <NavUser user={user} />
       </SidebarFooter>
       <SidebarRail />

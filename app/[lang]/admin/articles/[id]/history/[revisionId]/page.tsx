@@ -12,12 +12,11 @@ import { RestoreRevisionForm } from "@/components/admin/restore-revision-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+  AdminEmpty,
+  AdminPage,
+  AdminPageHeader,
+  AdminPanel,
+} from "@/components/admin/admin-ui";
 import { getArticleById } from "@/lib/articles";
 import { getArticleRevisionDetail } from "@/lib/articles/revisions";
 import { diffArticleMarkdown } from "@/lib/articles/revision-diff";
@@ -70,187 +69,176 @@ export default async function ArticleRevisionDiffPage({
   const compareTo = formatTemplate(labels.version, { version: String(version) });
 
   return (
-    <div className="flex flex-col gap-6 p-4 md:p-8 md:pt-6">
-      <section className="surface-panel">
-        <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
-          <div className="space-y-3">
-            <p className="eyebrow">{labels.eyebrow}</p>
-            <div className="space-y-2">
-              <h1 className="text-3xl font-semibold tracking-tight">
-                {labels.diffTitle}
-              </h1>
-              <p className="max-w-3xl text-sm leading-7 text-muted-foreground">
-                {labels.diffDescription}
-              </p>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge className="font-mono text-[10px]" variant="outline">
-                {compareFrom}
-              </Badge>
-              <span className="text-xs text-muted-foreground">→</span>
-              <Badge className="font-mono text-[10px]" variant="secondary">
-                {compareTo}
-              </Badge>
-              <span className="text-xs text-muted-foreground">
-                {revision.author.name || revision.author.email} ·{" "}
-                {formatDateTime(lang, revision.createdAt)}
-              </span>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            <Button asChild className="rounded-full" size="sm" variant="outline">
+    <AdminPage>
+      <AdminPageHeader
+        actions={
+          <div className="flex flex-wrap items-center gap-1.5">
+            <Button asChild size="sm" variant="outline">
               <Link href={historyHref}>
-                <History className="size-3.5" />
+                <History data-icon="inline-start" />
                 {labels.backToHistory}
               </Link>
             </Button>
-            <Button asChild className="rounded-full" size="sm" variant="outline">
+            <Button asChild size="sm" variant="ghost">
               <Link href={editorHref}>
-                <ArrowLeft className="size-3.5" />
+                <ArrowLeft data-icon="inline-start" />
                 {labels.backToArticle}
               </Link>
             </Button>
             {previous ? (
               <Button asChild size="icon-sm" variant="ghost">
                 <Link
+                  aria-label={labels.olderVersion}
                   href={localizeHref(
                     lang,
                     `/admin/articles/${article.id}/history/${previous.id}`,
                   )}
                   title={labels.olderVersion}
                 >
-                  <ChevronLeft className="size-4" />
+                  <ChevronLeft />
                 </Link>
               </Button>
             ) : null}
             {next ? (
               <Button asChild size="icon-sm" variant="ghost">
                 <Link
+                  aria-label={labels.newerVersion}
                   href={localizeHref(
                     lang,
                     `/admin/articles/${article.id}/history/${next.id}`,
                   )}
                   title={labels.newerVersion}
                 >
-                  <ChevronRight className="size-4" />
+                  <ChevronRight />
                 </Link>
               </Button>
             ) : null}
             <RestoreRevisionForm
-              action={restoreArticleRevisionAction.bind(null, article.id, lang)}
-              className="max-w-64"
+              action={restoreArticleRevisionAction.bind(
+                null,
+                article.id,
+                lang,
+              )}
               label={labels.restore}
               revisionId={revision.id}
+              size="sm"
               variant="default"
             />
           </div>
-        </div>
-      </section>
+        }
+        description={
+          <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <span>{labels.diffDescription}</span>
+            <span className="inline-flex items-center gap-1.5">
+              <Badge className="font-mono" variant="outline">
+                {compareFrom}
+              </Badge>
+              <span className="text-muted-foreground">→</span>
+              <Badge className="font-mono" variant="secondary">
+                {compareTo}
+              </Badge>
+            </span>
+            <span className="text-muted-foreground/80">
+              {revision.author.name || revision.author.email}
+              <span className="px-1.5 text-border">·</span>
+              {formatDateTime(lang, revision.createdAt)}
+            </span>
+          </span>
+        }
+        title={labels.diffTitle}
+      />
 
       {titleChanged && previous ? (
-        <Card className="admin-card">
-          <CardHeader>
-            <CardTitle className="text-base">{labels.titleChanged}</CardTitle>
-            <CardDescription className="space-y-1">
-              <span className="block">
-                {formatTemplate(labels.titleFrom, { title: previous.title })}
-              </span>
-              <span className="block text-foreground">
-                {formatTemplate(labels.titleTo, { title: revision.title })}
-              </span>
-            </CardDescription>
-          </CardHeader>
-        </Card>
+        <AdminPanel title={labels.titleChanged}>
+          <div className="space-y-1.5 p-5 text-[13px] leading-6">
+            <p className="text-muted-foreground">
+              {formatTemplate(labels.titleFrom, { title: previous.title })}
+            </p>
+            <p className="text-foreground">
+              {formatTemplate(labels.titleTo, { title: revision.title })}
+            </p>
+          </div>
+        </AdminPanel>
       ) : null}
 
-      <Card className="admin-card">
-        <CardHeader>
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="space-y-1.5">
-              <CardTitle className="flex items-center gap-2">
-                <FileDiff className="size-5 text-primary" />
-                {labels.diffSection}
-              </CardTitle>
-              <CardDescription>
-                {formatTemplate(labels.comparing, {
-                  from: compareFrom,
-                  to: compareTo,
-                })}
-              </CardDescription>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge
-                className="border-emerald-500/30 bg-emerald-500/10 text-[10px] text-emerald-700 dark:text-emerald-300"
-                variant="outline"
-              >
-                {formatTemplate(labels.additions, {
-                  count: String(diff.stats.additions),
-                })}
-              </Badge>
-              <Badge
-                className="border-rose-500/30 bg-rose-500/10 text-[10px] text-rose-700 dark:text-rose-300"
-                variant="outline"
-              >
-                {formatTemplate(labels.deletions, {
-                  count: String(diff.stats.deletions),
-                })}
-              </Badge>
-            </div>
+      <AdminPanel
+        action={
+          <div className="flex items-center gap-1.5">
+            <Badge variant="success">
+              {formatTemplate(labels.additions, {
+                count: String(diff.stats.additions),
+              })}
+            </Badge>
+            <Badge variant="destructive">
+              {formatTemplate(labels.deletions, {
+                count: String(diff.stats.deletions),
+              })}
+            </Badge>
           </div>
-        </CardHeader>
-        <CardContent className="p-0">
-          {changedLines === 0 ? (
-            <div className="border-t border-dashed p-8 text-center text-sm text-muted-foreground">
-              {labels.noChanges}
-            </div>
-          ) : (
-            <div className="overflow-x-auto border-t font-mono text-xs leading-6">
-              {diff.hunks.map((hunk, hunkIndex) => (
-                <div
-                  className="border-b border-border/40 last:border-b-0"
-                  key={`${hunk.oldStart}-${hunk.newStart}-${hunkIndex}`}
-                >
-                  <div className="border-y border-border/30 bg-muted/60 px-4 py-1 text-[11px] text-muted-foreground">
-                    @@ -{hunk.oldStart},{hunk.oldLines} +{hunk.newStart},
-                    {hunk.newLines} @@
-                  </div>
-                  {hunk.lines.map((line, lineIndex) => (
-                    <div
-                      className={cn(
-                        "grid grid-cols-[3.25rem_3.25rem_1.5rem_minmax(0,1fr)]",
-                        line.type === "add" &&
-                          "bg-emerald-500/10 text-emerald-900 dark:text-emerald-100",
-                        line.type === "remove" &&
-                          "bg-rose-500/10 text-rose-900 dark:text-rose-100",
-                        line.type === "context" && "text-muted-foreground",
-                      )}
-                      key={`${hunkIndex}-${lineIndex}`}
-                    >
-                      <span className="select-none border-r border-border/20 px-2 text-right text-[10px] text-muted-foreground/60">
-                        {line.oldLineNumber ?? ""}
-                      </span>
-                      <span className="select-none border-r border-border/20 px-2 text-right text-[10px] text-muted-foreground/60">
-                        {line.newLineNumber ?? ""}
-                      </span>
-                      <span className="select-none text-center">
-                        {line.type === "add"
-                          ? "+"
-                          : line.type === "remove"
-                            ? "-"
-                            : " "}
-                      </span>
-                      <span className="whitespace-pre-wrap break-words pr-4">
-                        {line.text === "" ? "\u00A0" : line.text}
-                      </span>
-                    </div>
-                  ))}
+        }
+        description={formatTemplate(labels.comparing, {
+          from: compareFrom,
+          to: compareTo,
+        })}
+        title={
+          <span className="inline-flex items-center gap-2">
+            <FileDiff className="size-4 text-muted-foreground" />
+            {labels.diffSection}
+          </span>
+        }
+      >
+        {changedLines === 0 ? (
+          <AdminEmpty
+            description={labels.noChanges}
+            icon={FileDiff}
+            title={labels.noChanges}
+          />
+        ) : (
+          <div className="overflow-x-auto font-mono text-[12px] leading-6">
+            {diff.hunks.map((hunk, hunkIndex) => (
+              <div
+                className="border-b border-border/50 last:border-b-0"
+                key={`${hunk.oldStart}-${hunk.newStart}-${hunkIndex}`}
+              >
+                <div className="border-y border-border/40 bg-muted/40 px-4 py-1 text-[11px] text-muted-foreground">
+                  @@ -{hunk.oldStart},{hunk.oldLines} +{hunk.newStart},
+                  {hunk.newLines} @@
                 </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+                {hunk.lines.map((line, lineIndex) => (
+                  <div
+                    className={cn(
+                      "grid grid-cols-[3.25rem_3.25rem_1.5rem_minmax(0,1fr)]",
+                      line.type === "add" &&
+                        "bg-emerald-500/10 text-emerald-900 dark:text-emerald-100",
+                      line.type === "remove" &&
+                        "bg-rose-500/10 text-rose-900 dark:text-rose-100",
+                      line.type === "context" && "text-muted-foreground",
+                    )}
+                    key={`${hunkIndex}-${lineIndex}`}
+                  >
+                    <span className="select-none border-r border-border/30 px-2 text-right text-[10.5px] text-muted-foreground/60">
+                      {line.oldLineNumber ?? ""}
+                    </span>
+                    <span className="select-none border-r border-border/30 px-2 text-right text-[10.5px] text-muted-foreground/60">
+                      {line.newLineNumber ?? ""}
+                    </span>
+                    <span className="select-none text-center">
+                      {line.type === "add"
+                        ? "+"
+                        : line.type === "remove"
+                          ? "-"
+                          : " "}
+                    </span>
+                    <span className="whitespace-pre-wrap break-words pr-4">
+                      {line.text === "" ? "\u00A0" : line.text}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+        )}
+      </AdminPanel>
+    </AdminPage>
   );
 }

@@ -59,7 +59,7 @@
   --card-foreground: #1d1d1f;
   --popover: #ffffff;
   --popover-foreground: #1d1d1f;
-  --primary: #0071e3;
+  --primary: #007aff;
   --primary-foreground: #ffffff;
   --secondary: #f5f5f7;
   --secondary-foreground: #1d1d1f;
@@ -68,20 +68,20 @@
   --accent: #f2f2f7;
   --accent-foreground: #1d1d1f;
   --destructive: #ff3b30;
-  --border: #e5e5ea;
-  --input: #e5e5ea;
-  --ring: #0071e3;
-  --radius: 0.75rem;
+  --border: #d8d8dd;
+  --input: #d1d1d6;
+  --ring: #007aff;
+  --radius: 0.625rem;
 
-  --sidebar-background: #f2f2f7;
+  --sidebar-background: #f0f0f3;
   --sidebar-foreground: #1d1d1f;
-  --sidebar-primary: #0071e3;
+  --sidebar-primary: #007aff;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #e8e8ed;
+  --sidebar-accent: #e3e3e8;
   --sidebar-accent-foreground: #1d1d1f;
-  --sidebar-border: #e5e5ea;
-  --sidebar-ring: #0071e3;
-  --sidebar: #f2f2f7;
+  --sidebar-border: #d8d8dd;
+  --sidebar-ring: #007aff;
+  --sidebar: #f0f0f3;
   --chart-1: oklch(0.865 0.127 207.078);
   --chart-2: oklch(0.715 0.143 215.221);
   --chart-3: oklch(0.609 0.126 221.723);
@@ -100,31 +100,31 @@
 }
 
 .dark {
-  --background: #000000;
+  --background: #1c1c1e;
   --foreground: #f5f5f7;
   --primary: #0a84ff;
   --primary-foreground: #ffffff;
-  --secondary: #1c1c1e;
+  --secondary: #2c2c2e;
   --secondary-foreground: #f5f5f7;
-  --muted: #1c1c1e;
+  --muted: #2c2c2e;
   --muted-foreground: #98989d;
-  --border: #2c2c2e;
-  --input: #2c2c2e;
+  --border: #3a3a3c;
+  --input: #48484a;
   --ring: #0a84ff;
 
-  --sidebar-background: #0d0d0f;
+  --sidebar-background: #1c1c1e;
   --sidebar-foreground: #f5f5f7;
   --sidebar-primary: #0a84ff;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #1c1c1e;
+  --sidebar-accent: #3a3a3c;
   --sidebar-accent-foreground: #f5f5f7;
-  --sidebar-border: #2c2c2e;
+  --sidebar-border: #3a3a3c;
   --sidebar-ring: #0a84ff;
-  --card: #1c1c1e;
+  --card: #2c2c2e;
   --card-foreground: #f5f5f7;
-  --popover: #1c1c1e;
+  --popover: #2c2c2e;
   --popover-foreground: #f5f5f7;
-  --accent: #2c2c2e;
+  --accent: #3a3a3c;
   --accent-foreground: #f5f5f7;
   --destructive: #ff453a;
   --chart-1: oklch(0.865 0.127 207.078);
@@ -132,7 +132,7 @@
   --chart-3: oklch(0.609 0.126 221.723);
   --chart-4: oklch(0.52 0.105 223.128);
   --chart-5: oklch(0.45 0.085 224.283);
-  --sidebar: #0d0d0f;
+  --sidebar: #1c1c1e;
 
   /* hljs dark */
   --hljs-color: #c9d1d9;
@@ -180,50 +180,28 @@
   }
 
   .surface-panel {
-    @apply md:rounded-3xl md:border md:border-border/60 md:bg-card md:p-8 md:shadow-[0_1px_2px_rgba(0,0,0,0.03),0_16px_40px_-24px_rgba(0,0,0,0.12)] transition-all duration-300;
-  }
-
-  .dark .surface-panel {
-    @apply md:border-white/10 md:bg-card md:shadow-[0_1px_2px_rgba(0,0,0,0.3),0_16px_40px_-24px_rgba(0,0,0,0.6)];
+    @apply md:rounded-xl md:border md:border-border/70 md:bg-card md:p-8 md:shadow-none transition-colors duration-200;
   }
 
   .apple-blur {
     @apply bg-white/60 backdrop-blur-xl dark:bg-black/60;
   }
 
-  /* Apple-style admin surface: hairline border + soft elevation, hairline removed on
-     mobile so content sits directly on the canvas like a native list. */
-  .admin-card {
-    @apply overflow-hidden rounded-none border-0 bg-transparent shadow-none md:rounded-2xl md:border md:border-border/60 md:bg-card md:shadow-[0_1px_2px_rgba(0,0,0,0.03),0_8px_24px_-16px_rgba(0,0,0,0.08)];
-  }
-
-  .dark .admin-card {
-    @apply md:border-white/10 md:bg-card md:shadow-[0_1px_2px_rgba(0,0,0,0.3),0_12px_32px_-16px_rgba(0,0,0,0.5)];
-  }
-
   /* Native <select> matching shadcn Input/SelectTrigger metrics. */
   .select-native {
-    @apply h-8 w-full min-w-0 appearance-none rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30 dark:hover:bg-input/50;
+    @apply h-8 w-full min-w-0 appearance-none rounded-md border border-input bg-card px-2.5 py-1 text-[13px] outline-none transition-colors hover:bg-muted/50 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30 dark:bg-card dark:hover:bg-muted/50;
   }
 
   .eyebrow {
-    @apply text-[10px] font-bold uppercase tracking-[0.25em] text-primary/70;
+    @apply text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground;
   }
 
   .button-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-full bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.25),0_1px_2px_rgba(0,0,0,0.18)] transition-all hover:bg-primary/90 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-60;
-  }
-
-  .dark .button-primary {
-    @apply shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_1px_2px_rgba(0,0,0,0.5)];
+    @apply inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60;
   }
 
   .button-secondary {
-    @apply inline-flex items-center justify-center gap-2 rounded-full border border-border/60 bg-card px-6 py-2.5 text-sm font-semibold text-foreground transition-all hover:bg-secondary active:scale-[0.97];
-  }
-
-  .dark .button-secondary {
-    @apply bg-card hover:bg-secondary;
+    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-border/70 bg-card px-5 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-secondary;
   }
 
   .field-block {
@@ -231,19 +209,11 @@
   }
 
   .field-input {
-    @apply w-full rounded-2xl border border-border/80 bg-white/85 px-4 py-3 text-sm text-foreground shadow-sm outline-none transition placeholder:text-muted-foreground focus:border-primary/45 focus:ring-4 focus:ring-primary/10;
-  }
-
-  .dark .field-input {
-    @apply border-white/10 bg-zinc-900/60 focus:ring-primary/20;
+    @apply w-full rounded-lg border border-input bg-card px-3.5 py-2.5 text-sm text-foreground outline-none transition placeholder:text-muted-foreground focus:border-ring focus:ring-2 focus:ring-ring/30;
   }
 
   .field-textarea {
-    @apply w-full resize-y rounded-2xl border border-border/80 bg-white/85 px-4 py-3 text-sm leading-7 text-foreground shadow-sm outline-none transition placeholder:text-muted-foreground focus:border-primary/45 focus:ring-4 focus:ring-primary/10;
-  }
-
-  .dark .field-textarea {
-    @apply border-white/10 bg-zinc-900/60 focus:ring-primary/20;
+    @apply w-full resize-y rounded-lg border border-input bg-card px-3.5 py-2.5 text-sm leading-7 text-foreground outline-none transition placeholder:text-muted-foreground focus:border-ring focus:ring-2 focus:ring-ring/30;
   }
 
   .status-pill {
@@ -333,7 +303,7 @@
   }
 
   .markdown-body blockquote {
-    @apply my-4! rounded-2xl border border-border bg-primary/5 p-4 text-foreground/90 relative not-italic! leading-relaxed;
+    @apply my-4! relative rounded-lg border border-border/70 bg-muted/40 p-4 text-foreground/90 not-italic! leading-relaxed;
     font-size: 1.05em;
   }
 
@@ -350,7 +320,7 @@
   }
 
   .markdown-body code {
-    @apply rounded-lg bg-slate-100/80 px-1.5 py-0.5 font-mono text-[0.85em] text-primary dark:bg-zinc-800/80 dark:text-primary-foreground/90 before:content-none after:content-none font-medium;
+    @apply rounded-md bg-muted px-1.5 py-0.5 font-mono text-[0.85em] font-medium text-primary before:content-none after:content-none;
   }
 
   .markdown-body pre {
@@ -358,7 +328,7 @@
   }
 
   .code-block-container {
-    @apply relative my-8 overflow-hidden rounded-[2rem] border border-border/50 bg-slate-100/50 shadow-sm backdrop-blur-md dark:bg-zinc-950/50 dark:shadow-xl dark:border-white/5;
+    @apply relative my-8 overflow-hidden rounded-xl border border-border/70 bg-muted/40;
   }
 
   .markdown-body pre code {
@@ -385,11 +355,11 @@
   }
 
   .markdown-body .markdown-image-trigger {
-    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-4 focus-visible:ring-offset-background rounded-[2.75rem];
+    @apply rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-4 focus-visible:ring-offset-background;
   }
 
   .markdown-body .markdown-inline-image {
-    @apply rounded-[2.5rem] shadow-2xl shadow-slate-200/50 dark:shadow-black/50 mx-auto border border-border/40 transition-all duration-300 group-hover:scale-[1.01] group-hover:shadow-black/55;
+    @apply mx-auto rounded-xl border border-border/60 transition-colors duration-200 group-hover:border-border;
   }
 
   .markdown-body ruby {
@@ -403,12 +373,12 @@
   }
 
   .markdown-body kbd {
-    @apply rounded-lg border border-border bg-slate-50 px-2 py-1 font-mono text-[0.8em] font-medium text-slate-900 shadow-[0_2px_0_rgba(0,0,0,0.05)] dark:bg-zinc-800 dark:text-zinc-100 dark:border-white/10;
+    @apply rounded-md border border-border bg-muted px-2 py-1 font-mono text-[0.8em] font-medium text-foreground;
   }
 
   /* Apple-style minimalist table */
   .markdown-body table {
-    @apply mt-8 w-full border-separate border-spacing-0 overflow-hidden rounded-2xl border border-border/50 bg-white/50 dark:bg-zinc-900/30 backdrop-blur-sm;
+    @apply mt-8 w-full border-separate border-spacing-0 overflow-hidden rounded-xl border border-border/70 bg-card;
   }
 
   .markdown-body thead {

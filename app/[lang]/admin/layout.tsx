@@ -2,7 +2,6 @@ import { notFound } from "next/navigation";
 import { AppSidebar } from "@/components/app-sidebar";
 import { AdminHeader } from "@/components/admin-header";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
-import { SiteFooter } from "@/components/site-footer";
 import { getSiteSettings } from "@/lib/site";
 import { hasLocale } from "@/lib/i18n/config";
 import { requireAuthorSession } from "@/lib/auth/session";
@@ -34,14 +33,11 @@ export default async function AdminLayout({
   };
 
   return (
-    <SidebarProvider>
+    <SidebarProvider className="admin-shell">
       <AppSidebar user={user} siteName={siteSettings.siteName} />
       <SidebarInset>
         <AdminHeader />
-        <div className="flex flex-1 flex-col min-h-0 gap-4 admin-layout-container">
-          <div className="mx-auto w-full max-w-6xl flex-1 flex flex-col min-h-0 admin-layout-content">{children}</div>
-        </div>
-        <SiteFooter />
+        <div className="flex min-h-0 flex-1 flex-col">{children}</div>
       </SidebarInset>
     </SidebarProvider>
   );

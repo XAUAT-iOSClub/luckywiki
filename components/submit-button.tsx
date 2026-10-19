@@ -17,7 +17,7 @@ export function SubmitButton({
 
   return (
     <Button
-      className={className ?? "rounded-2xl h-11 px-8 font-semibold shadow-lg shadow-primary/20 transition-all hover:translate-y-[-1px] active:translate-y-[0px]"}
+      className={className ?? "h-8 px-4 text-[13px] font-medium"}
       disabled={pending}
       type="submit"
     >

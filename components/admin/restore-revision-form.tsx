@@ -62,7 +62,7 @@ export function RestoreRevisionForm({
         {label}
       </Button>
       {state.error ? (
-        <p className="max-w-56 text-[10px] leading-4 text-destructive">
+        <p className="max-w-56 text-[11px] leading-4 text-destructive">
           {state.error}
         </p>
       ) : null}

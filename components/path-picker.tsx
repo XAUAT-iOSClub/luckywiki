@@ -69,29 +69,29 @@ export function PathPicker({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md p-0 overflow-hidden border-none shadow-2xl">
-        <DialogHeader className="p-6 pb-0">
+      <DialogContent className="sm:max-w-md p-0">
+        <DialogHeader className="px-5 pb-0 pt-5">
           <DialogTitle>{t.admin.articleEditor.pathPicker.title}</DialogTitle>
           <DialogDescription>
             {t.admin.articleEditor.pathPicker.description}
           </DialogDescription>
         </DialogHeader>
 
-        <div className="px-6 py-4">
+        <div className="px-5 py-3">
           <div className="relative group/search">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground transition-colors group-focus-within/search:text-primary" />
+            <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={t.wiki.searchPlaceholder}
-              className="pl-9 h-10 rounded-xl bg-muted/50 border-none focus-visible:ring-primary/20"
+              className="h-8 pl-8"
             />
           </div>
         </div>
 
-        <ScrollArea className="h-[400px] px-2 pb-4">
+        <ScrollArea className="h-[380px] px-2 pb-4">
           {isLoading ? (
-            <div className="flex items-center justify-center h-32 text-muted-foreground animate-pulse">
+            <div className="flex h-32 items-center justify-center text-[12.5px] text-muted-foreground">
               {t.common.working}
             </div>
           ) : filteredTree ? (
@@ -100,8 +100,8 @@ export function PathPicker({
                 variant="ghost"
                 size="sm"
                 className={cn(
-                  "w-full justify-start rounded-lg h-9 font-medium transition-all",
-                  currentPath === "" && "bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary"
+                  "h-8 w-full justify-start rounded-md font-medium",
+                  currentPath === "" && "bg-accent text-foreground hover:bg-accent"
                 )}
                 onClick={() => {
                   onSelect("");
@@ -156,7 +156,7 @@ function TreeItem({
             <Button
               variant="ghost"
               size="icon"
-              className="size-6 rounded-md hover:bg-muted shrink-0"
+              className="size-6 shrink-0 rounded-md hover:bg-muted"
             >
               <ChevronRight className="size-3.5 transition-transform duration-200 group-data-[state=open]:rotate-90" />
             </Button>
@@ -168,17 +168,17 @@ function TreeItem({
           variant="ghost"
           size="sm"
           className={cn(
-            "flex-1 justify-start h-8 px-2 rounded-lg text-sm transition-all",
-            isSelected ? "bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary" : "hover:bg-muted"
+            "h-8 flex-1 justify-start rounded-md px-2 text-[12.5px]",
+            isSelected ? "bg-accent text-foreground hover:bg-accent" : "text-muted-foreground hover:text-foreground"
           )}
           onClick={() => onSelect(node.path)}
         >
           <Folder className={cn("size-3.5 mr-2", isSelected ? "text-primary" : "text-muted-foreground")} />
-          <span className={cn(isSelected && "font-semibold")}>{node.label}</span>
+          <span className={cn("truncate", isSelected && "font-medium")}>{node.label}</span>
         </Button>
       </div>
       {hasChildren && (
-        <CollapsibleContent className="pl-4 ml-3 border-l border-border/10 space-y-1 mt-1">
+        <CollapsibleContent className="ml-3 mt-1 space-y-0.5 border-l border-border/60 pl-3">
           {node.children.map((child) => (
             <TreeItem
               key={child.path}
