@@ -1,6 +1,7 @@
 import "dotenv/config";
 import { auth } from "../lib/auth";
 import { prisma } from "../lib/prisma";
+import { snapshotArticleRevision } from "../lib/articles/revisions";
 import { Role } from "../generated/prisma/enums";
 
 const rootEmail = process.env.ROOT_EMAIL ?? "root@luckywiki.local";
@@ -50,17 +51,21 @@ async function main() {
   });
 
   if (!pageExisting) {
-    await prisma.article.create({
-      data: {
-        title: "Home",
-        path: "home",
-        markdown: "",
-        author: {
-          connect: {
-            id: rootUser.id,
+    await prisma.$transaction(async (tx) => {
+      const article = await tx.article.create({
+        data: {
+          title: "Home",
+          path: "home",
+          markdown: "",
+          author: {
+            connect: {
+              id: rootUser.id,
+            },
           },
         },
-      },
+      });
+
+      await snapshotArticleRevision(tx, article, rootUser.id, { force: true });
     });
   }
 

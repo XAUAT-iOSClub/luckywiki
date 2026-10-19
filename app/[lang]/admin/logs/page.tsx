@@ -297,6 +297,7 @@ function parseDetail(
     if (parsed.status) parts.push(`${dictionary.admin.logDetail.status}: ${parsed.status}`);
     if (parsed.oldPath) parts.push(`old path: ${parsed.oldPath}`);
     if (parsed.articlePath) parts.push(`${dictionary.admin.logDetail.articlePath}: ${parsed.articlePath}`);
+    if (parsed.restoredFrom) parts.push(dictionary.admin.logDetail.restoredFrom);
 
     if (parsed.oldStatus && parsed.newStatus) {
       parts.push(
@@ -367,6 +368,8 @@ function getActionBadgeVariant(action: LogAction) {
       return "secondary";
     case LogAction.DELETE_ARTICLE:
       return "destructive";
+    case LogAction.RESTORE_ARTICLE:
+      return "default";
     case LogAction.APPROVE_COMMENT:
       return "default";
     case LogAction.REJECT_COMMENT:

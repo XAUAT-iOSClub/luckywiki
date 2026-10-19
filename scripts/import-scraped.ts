@@ -1,6 +1,7 @@
 // Import scraped articles into local database (skip agent reindex)
 import "dotenv/config";
 import { prisma } from "../lib/prisma";
+import { snapshotArticleRevision } from "../lib/articles/revisions";
 import {
   importArticlesFromDirectory,
   parseImportCliArgs,
@@ -15,14 +16,19 @@ async function main() {
   console.log(`  Status:    ${options.status}`);
   console.log(`  Dry run:   ${options.dryRun}`);
 
+  let importAuthorId: string | null = null;
   const summary = await importArticlesFromDirectory({
     ...options,
     repo: {
       async findUserByEmail(email) {
-        return prisma.user.findUnique({
+        const user = await prisma.user.findUnique({
           where: { email },
           select: { id: true, email: true },
         });
+
+        importAuthorId = user?.id ?? null;
+
+        return user;
       },
       async findArticleByPath(path) {
         return prisma.article.findUnique({
@@ -40,10 +46,24 @@ async function main() {
         });
       },
       async createArticle(data) {
-        await prisma.article.create({ data });
+        await prisma.$transaction(async (tx) => {
+          const article = await tx.article.create({ data });
+          await snapshotArticleRevision(tx, article, data.authorId, {
+            force: true,
+          });
+        });
       },
       async updateArticle(id, data) {
-        await prisma.article.update({ where: { id }, data });
+        if (!importAuthorId) {
+          throw new Error("Import author could not be resolved.");
+        }
+
+        const authorId = importAuthorId;
+
+        await prisma.$transaction(async (tx) => {
+          const article = await tx.article.update({ where: { id }, data });
+          await snapshotArticleRevision(tx, article, authorId);
+        });
       },
     },
   });

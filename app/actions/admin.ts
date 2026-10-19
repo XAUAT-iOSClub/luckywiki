@@ -2,6 +2,7 @@
 
 import { revalidatePath, updateTag } from "next/cache";
 import { z } from "zod";
+import type { Prisma } from "@/generated/prisma/client";
 import { ArticleStatus, CommentStatus, LogAction, Role } from "@/generated/prisma/enums";
 import type { Locale } from "@/lib/i18n/config";
 import { locales, localizeHref } from "@/lib/i18n/config";
@@ -13,6 +14,7 @@ import {
 import { enqueueArticleEmbeddingSync } from "@/lib/embedding-queue";
 import { getDictionary } from "@/lib/i18n/get-dictionary";
 import { prisma } from "@/lib/prisma";
+import { snapshotArticleRevision } from "@/lib/articles/revisions";
 import { buildWikiHref, canonicalizePath } from "@/lib/wiki/path";
 import { revalidateLocalizedPath } from "@/lib/i18n/revalidate";
 import { canChangeUserRole } from "@/lib/auth/permissions";
@@ -39,29 +41,38 @@ export async function createArticleAction(
   }
 
   try {
-    const article = await prisma.article.create({
-      data: {
-        ...parsed.data,
-        authorId: session.user.id,
-        publishedAt:
-          parsed.data.status === ArticleStatus.PUBLISHED ? new Date() : null,
-      },
+    const article = await prisma.$transaction(async (tx) => {
+      const created = await tx.article.create({
+        data: {
+          ...parsed.data,
+          authorId: session.user.id,
+          publishedAt:
+            parsed.data.status === ArticleStatus.PUBLISHED ? new Date() : null,
+        },
+      });
+
+      await snapshotArticleRevision(tx, created, session.user.id, { force: true });
+      await createLog(
+        {
+          action: LogAction.CREATE_ARTICLE,
+          targetType: "Article",
+          targetId: created.id,
+          detail: JSON.stringify({
+            title: created.title,
+            path: created.path,
+            status: created.status,
+          }),
+          userId: session.user.id,
+        },
+        tx,
+      );
+
+      return created;
     });
+
     await enqueueArticleEmbeddingSync({
       articleId: article.id,
       updatedAt: article.updatedAt.toISOString(),
-    });
-
-    await createLog({
-      action: LogAction.CREATE_ARTICLE,
-      targetType: "Article",
-      targetId: article.id,
-      detail: JSON.stringify({
-        title: article.title,
-        path: article.path,
-        status: article.status,
-      }),
-      userId: session.user.id,
     });
 
     invalidateArticleCache(article.path, article.id);
@@ -102,32 +113,41 @@ export async function updateArticleAction(
   }
 
   try {
-    const article = await prisma.article.update({
-      where: { id: articleId },
-      data: {
-        ...parsed.data,
-        publishedAt:
-          parsed.data.status === ArticleStatus.PUBLISHED
-            ? existing.publishedAt ?? new Date()
-            : null,
-      },
+    const article = await prisma.$transaction(async (tx) => {
+      const updated = await tx.article.update({
+        where: { id: articleId },
+        data: {
+          ...parsed.data,
+          publishedAt:
+            parsed.data.status === ArticleStatus.PUBLISHED
+              ? existing.publishedAt ?? new Date()
+              : null,
+        },
+      });
+
+      await snapshotArticleRevision(tx, updated, session.user.id);
+      await createLog(
+        {
+          action: LogAction.UPDATE_ARTICLE,
+          targetType: "Article",
+          targetId: articleId,
+          detail: JSON.stringify({
+            title: updated.title,
+            path: updated.path,
+            status: updated.status,
+            ...(existing.path !== updated.path ? { oldPath: existing.path } : {}),
+          }),
+          userId: session.user.id,
+        },
+        tx,
+      );
+
+      return updated;
     });
+
     await enqueueArticleEmbeddingSync({
       articleId: article.id,
       updatedAt: article.updatedAt.toISOString(),
-    });
-
-    await createLog({
-      action: LogAction.UPDATE_ARTICLE,
-      targetType: "Article",
-      targetId: articleId,
-      detail: JSON.stringify({
-        title: article.title,
-        path: article.path,
-        status: article.status,
-        ...(existing.path !== article.path ? { oldPath: existing.path } : {}),
-      }),
-      userId: session.user.id,
     });
 
     invalidateArticleCache(existing.path, existing.id);
@@ -135,6 +155,7 @@ export async function updateArticleAction(
     revalidateWikiPaths(existing.path);
     revalidateWikiPaths(article.path);
     revalidateLocalizedPath("/admin/articles");
+    revalidateLocalizedPath(`/admin/articles/${article.id}/history`);
     revalidateLocalizedPath("/admin");
     revalidateLocalizedPath("/admin/taxonomy");
     revalidateLocalizedPath("/admin/users");
@@ -142,6 +163,83 @@ export async function updateArticleAction(
     return { success: dictionary.feedback.articleSaved };
   } catch (error) {
     return { error: getActionErrorMessage(error, dictionary.feedback.duplicatePath, dictionary.feedback.somethingWentWrong) };
+  }
+}
+
+export async function restoreArticleRevisionAction(
+  articleId: string,
+  locale: Locale,
+  _previousState: FormActionState,
+  formData: FormData,
+): Promise<FormActionState> {
+  const [dictionary, session] = await Promise.all([
+    getDictionary(locale),
+    requireAuthorSession(locale),
+  ]);
+  const revisionId = String(formData.get("revisionId") ?? "").trim();
+
+  if (!revisionId) {
+    return { error: dictionary.feedback.revisionNotFound };
+  }
+
+  const revision = await prisma.articleRevision.findFirst({
+    where: {
+      id: revisionId,
+      articleId,
+    },
+  });
+
+  if (!revision) {
+    return { error: dictionary.feedback.revisionNotFound };
+  }
+
+  try {
+    const article = await prisma.$transaction(async (tx) => {
+      const updated = await tx.article.update({
+        where: { id: articleId },
+        data: {
+          title: revision.title,
+          markdown: revision.markdown,
+        },
+      });
+
+      // A rollback is itself a save: it becomes a new revision so the content
+      // that was just replaced remains recoverable.
+      await snapshotArticleRevision(tx, updated, session.user.id);
+      await createLog(
+        {
+          action: LogAction.RESTORE_ARTICLE,
+          targetType: "Article",
+          targetId: articleId,
+          detail: JSON.stringify({
+            title: updated.title,
+            path: updated.path,
+            status: updated.status,
+            restoredFrom: revisionId,
+          }),
+          userId: session.user.id,
+        },
+        tx,
+      );
+
+      return updated;
+    });
+
+    await enqueueArticleEmbeddingSync({
+      articleId: article.id,
+      updatedAt: article.updatedAt.toISOString(),
+    });
+
+    invalidateArticleCache(article.path, article.id);
+    revalidateWikiPaths(article.path);
+    revalidateLocalizedPath("/admin/articles");
+    revalidateLocalizedPath(`/admin/articles/${article.id}/history`);
+    revalidateLocalizedPath("/admin");
+    revalidateLocalizedPath("/admin/taxonomy");
+
+    return { success: localizeHref(locale, `/admin/articles/${article.id}`) };
+  } catch {
+    return { error: dictionary.feedback.somethingWentWrong };
   }
 }
 
@@ -415,22 +513,30 @@ function getActionErrorMessage(
   return fallbackMessage;
 }
 
-async function createLog(params: {
-  action: LogAction;
-  targetType: string;
-  targetId: string;
-  detail?: string;
-  userId: string;
-}) {
-  await prisma.log.create({
-    data: {
-      action: params.action,
-      targetType: params.targetType,
-      targetId: params.targetId,
-      detail: params.detail ?? null,
-      userId: params.userId,
-    },
-  });
+async function createLog(
+  params: {
+    action: LogAction;
+    targetType: string;
+    targetId: string;
+    detail?: string;
+    userId: string;
+  },
+  tx?: Prisma.TransactionClient,
+) {
+  const data = {
+    action: params.action,
+    targetType: params.targetType,
+    targetId: params.targetId,
+    detail: params.detail ?? null,
+    userId: params.userId,
+  };
+
+  if (tx) {
+    await tx.log.create({ data });
+    return;
+  }
+
+  await prisma.log.create({ data });
 }
 
 function revalidateWikiPaths(path: string) {

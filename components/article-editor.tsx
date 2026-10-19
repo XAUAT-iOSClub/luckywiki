@@ -2,6 +2,7 @@
 
 import type { ChangeEvent, ClipboardEvent } from "react";
 import { useActionState, useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import Editor from "@monaco-editor/react";
@@ -12,6 +13,7 @@ import {
   Eye,
   Edit3,
   Hash,
+  History,
   Link2,
   Type,
   Bold,
@@ -78,6 +80,7 @@ type ArticleEditorProps = {
     status: ArticleStatus;
   };
   submitLabel: string;
+  historyHref?: string;
 };
 
 export function ArticleEditor({
@@ -85,6 +88,7 @@ export function ArticleEditor({
   initialState,
   initialValues,
   submitLabel,
+  historyHref,
 }: ArticleEditorProps) {
   const router = useRouter();
   const [state, formAction] = useActionState(action, initialState);
@@ -708,6 +712,22 @@ export function ArticleEditor({
                 {state.error || state.success}
               </div>
             )}
+
+            {historyHref ? (
+              <Button
+                asChild
+                variant="ghost"
+                size="sm"
+                className="h-9 px-4 rounded-full text-[10px] font-bold uppercase tracking-tight hover:bg-primary/5 hover:text-primary transition-all active:scale-95"
+              >
+                <Link href={historyHref}>
+                  <History className="size-3.5 mr-2" />
+                  <span className="hidden sm:inline">
+                    {t.admin.revisionHistory.history}
+                  </span>
+                </Link>
+              </Button>
+            ) : null}
 
             <Drawer direction="right">
               <DrawerTrigger asChild>

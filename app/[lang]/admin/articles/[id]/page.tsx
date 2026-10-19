@@ -3,7 +3,7 @@ import { updateArticleAction } from "@/app/actions/admin";
 import { ArticleEditor } from "@/components/article-editor";
 import { getArticleById } from "@/lib/articles";
 import { getDictionary } from "@/lib/i18n/get-dictionary";
-import { hasLocale } from "@/lib/i18n/config";
+import { hasLocale, localizeHref } from "@/lib/i18n/config";
 
 type Params = Promise<{ lang: string; id: string }>;
 
@@ -31,6 +31,7 @@ export default async function EditArticlePage({
     <div className="flex flex-col flex-1 min-h-0">
       <ArticleEditor
         action={updateArticleAction.bind(null, article.id, lang)}
+        historyHref={localizeHref(lang, `/admin/articles/${article.id}/history`)}
         initialState={{}}
         initialValues={article}
         submitLabel={dictionary.admin.saveArticleChanges}

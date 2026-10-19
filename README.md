@@ -267,6 +267,19 @@ ROOT_PASSWORD=ChangeMe123!
 ROOT_NAME=LuckyWiki Root
 ```
 
+## Revision History
+
+Every article save writes an immutable snapshot of the article's title and
+Markdown to `article_revisions`. Editors can use the **Revision history** button
+in the article editor toolbar (or `/admin/articles/<id>/history`) to browse
+versions, inspect a line-level diff, and restore an older version. Restoring
+creates another snapshot, so the content being replaced is never lost.
+
+The migration backfills one baseline revision for every existing article at
+deploy time. Audit logs continue to store only article metadata
+(title/path/status), never the body. Revisions grow with edits, so prune old
+rows periodically if storage becomes a concern.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:

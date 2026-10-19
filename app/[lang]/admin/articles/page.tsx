@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { ExternalLink, Filter, Plus, Search } from "lucide-react";
+import { ExternalLink, Filter, History, Plus, Search } from "lucide-react";
 import { ArticleStatus } from "@/generated/prisma/enums";
 import { setArticleStatusAction } from "@/app/actions/admin";
 import { listAdminTaxonomy } from "@/lib/admin";
@@ -317,6 +317,22 @@ export default async function AdminArticlesPage({
                           <Button variant="ghost" size="sm" asChild>
                             <Link href={localizeHref(lang, `/admin/articles/${article.id}`)}>
                               {dictionary.common.editArticle}
+                            </Link>
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            asChild
+                            title={dictionary.admin.revisionHistory.history}
+                          >
+                            <Link
+                              aria-label={dictionary.admin.revisionHistory.history}
+                              href={localizeHref(
+                                lang,
+                                `/admin/articles/${article.id}/history`,
+                              )}
+                            >
+                              <History className="size-3.5" />
                             </Link>
                           </Button>
                           {article.status === ArticleStatus.PUBLISHED ? (

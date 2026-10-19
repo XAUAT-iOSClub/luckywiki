@@ -28,6 +28,7 @@ enum LogAction {
   CREATE_ARTICLE
   UPDATE_ARTICLE
   DELETE_ARTICLE
+  RESTORE_ARTICLE
   APPROVE_COMMENT
   REJECT_COMMENT
   SET_ARTICLE_STATUS
@@ -47,6 +48,7 @@ model User {
   sessions         Session[]
   accounts         Account[]
   articles         Article[] @relation("ArticleAuthor")
+  articleRevisions ArticleRevision[] @relation("ArticleRevisionAuthor")
   comments         Comment[] @relation("CommentAuthor")
   approvedComments Comment[] @relation("CommentApprover")
   logs             Log[]
@@ -117,12 +119,31 @@ model Article {
   createdAt   DateTime      @default(now()) @map("created_at")
   updatedAt   DateTime      @updatedAt @map("updated_at")
   author      User          @relation("ArticleAuthor", fields: [authorId], references: [id], onDelete: Restrict)
+  revisions   ArticleRevision[]
   comments    Comment[]
   agentChunks AgentChunk[]
 
   @@index([status])
   @@index([authorId])
   @@map("articles")
+}
+
+// Immutable snapshot of an article's content at save time. Article only keeps
+// the current markdown, so these rows are the version history used for diffs
+// and rollbacks.
+model ArticleRevision {
+  id        String   @id @default(cuid())
+  articleId String   @map("article_id")
+  markdown  String
+  title     String
+  authorId  String   @map("author_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  article   Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  author    User     @relation("ArticleRevisionAuthor", fields: [authorId], references: [id], onDelete: Restrict)
+
+  @@index([articleId, createdAt])
+  @@index([authorId])
+  @@map("article_revisions")
 }
 
 model AgentChunk {
