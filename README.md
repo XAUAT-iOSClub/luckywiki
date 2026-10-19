@@ -225,11 +225,7 @@ PRISMA_TRANSACTION_TIMEOUT_MS=60000
 ```
 
 If your ParadeDB endpoint is plain TCP (common for self-hosted instances),
-remove the SSL mode from its URL or set:
-
-```bash
-PARADEDB_SSL_MODE=disable
-```
+remove the `sslmode` query parameter from `DATABASE_URL`.
 
 If Prisma reports `P3018` after an interrupted migration, mark only this
 migration as rolled back and deploy again:
