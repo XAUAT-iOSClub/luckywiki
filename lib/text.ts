@@ -19,11 +19,33 @@ export function extractMarkdownPlainText(markdown: string) {
 }
 
 export function extractMarkdownDescription(markdown: string, maxLength = 160) {
-  const text = extractMarkdownPlainText(markdown).replace(/\s+/g, " ").trim();
+  const text = extractMarkdownPlainText(markdown)
+    .replace(/\s+/g, " ")
+    .trim();
 
-  if (text.length <= maxLength) {
-    return text;
+  return truncateDescription(text, maxLength);
+}
+
+export function truncateDescription(text: string, maxLength = 160) {
+  const normalized = text.replace(/\s+/g, " ").trim();
+
+  if (normalized.length <= maxLength) {
+    return normalized;
   }
 
-  return `${text.slice(0, maxLength - 1).trimEnd()}…`;
+  return `${normalized.slice(0, maxLength - 1).trimEnd()}…`;
+}
+
+export function resolveArticleDescription(
+  description: string | null | undefined,
+  markdown: string,
+  maxLength = 160,
+) {
+  const normalized = description?.replace(/\s+/g, " ").trim();
+
+  if (normalized) {
+    return truncateDescription(normalized, maxLength);
+  }
+
+  return extractMarkdownDescription(markdown, maxLength);
 }

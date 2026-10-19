@@ -8,6 +8,7 @@ import { useTheme } from "next-themes";
 import Editor from "@monaco-editor/react";
 import type { editor } from "monaco-editor";
 import {
+  AlertCircle,
   ImageUp,
   Loader2,
   Eye,
@@ -15,6 +16,7 @@ import {
   Hash,
   History,
   Link2,
+  Sparkles,
   Type,
   Bold,
   Italic,
@@ -37,6 +39,7 @@ import { HtmlPreview } from "@/components/html-preview";
 import { PathPicker } from "@/components/path-picker";
 import { SubmitButton } from "@/components/submit-button";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -64,6 +67,11 @@ import {
   DrawerTrigger,
 } from "@/components/ui/drawer";
 import type { FormActionState } from "@/app/actions/admin";
+import {
+  MAX_SUMMARY_DESCRIPTION_CHARS,
+  MAX_SUMMARY_INPUT_MARKDOWN_CHARS,
+  type ArticleSummaryAction,
+} from "@/lib/articles/summary-contract";
 import { useT } from "@/lib/i18n/provider";
 import { cn } from "@/lib/utils";
 
@@ -79,6 +87,7 @@ type ArticleEditorProps = {
     markdown: string;
     status: ArticleStatus;
   };
+  summaryAction?: ArticleSummaryAction;
   submitLabel: string;
   historyHref?: string;
 };
@@ -87,6 +96,7 @@ export function ArticleEditor({
   action,
   initialState,
   initialValues,
+  summaryAction,
   submitLabel,
   historyHref,
 }: ArticleEditorProps) {
@@ -105,6 +115,10 @@ export function ArticleEditor({
   );
   const [isPathPickerOpen, setIsPathPickerOpen] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
+  const [summaryError, setSummaryError] = useState<string | null>(null);
+  const [summaryIsAi, setSummaryIsAi] = useState(false);
+  const [isConfirmingSummaryOverwrite, setIsConfirmingSummaryOverwrite] = useState(false);
   const [mode, setMode] = useState<"edit" | "preview" | "split">("split");
   const isHtmlEditor = editorName === "html";
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -261,6 +275,46 @@ export function ArticleEditor({
     UPLOAD_FAILED: t.admin.articleEditor.uploadErrors.uploadFailed,
     UPLOAD_NOT_CONFIGURED: t.admin.articleEditor.uploadErrors.uploadNotConfigured,
   } as const;
+
+  function handleDescriptionChange(value: string) {
+    setDescription(value);
+    setSummaryIsAi(false);
+    setSummaryError(null);
+    setIsConfirmingSummaryOverwrite(false);
+  }
+
+  async function requestSummary(force = false) {
+    if (!summaryAction || isGeneratingSummary) {
+      return;
+    }
+
+    if (description.trim() && !force) {
+      setIsConfirmingSummaryOverwrite(true);
+      return;
+    }
+
+    setIsConfirmingSummaryOverwrite(false);
+    setIsGeneratingSummary(true);
+    setSummaryError(null);
+
+    try {
+      const result = await summaryAction({
+        title: title.trim(),
+        markdown: markdown.slice(0, MAX_SUMMARY_INPUT_MARKDOWN_CHARS),
+      });
+
+      if ("summary" in result) {
+        setDescription(result.summary);
+        setSummaryIsAi(true);
+      } else {
+        setSummaryError(result.error);
+      }
+    } catch {
+      setSummaryError(t.feedback.somethingWentWrong);
+    } finally {
+      setIsGeneratingSummary(false);
+    }
+  }
 
   useEffect(() => {
     if (state.success?.startsWith("/")) {
@@ -839,17 +893,96 @@ export function ArticleEditor({
                   </div>
 
                   <div className="space-y-3">
-                    <Label htmlFor="drawer-description" className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/80 ml-1">
-                      {t.common.description}
-                    </Label>
+                    <div className="flex items-center justify-between gap-3">
+                      <Label htmlFor="drawer-description" className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/80 ml-1">
+                        {t.admin.articleEditor.summaryLabel}
+                      </Label>
+                      {summaryAction ? (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => void requestSummary()}
+                          disabled={isGeneratingSummary || markdown.trim().length === 0}
+                          aria-busy={isGeneratingSummary}
+                          className="h-8 rounded-full px-3 text-[10px] font-bold uppercase tracking-tight"
+                        >
+                          {isGeneratingSummary ? (
+                            <Loader2 className="size-3.5 animate-spin" />
+                          ) : (
+                            <Sparkles className="size-3.5" />
+                          )}
+                          <span className="ml-1.5">
+                            {isGeneratingSummary
+                              ? t.admin.articleEditor.summaryGenerating
+                              : description.trim()
+                                ? t.admin.articleEditor.summaryRegenerate
+                                : t.admin.articleEditor.summaryGenerate}
+                          </span>
+                        </Button>
+                      ) : null}
+                    </div>
                     <Textarea
                       id="drawer-description"
                       className="min-h-32 rounded-2xl bg-background/50 border-border/40 shadow-sm focus-visible:ring-primary/20 resize-none py-4 px-5 leading-relaxed transition-all"
-                      maxLength={280}
-                      onChange={(event) => setDescription(event.target.value)}
+                      maxLength={MAX_SUMMARY_DESCRIPTION_CHARS}
+                      onChange={(event) => handleDescriptionChange(event.target.value)}
                       placeholder={t.admin.articleEditor.descriptionPlaceholder}
                       value={description}
                     />
+                    <div className="flex flex-wrap items-center justify-between gap-2 px-1">
+                      <span className="font-mono text-[10px] text-muted-foreground/60">
+                        {description.length}/{MAX_SUMMARY_DESCRIPTION_CHARS}
+                      </span>
+                      {summaryIsAi ? (
+                        <Badge variant="secondary" className="text-[10px]">
+                          {t.admin.articleEditor.summaryAiBadge}
+                        </Badge>
+                      ) : null}
+                    </div>
+                    <p className="px-1 text-[10px] leading-relaxed text-muted-foreground/60">
+                      {t.admin.articleEditor.summaryHint}
+                    </p>
+                    {isConfirmingSummaryOverwrite ? (
+                      <div className="rounded-2xl border border-amber-500/30 bg-amber-500/5 p-3 text-xs">
+                        <p className="text-muted-foreground">
+                          {t.admin.articleEditor.summaryOverwritePrompt}
+                        </p>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          <Button
+                            type="button"
+                            size="sm"
+                            onClick={() => void requestSummary(true)}
+                            disabled={isGeneratingSummary}
+                          >
+                            {t.admin.articleEditor.summaryOverwriteConfirm}
+                          </Button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => setIsConfirmingSummaryOverwrite(false)}
+                            disabled={isGeneratingSummary}
+                          >
+                            {t.admin.articleEditor.summaryCancel}
+                          </Button>
+                        </div>
+                      </div>
+                    ) : null}
+                    {summaryError ? (
+                      <p
+                        role="alert"
+                        className="flex items-start gap-1.5 px-1 text-xs text-destructive"
+                      >
+                        <AlertCircle className="mt-0.5 size-3.5 shrink-0" />
+                        <span>{summaryError}</span>
+                      </p>
+                    ) : null}
+                    {summaryAction ? (
+                      <p className="px-1 text-[10px] leading-relaxed text-muted-foreground/60">
+                        {t.admin.articleEditor.summaryPrivacyHint}
+                      </p>
+                    ) : null}
                   </div>
                 </div>
               </DrawerContent>

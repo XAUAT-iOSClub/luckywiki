@@ -39,6 +39,7 @@ LuckyWiki 是一个 **以 Markdown 为核心、按路径组织内容、支持中
 
 - 面向读者的 Wiki 浏览、目录树、分类/标签页、全文搜索；
 - 面向作者的 Monaco 编辑器（Markdown 或 HTML）、图片上传、路径选择器；
+- 文章摘要：默认人工填写，配置 OpenAI 后可在编辑器内按需 AI 生成；
 - 面向管理员的文章管理、评论审核、用户角色、操作日志、分类统计；
 - 基于已发布文章构建的 **RAG 问答 Agent**（向量检索 + BM25 混合检索 + LangGraph 工具调用）；
 - 面向外部 AI 平台的 **MCP（Model Context Protocol）只读接口**；
@@ -57,6 +58,7 @@ LuckyWiki 是一个 **以 Markdown 为核心、按路径组织内容、支持中
 | 登录 / 注册 / 验证邮箱 | `/[lang]/auth/*` | `lib/auth/*`、`components/auth-form.tsx`、`app/api/auth/[...all]/route.ts` |
 | 个人设置 / 第三方绑定 | `/[lang]/settings` | `app/[lang]/settings/page.tsx`、`app/actions/settings.ts` |
 | 文章编辑器 | `/[lang]/admin/articles/*` | `components/article-editor.tsx`、`app/actions/admin.ts` |
+| 文章摘要 / AI 生成 | 编辑器“文章设置”抽屉、文章页标题下方 | `Article.description`、`lib/articles/summary.ts`、`app/actions/summary.ts`、`lib/openai/chat.ts` |
 | 评论与审核 | 文章底部、`/admin/comments` | `components/wiki-comments.tsx`、`app/actions/comments.ts`、`app/actions/admin.ts` |
 | AI 问答 | `/[lang]/agent` | `components/wiki-agent.tsx`、`app/api/agent/route.ts`、`lib/agent/*` |
 | 文章向量索引 | 后台队列 / CLI | `lib/embedding-queue.ts`、`app/api/queue/article-embedding-sync/route.ts`、`scripts/reindex-agent.ts` |
@@ -79,6 +81,7 @@ LuckyWiki 是一个 **以 Markdown 为核心、按路径组织内容、支持中
 | 数据库 | PostgreSQL / **ParadeDB** | 业务数据 + BM25（`pg_search`）+ `pgvector` |
 | 认证 | Better Auth 1.6.9 | 邮箱密码、GitHub、通用 OIDC、会话、账号绑定 |
 | Agent | LangChain 1.4、LangGraph 1.3、`@langchain/openai` | ReAct 工具调用 + 显式 QA 图 |
+| 摘要 AI | OpenAI Chat Completions（复用 `OPENAI_*`） | 编辑器内按需生成文章摘要 |
 | Markdown | `react-markdown`、`remark-*`、`rehype-*`、`@luckyfishes/markdown-core` | 自定义语法与组件渲染 |
 | 编辑器 | Monaco Editor | Markdown / HTML 编辑与预览 |
 | 图 / 图表 | Mermaid、PlantUML、AntV Infographic、KaTeX | 文档内可视化 |
@@ -86,7 +89,7 @@ LuckyWiki 是一个 **以 Markdown 为核心、按路径组织内容、支持中
 | 限流 | Upstash Redis + `@upstash/ratelimit` | 搜索 / MCP 分布式滑动窗口 |
 | 队列 | `@vercel/queue` | 文章嵌入异步同步 |
 | 邮件 | Resend HTTP API（可选） | 验证邮件；未配置时打印到日志 |
-| 测试 | Node `node:test` + `tsx` | 20 个测试文件 |
+| 测试 | Node `node:test` + `tsx` | 22 个测试文件（含 `article-summary.test.ts`） |
 | 包管理 | pnpm 11.20.0 | `pnpm-workspace.yaml` 控制依赖构建脚本 |
 
 ---
@@ -104,7 +107,7 @@ luckywiki/
 │  │  ├─ auth/                      # 登录、注册、验证邮箱
 │  │  ├─ settings/                  # 个人资料与账号绑定
 │  │  └─ admin/                     # 管理后台（文章、评论、用户、日志、分类、MCP Key）
-│  ├─ actions/                      # Server Actions（写操作/搜索）
+│  ├─ actions/                      # Server Actions（写操作/搜索/摘要）
 │  ├─ api/                          # Route Handlers
 │  │  ├─ auth/[...all]/             # Better Auth 统一入口
 │  │  ├─ agent/                     # Agent SSE
@@ -118,18 +121,19 @@ luckywiki/
 │  ├─ sitemap.ts / robots.ts
 │  └─ globals.css                   # Tailwind + 设计变量 + Markdown 样式
 ├─ components/
-│  ├─ article-editor.tsx            # 核心编辑器
+│  ├─ article-editor.tsx            # 核心编辑器（含摘要 AI 生成）
 │  ├─ markdown-renderer.tsx         # Markdown 渲染管线
 │  ├─ markdown-custom-components*   # Badge/Tip/Tabs/Card/Timeline/Chat/Icon/Mermaid…
 │  ├─ wiki-*.tsx                    # 侧栏、搜索、评论、TOC、Shell、Agent
 │  ├─ auth-form.tsx、settings-*.tsx
 │  └─ ui/                           # shadcn 生成的基础组件
 ├─ lib/
-│  ├─ agent/                        # 分块、嵌入、检索、工具、LangGraph、OpenAI、SSE
-│  ├─ articles/                     # 导入、图片导入、Wiki.js 迁移
+│  ├─ agent/                        # 分块、嵌入、检索、工具、LangGraph、Agent 运行时、SSE
+│  ├─ articles/                     # 导入、图片导入、Wiki.js 迁移、摘要生成
 │  ├─ auth/                         # Better Auth 配置、会话、权限、Provider 配置
 │  ├─ i18n/                         # locale 配置、字典、Provider、格式化
 │  ├─ mcp/                          # MCP 协议、工具、鉴权、Key、限流、错误
+│  ├─ openai/                       # OpenAI URL/Header 共享配置、Chat Completions 客户端
 │  ├─ wiki/                         # 路径规范化、树、分类参数
 │  ├─ admin.ts、comments.ts、search.ts、image-hosting.ts、prisma.ts…
 │  ├─ cache-tags.ts、embedding-queue.ts、rate-limit.ts
@@ -139,7 +143,7 @@ luckywiki/
 │  ├─ migrations/                   # 11 个迁移
 │  └─ seed.ts
 ├─ scripts/                         # 导入 / 迁移 / 重索引 / 抓取
-├─ tests/                           # node:test 测试
+├─ tests/                           # node:test 测试（含 article-summary.test.ts）
 ├─ proxy.ts                         # Next 16 请求代理（locale + admin 预检查）
 ├─ next.config.ts、prisma.config.ts、vercel.json
 └─ docs/                            # MCP 对接说明
@@ -181,7 +185,7 @@ luckywiki/
 └──────────────────────────────────────────────────────────────────┘
         │                    │                   │
    OpenAI / 网关        Upstash Redis        Vercel Blob / S3
-   （聊天 + 嵌入）       （分布式限流）        （图片）
+   （聊天/摘要 + 嵌入）  （分布式限流）        （图片）
                          Vercel Queue（嵌入同步）/ Resend（邮件）
 ```
 
@@ -193,7 +197,7 @@ luckywiki/
 - **需要流式/外部协议时用 Route Handler**：Agent SSE、MCP SSE、图片上传、队列回调、Better Auth。
 - **服务端组件可把 Server Component 作为 `ReactNode` 传给客户端组件**：例如 `WikiShell` 把 `WikiSidebarAdminSlot` / `WikiSidebarAccountSlot` 传入客户端 `WikiSidebar`，只在有权限时渲染。
 
-### 4.3 四个典型请求
+### 4.3 五个典型请求
 
 **文章页**
 
@@ -220,6 +224,21 @@ GET /zh/wiki/生活/校园卡
 → prisma.log.create（审计）
 → updateTag(...) + revalidatePath(...)
 → 返回成功路径/提示，客户端跳转或刷新
+```
+
+**AI 摘要生成**
+
+```text
+编辑器点击「AI 生成摘要」
+→ generateArticleSummaryAction（Server Action，不是独立路由）
+→ requireAuthorSession + Zod + isOpenAiConfigured
+→ Upstash 限流：每用户 10 次/小时（开发环境无 Upstash 时放行）
+→ lib/articles/summary.ts：清洗正文（去 script/style/HTML/Markdown）
+→ 截断到 12k 字 → 构建 prompt
+→ lib/openai/chat.ts：POST /chat/completions（复用 OPENAI_*）
+→ 规范化输出（去标签/引号/代码围栏，<= 280 字）
+→ 返回 { summary }；只回填编辑器 state，不写数据库
+→ 用户点击「保存更改」后由 create/updateArticleAction 持久化
 ```
 
 **Agent 问答**
@@ -285,6 +304,8 @@ POST /api/mcp?sessionId=...（JSON-RPC initialize / tools/list / tools/call）
 | `/api/queue/article-embedding-sync` | Vercel Queue 回调 |
 | `/og` | 动态 OG 图片 |
 | `/sitemap.xml`、`/robots.txt` | SEO |
+
+> 文章摘要的 AI 生成不是独立路由，而是 `app/actions/summary.ts` 中的 Server Action，仅在文章编辑器中调用。
 
 ### 5.2 `proxy.ts`：locale 与 admin 预检查
 
@@ -505,6 +526,8 @@ POST /api/mcp?sessionId=...（JSON-RPC initialize / tools/list / tools/call）
 | `McpApiKey` | `mcp_api_keys` | `name`、`keyHash(unique)`、`prefix`、`rateLimit`、`lastUsedAt`、`totalCalls`、`revokedAt` | `userId` 级联；`keyHash` 索引 |
 | `McpCallLog` | `mcp_call_logs` | `apiKeyId`、`userId`、`method`、`toolName`、`status`、`errorCode`、`durationMs`、`ipAddress` | `apiKeyId` 级联；多列索引 |
 
+> `Article.description` 现在同时承担“文章摘要”角色：默认人工填写；配置 `OPENAI_API_KEY` 后可在编辑器中按需 AI 生成，结果仍保存回同一字段。**没有新增表或字段。**
+
 枚举：
 
 - `Role`: `ROOT | AUTHOR | USER`
@@ -610,14 +633,14 @@ Guides/Next-16/Setup.md → "guides/next-16/setup"
 2. `safeCanonicalize(slug)`；空路径 → 重定向 `/wiki/home`；非法 → `notFound()`；
 3. 并行取文章与字典；
 4. 未找到 → `notFound()`；
-5. 头部展示标题、发布日期、标签 Badge、一级分类 Badge；
+5. 头部展示标题；标题下方展示 `description`（摘要，若存在）；随后是发布日期、标签 Badge、一级分类 Badge；
 6. 两栏布局：
    - 正文：`editor === "html"` 用 `WikiHtmlRenderer`（`dangerouslySetInnerHTML`）；否则 `MarkdownRenderer`；
    - 右侧：`WikiToc`（仅 Markdown，HTML 传空字符串）；
 7. 正文下方 `WikiComments`（Suspense，独立分页）；
 8. 注入 `ArticleJsonLd` 与 `BreadcrumbListJsonLd`。
 
-`generateMetadata()` 未找到文章时返回“文章不存在”标题；找到时用 `buildArticleMetadata()` 生成 canonical、hreflang、OpenGraph、Twitter、关键词。
+`generateMetadata()` 未找到文章时返回“文章不存在”标题；找到时用 `buildArticleMetadata()` 生成 canonical、hreflang、OpenGraph、Twitter、关键词。描述优先取 `Article.description`（160 字截断），没有时回退到 Markdown 正文截取。
 
 ### 8.5 分类与标签页
 
@@ -738,7 +761,7 @@ Guides/Next-16/Setup.md → "guides/next-16/setup"
 
 **文章设置抽屉**
 
-- 标题、状态（DRAFT/PUBLISHED）、路径、标签（逗号分隔）、编辑器（markdown/html）、描述（280 字）；
+- 标题、状态（DRAFT/PUBLISHED）、路径、标签（逗号分隔）、编辑器（markdown/html）、摘要（即 `description`，280 字，默认人工填写）；
 - 路径选择器 `PathPicker`：
   - 打开时调用 `listArticlePathsAction(locale)`（要求作者权限，返回**所有**文章路径，含草稿）；
   - 构建树、支持搜索过滤；
@@ -746,9 +769,31 @@ Guides/Next-16/Setup.md → "guides/next-16/setup"
 
 **预览**
 
-- Markdown：标题 + 描述 + 标签 + `MarkdownRenderer`；
+- Markdown：标题 + 摘要 + 标签 + `MarkdownRenderer`；
 - HTML：`<iframe srcDoc>`，注入 Tailwind CDN 与 Inter 字体，`sandbox="allow-scripts"`；
 - 编辑器底部显示提示与字符数。
+
+**摘要与 AI 生成**
+
+- `Article.description` 是摘要的唯一存储字段，默认完全人工填写。
+- 配置了 `OPENAI_API_KEY` 时，设置抽屉的摘要区域显示“AI 生成摘要 / 重新生成”按钮；未配置时按钮不渲染，手动摘要不受影响。
+- 点击按钮 → `generateArticleSummaryAction(locale, { title, markdown })`：
+  - `requireAuthorSession` 鉴权；
+  - Zod 校验（title <= 300，markdown <= 24,000 字符）；
+  - `isOpenAiConfigured()` 检查；
+  - Upstash 限流：每用户 10 次/小时；开发环境无 Upstash 时 fail-open，生产 fail-closed；
+  - `lib/articles/summary.ts`：移除 `<script>/<style>`，用 `extractMarkdownPlainText()` 清洗 Markdown/HTML，截断到 12,000 字，构建 prompt；
+  - `lib/openai/chat.ts`：调用 `/chat/completions`（`OPENAI_RESPONSES_MODEL`、temperature 0.2、max_tokens 600、30s 超时）；
+  - 规范化输出：去前缀/引号/代码围栏/残留 Markdown，超长按句末截断，最终 <= 280 字；
+  - 返回 `{ summary }` 或本地化 `{ error, code }`；**不写数据库、不 revalidate、不写 operation log**。
+- UI 行为：
+  - 生成中显示 loading；
+  - 已有摘要时先显示内联覆盖确认；
+  - 生成成功后回填 `description` 状态并显示“AI 生成 · 建议校对”徽标；
+  - 手动修改摘要会清除徽标；
+  - 错误只显示本地化文案，原摘要保留。
+- 摘要仍通过原有“保存更改”提交；`createArticleAction` / `updateArticleAction` 负责持久化。
+- 来源标记不持久化：刷新页面后徽标消失；方案 A 没有 `summarySource` / `generatedAt` 字段。
 
 ### 9.5 创建/更新文章的 Server Action
 
@@ -757,13 +802,15 @@ Guides/Next-16/Setup.md → "guides/next-16/setup"
 **校验（Zod）**
 
 - `title`：trim 后非空；
-- `description`：trim，最多 280；
+- `description`（摘要）：trim，最多 280；
 - `tags`：数组，每项非空，最多 12；
 - `editor`：最多 40；
 - `status`：`DRAFT | PUBLISHED`；
 - `path`：先走 `canonicalizePath()`，可能抛错；
 - 空字符串描述/编辑器 → `null`；
 - 标签输入按换行、英文逗号、中文逗号分割，trim、去重。
+
+> AI 摘要生成走独立的 `app/actions/summary.ts`，不写数据库；摘要在用户点击“保存更改”后由下面的 create/update action 持久化。
 
 **创建**
 
@@ -1044,6 +1091,7 @@ ORDER BY GREATEST(similarity(title,q), similarity(description,q), similarity(mar
 
 - 可用性探测（`pg_search` / `pg_trgm`）用 React `cache()` 在单次请求内只查一次。
 - 搜索结果不经过 Next 持久缓存。
+- `Article.description` 现在是文章摘要字段（人工或可选 AI 生成）：它参与 BM25 / pg_trgm / 兜底打分和 `matchField`；搜索结果的 `excerpt` 仍从 Markdown 正文生成。
 
 ---
 
@@ -1076,7 +1124,7 @@ lib/agent/openai.ts → LangGraph 图（lib/agent/graph.ts）
 
 | 变量 | 默认 | 说明 |
 |---|---|---|
-| `OPENAI_API_KEY` | 空 | 未设置时 Agent/嵌入不可用 |
+| `OPENAI_API_KEY` | 空 | 未设置时 Agent/嵌入/摘要不可用 |
 | `OPENAI_RESPONSES_MODEL` | `gpt-4.1-mini` | 聊天模型 |
 | `OPENAI_EMBEDDING_MODEL` | `text-embedding-3-small` | 嵌入模型 |
 | `OPENAI_API_BASE_URL` | `https://api.openai.com/v1` | 兼容网关；根 URL 会自动补 `/v1` |
@@ -1091,6 +1139,8 @@ lib/agent/openai.ts → LangGraph 图（lib/agent/graph.ts）
 - `streamUsage: false`；
 - `useResponsesApi: false`（规避 `@langchain/openai 1.4.5` 的流式尾部解析问题）；
 - `baseURL` 来自规范化后的网关地址。
+
+> 同一组 `OPENAI_API_KEY` / `OPENAI_RESPONSES_MODEL` / `OPENAI_API_BASE_URL` 也用于文章摘要（`lib/openai/chat.ts`）。摘要走普通 `/chat/completions`，不使用 Agent 图或工具；摘要不参与分块/嵌入。
 
 ### 13.3 分块（`lib/agent/chunks.ts`）
 
@@ -1276,6 +1326,8 @@ START
 
 所有工具只读，只查 PUBLISHED。
 
+> 工具返回的 `description` 可能是人工摘要或 AI 生成的摘要；摘要不参与 chunk/embedding，`agent_chunks` 仍从 Markdown 正文构建。
+
 ### 13.9 系统提示
 
 中文/英文两套：
@@ -1413,6 +1465,8 @@ JSON-RPC 入口校验：必须 `jsonrpc === "2.0"`、`method` 为字符串、`id
 
 > `docs/MCP-INTEGRATION.md` 中把工具写成 `get_categories`，与代码 `list_categories` 不一致；文档还写了 pageSize 最大 50，代码是最大 20；限流错误码文档写 `-32002`，代码是 `-32000`。以代码为准。
 
+> `search_wiki` / `get_article` 返回的 `description` 可能是人工或 AI 生成的摘要；MCP 不区分来源。
+
 ### 14.7 审计与管理
 
 - `mcp_call_logs` 记录每次用户级 Key 调用；
@@ -1490,7 +1544,7 @@ JSON-RPC 入口校验：必须 `jsonrpc === "2.0"`、`method` 为字符串、`id
 | 字段 | 类型 | 说明 |
 |---|---|---|
 | `title` | string | 覆盖正文 H1 |
-| `description` | string | 描述 |
+| `description` | string | 摘要/描述（与编辑器 `Article.description` 同一字段） |
 | `published` | boolean | 覆盖 CLI 的默认状态 |
 | `date` | string/Date | 覆盖发布时间 |
 | `tags` | string 或 string[] | 标签 |
@@ -1500,6 +1554,7 @@ JSON-RPC 入口校验：必须 `jsonrpc === "2.0"`、`method` 为字符串、`id
 - 未知字段只警告，不失败；
 - 类型错误（如 `published: yes`、非法日期）直接失败；
 - 正文第一个 `# H1` 会被提取为标题并从正文移除；
+- **导入会用 frontmatter 的 `description` 覆盖已有摘要**；如果希望保留编辑器里 AI 生成的摘要，请在 frontmatter 中保留对应内容或导入后重新生成。
 - 没有 H1 时按路径最后一段生成人类可读标题（`next-16` → `Next 16`；根路径 → `Home`）。
 
 **写入策略**
@@ -1601,6 +1656,7 @@ article-comments:{articleId}  // 单篇评论
 | 创建/更新文章 | `articles`、新旧 `article:{path}`、`article-comments:{id}`；revalidate `/wiki` 与文章 URL |
 | 发布/转草稿 | 同上 |
 | 审核评论 | `article-comments:{id}`；revalidate 管理页与文章 URL |
+| AI 摘要生成（仅生成） | 不失效缓存（不写数据库）；用户保存文章时按“创建/更新文章”处理 |
 | 更新个人资料 | revalidate `/settings`、`/wiki`、`/agent`（双语） |
 | 导入文章 | 不主动失效；脚本流程通常需要重新部署或手动 revalidate（导入后重索引只影响向量） |
 
@@ -1639,7 +1695,7 @@ article-comments:{articleId}  // 单篇评论
 
 - 根布局：`metadataBase`、标题模板 `%s | 站点名`、描述、robots、favicon。
 - 文章：`buildArticleMetadata()`：
-  - 描述取 Markdown 纯文本前 160 字；
+  - 描述优先取 `Article.description`（摘要，经 `resolveArticleDescription()` 压缩空白并截断到 160 字）；没有摘要时回退到 Markdown 纯文本前 160 字；
   - canonical 与 `hreflang`（zh-CN / en-US）；
   - OpenGraph `type=article`、发布时间、修改时间、作者、标签关键词；
   - Twitter `summary_large_image`；
@@ -1652,7 +1708,7 @@ article-comments:{articleId}  // 单篇评论
 `lib/structured-data/index.tsx`：
 
 - `WebSiteJsonLd`：站点名、描述、URL、SearchAction；
-- `ArticleJsonLd`：headline、description、url、datePublished/dateModified、author、publisher、keywords；
+- `ArticleJsonLd`：headline、description、url、datePublished/dateModified、author、publisher、keywords；`description` 同样优先使用 `Article.description`，没有时回退正文截取；
 - `BreadcrumbListJsonLd`：首页 + 路径逐段。
 
 ### 17.4 sitemap / robots
@@ -1686,7 +1742,8 @@ article-comments:{articleId}  // 单篇评论
 - **Markdown 安全**：`skipHtml` + `rehype-sanitize` 扩展白名单。
 - **SQL 注入**：所有原始 SQL 使用 Prisma 参数化模板（`$queryRaw` 模板字符串/`Prisma.sql`）。
 - **MCP Key**：只存 SHA-256、恒定时间比较、可撤销、按 Key 限流。
-- **限流**：搜索 30 次/分钟/IP；MCP 每 Key 每小时可配置。
+- **限流**：搜索 30 次/分钟/IP；MCP 每 Key 每小时可配置；AI 摘要每用户 10 次/小时。
+- **AI 摘要**：仅文章编辑器显式触发；作者鉴权；输入截断到 12k 字、输出最多 600 tokens；输出规范化到 280 字；provider 错误只写服务端日志；prompt 明确把文章正文视为不可信数据；正文会发送到配置的 AI 服务。
 - **图片上传**：MIME 白名单、大小限制、作者权限、对象 key 清洗。
 - **审计**：文章/评论/角色操作写 `logs`；MCP 调用写 `mcp_call_logs`。
 - **安全头**：见 17.5。
@@ -1706,6 +1763,10 @@ article-comments:{articleId}  // 单篇评论
 11. **HTML 文章生产样式**可能缺失（Tailwind 不扫描数据库内容，发布页也没加载 CDN）。
 12. **日志写入不与业务写操作同事务**：极端情况下可能出现“文章已改、日志失败”。
 13. **文章删除未实现**：枚举存在但无入口。
+14. **AI 摘要会把草稿内容发送到外部 provider**：只在用户点击按钮时发生，UI 有隐私提示；不要对敏感草稿使用第三方网关。
+15. **AI 摘要没有来源/过期标记**：方案 A 复用 `description`，不存 `summarySource` / `generatedAt`；徽标只在当前编辑会话显示，正文修改后无法自动检测摘要过期。
+16. **导入会覆盖 AI 摘要**：现有 importer 用 frontmatter `description` 覆盖该字段；重新导入前需保留 frontmatter 或重新生成。
+17. **AI 摘要的 provider 兼容性**：使用 `/chat/completions`、`max_tokens`、`temperature`；只支持 Responses API 的网关或拒绝这些参数的 reasoning 模型会失败。长文章只把前 12k 字纯文本送入 prompt，可能遗漏后文。
 
 ---
 
@@ -1741,7 +1802,7 @@ SITE_FOOTER_COPYRIGHT=
 SITE_FOOTER_ICP=
 ```
 
-**Agent / 嵌入**
+**Agent / 嵌入 / 摘要**
 
 ```bash
 OPENAI_API_KEY=
@@ -1753,6 +1814,8 @@ OPENAI_EMBEDDING_DIMENSIONS=
 OPENAI_EMBEDDING_TIMEOUT_MS=60000
 AGENT_REINDEX_CONCURRENCY=4
 ```
+
+> `OPENAI_API_KEY`、`OPENAI_RESPONSES_MODEL`、`OPENAI_API_BASE_URL` 同时用于文章摘要；摘要不需要嵌入相关变量，也没有新增环境变量。
 
 **数据库直连 / ParadeDB**
 
@@ -1855,6 +1918,7 @@ pnpm agent:index
 ```
 
 - 搜索/MCP 限流需要 Upstash；生产未配置会 fail closed（503）。
+- 文章摘要复用 OpenAI 配置；不需要迁移或新增环境变量；生产未配置 Upstash 时限流不可用，摘要会返回本地化错误（fail closed）。
 - 自建 ParadeDB 若为明文 TCP，设置 `PARADEDB_SSL_MODE=disable`。
 
 ### 19.5 CI
@@ -1925,6 +1989,16 @@ pnpm agent:index
 3. 写操作中 `updateTag(...)`；
 4. 需要页面级刷新时配合 `revalidatePath` / `revalidateLocalizedPath`。
 
+### 20.8 修改/扩展 AI 摘要
+
+1. 清洗、prompt、输出规范化：`lib/articles/summary.ts`；
+2. OpenAI 调用与响应解析：`lib/openai/chat.ts`；共享 URL/Header 在 `lib/openai/base-url.ts`；
+3. 鉴权、Zod、限流、错误映射：`app/actions/summary.ts`；
+4. 编辑器按钮、确认、徽标、错误：`components/article-editor.tsx` 的“摘要与 AI 生成”区域；
+5. 文案：`lib/i18n/dictionaries/zh.ts` / `en.ts` 的 `admin.articleEditor` 与 `feedback`；
+6. 测试：`tests/article-summary.test.ts`；
+7. 如果要把摘要加入列表/搜索/SEO，已有 `Article.description` 会自动生效；不要把摘要加入 `agent_chunks`，除非明确接受过期风险。
+
 ---
 
 ## 21. 已知限制与注意事项
@@ -1974,6 +2048,7 @@ pnpm agent:index
 | `app/[lang]/admin/taxonomy/page.tsx` | 分类结构 |
 | `app/[lang]/admin/mcp-keys/page.tsx` | MCP Key 管理 |
 | `app/actions/admin.ts` | 文章/评论/角色写操作 |
+| `app/actions/summary.ts` | AI 摘要生成（鉴权/限流/本地化错误，不写库） |
 | `app/actions/comments.ts` | 发表评论 |
 | `app/actions/settings.ts` | 资料/账号绑定 |
 | `app/actions/search.ts` | 搜索 Action + 限流 |
@@ -1991,6 +2066,10 @@ pnpm agent:index
 | `lib/articles/import.ts` | Markdown 导入 |
 | `lib/articles/image-import.ts` | 图片转 WebP + 上传 + 改写 |
 | `lib/articles/markdown-migrate.ts` | Wiki.js → 新 Markdown |
+| `lib/articles/summary-contract.ts` | 摘要 Action 的客户端安全常量与类型 |
+| `lib/articles/summary.ts` | 摘要清洗、prompt、规范化、可注入生成器 |
+| `lib/openai/base-url.ts` | OpenAI 网关 URL/Header/配置判断 |
+| `lib/openai/chat.ts` | 非流式 Chat Completions 调用与响应解析 |
 | `lib/wiki/path.ts` | 路径规范化与 URL 构建 |
 | `lib/wiki/tree.ts` | 目录树 |
 | `lib/wiki/taxonomy.ts` | 分类/标签参数解码 |
@@ -2004,7 +2083,7 @@ pnpm agent:index
 | `lib/agent/search.ts` | 混合检索 |
 | `lib/agent/tools.ts` | Agent 只读工具 |
 | `lib/agent/graph.ts` | LangGraph QA 流程 |
-| `lib/agent/openai.ts` | 模型、嵌入、SSE 输出 |
+| `lib/agent/openai.ts` | Agent 模型、嵌入、SSE 输出；复用/重导出 `lib/openai` 的共享配置 |
 | `lib/agent/route.ts` | Agent 请求校验与 SSE |
 | `lib/mcp/server.ts` | JSON-RPC / MCP 协议 |
 | `lib/mcp/tools.ts` | 6 个 MCP 工具 |
@@ -2012,7 +2091,8 @@ pnpm agent:index
 | `lib/mcp/api-keys.ts` | Key 生成/校验/撤销/统计 |
 | `lib/mcp/rate-limit.ts` | MCP 限流封装 |
 | `lib/mcp/errors.ts` | JSON-RPC 错误 |
-| `lib/search.ts` | 三级搜索与摘要 |
+| `lib/search.ts` | 三级搜索与结果摘要（excerpt） |
+| `lib/text.ts` | Markdown 纯文本、描述/摘要截断工具 |
 | `lib/image-hosting.ts` | Blob/S3 上传 |
 | `lib/embedding-queue.ts` | 队列投递 |
 | `lib/prisma.ts` | Prisma 客户端与断线重试 |
@@ -2027,7 +2107,7 @@ pnpm agent:index
 
 | 文件 | 职责 |
 |---|---|
-| `components/article-editor.tsx` | Monaco 编辑器、预览、图片、路径选择 |
+| `components/article-editor.tsx` | Monaco 编辑器、预览、图片、路径选择、摘要 AI 生成 |
 | `components/markdown-renderer.tsx` | Markdown 插件管线 |
 | `components/markdown-custom-components.tsx` | 自定义组件集合 |
 | `components/markdown-custom-components/*` | Card/Chat/CodeBlock/Icon/Infographic/Timeline |
@@ -2056,6 +2136,7 @@ pnpm agent:index
 | `scripts/transform-internal-links.ts` | 站内链接改写 |
 | `scripts/scrape-articles.mjs` | 线上抓取 |
 | `scripts/import-scraped.ts` | 抓取结果导入 |
+| `tests/article-summary.test.ts` | 摘要清洗、prompt、规范化、Chat Completions、metadata helper 测试 |
 
 ---
 
@@ -2065,10 +2146,11 @@ pnpm agent:index
 1. 编写
    admin/articles/new → ArticleEditor（Markdown/HTML）
    图片粘贴/选择 → /api/uploads/images → 图床 URL → 插入正文
+   摘要：默认人工填写；可选点击「AI 生成摘要」→ 只回填编辑器状态
 
 2. 保存
    Server Action → Zod + canonicalizePath
-   → articles 表（DRAFT/PUBLISHED，publishedAt 规则）
+   → articles 表（含 description/摘要、DRAFT/PUBLISHED，publishedAt 规则）
    → logs 表
    → updateTag + revalidatePath
    → 队列消息 {articleId, updatedAt}
@@ -2083,11 +2165,12 @@ pnpm agent:index
 4. 阅读
    读者 → proxy locale → RSC 文章页
    → "use cache" 按 tag 命中
+   → 标题下方展示摘要（description）
    → MarkdownRenderer / HTML
-   → 评论（APPROVED）→ TOC → JSON-LD
+   → 评论（APPROVED）→ TOC → JSON-LD（description 优先摘要）
 
 5. 发现
-   搜索：BM25 → pg_trgm → Prisma 兜底
+   搜索：BM25 → pg_trgm → Prisma 兜底（description/摘要参与）
    Agent：向量 ANN + BM25 融合 → LangGraph → SSE
    MCP：外部 AI 通过 Bearer Key 调 6 个只读工具
 

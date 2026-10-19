@@ -1,7 +1,9 @@
 import { notFound } from "next/navigation";
 import { updateArticleAction } from "@/app/actions/admin";
+import { generateArticleSummaryAction } from "@/app/actions/summary";
 import { ArticleEditor } from "@/components/article-editor";
 import { getArticleById } from "@/lib/articles";
+import { isOpenAiConfigured } from "@/lib/openai/base-url";
 import { getDictionary } from "@/lib/i18n/get-dictionary";
 import { hasLocale, localizeHref } from "@/lib/i18n/config";
 
@@ -27,6 +29,10 @@ export default async function EditArticlePage({
     notFound();
   }
 
+  const summaryAction = isOpenAiConfigured()
+    ? generateArticleSummaryAction.bind(null, lang)
+    : undefined;
+
   return (
     <div className="flex flex-col flex-1 min-h-0">
       <ArticleEditor
@@ -34,6 +40,7 @@ export default async function EditArticlePage({
         historyHref={localizeHref(lang, `/admin/articles/${article.id}/history`)}
         initialState={{}}
         initialValues={article}
+        summaryAction={summaryAction}
         submitLabel={dictionary.admin.saveArticleChanges}
       />
     </div>
