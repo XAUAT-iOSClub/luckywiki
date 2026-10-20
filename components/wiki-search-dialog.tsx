@@ -31,6 +31,8 @@ export function WikiSearchDialog() {
 
   React.useEffect(() => {
     if (!debouncedQuery) {
+      // Clear stale results when the query is emptied.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setResults([]);
       return;
     }
@@ -60,6 +62,8 @@ export function WikiSearchDialog() {
       open={open}
       onOpenChange={setOpen}
       commandProps={{ shouldFilter: false }}
+      description={t.search.description}
+      title={t.search.title}
     >
       <CommandInput
         placeholder={t.search.inputPlaceholder}
@@ -70,12 +74,12 @@ export function WikiSearchDialog() {
         <CommandEmpty>
           {isLoading ? (
             <div className="flex items-center justify-center py-6">
-              <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+              <div className="size-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
             </div>
           ) : query ? (
-            t.search.noResults
+            <span className="text-[12.5px]">{t.search.noResults}</span>
           ) : (
-            t.search.noQuery
+            <span className="text-[12.5px]">{t.search.noQuery}</span>
           )}
         </CommandEmpty>
         {results.length > 0 && (
@@ -86,10 +90,10 @@ export function WikiSearchDialog() {
                 value={result.title}
                 onSelect={() => onSelect(result.path)}
               >
-                <FileText className="mr-2 size-4" />
-                <div className="flex flex-col gap-0.5">
-                  <span className="font-medium">{result.title}</span>
-                  <span className="text-xs text-muted-foreground truncate max-w-[400px]">
+                <FileText className="mr-2 size-3.5 text-muted-foreground" />
+                <div className="flex min-w-0 flex-col gap-0.5">
+                  <span className="truncate text-[13px] font-medium">{result.title}</span>
+                  <span className="max-w-[420px] truncate font-mono text-[11px] text-muted-foreground">
                     /{result.path}
                   </span>
                 </div>

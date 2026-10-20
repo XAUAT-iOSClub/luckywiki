@@ -1,13 +1,5 @@
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
 import { Separator } from "@/components/ui/separator";
 import {
   SidebarInset,
@@ -15,13 +7,12 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { WikiSidebar } from "@/components/wiki-sidebar";
+import { WikiBreadcrumb } from "@/components/wiki-breadcrumb";
 import { WikiSearchCommand } from "@/components/wiki-search-command";
 import { listPublishedArticleTreeData } from "@/lib/articles";
 import { SiteFooter } from "@/components/site-footer";
 import { getSiteSettings } from "@/lib/site";
-import type { Locale } from "@/lib/i18n/config";
-import { hasLocale, localizeHref } from "@/lib/i18n/config";
-import { getDictionary } from "@/lib/i18n/get-dictionary";
+import { hasLocale } from "@/lib/i18n/config";
 import { buildWikiTree } from "@/lib/wiki/tree";
 import {
   WikiSidebarAccountSlot,
@@ -41,59 +32,34 @@ export async function WikiShell({
     notFound();
   }
 
-  const locale: Locale = lang;
-  const [treeArticles, dictionary, siteSettings] = await Promise.all([
+  const [treeArticles, siteSettings] = await Promise.all([
     listPublishedArticleTreeData(),
-    getDictionary(locale),
     getSiteSettings(),
   ]);
 
   const tree = buildWikiTree(treeArticles);
-  const breadcrumbLabel =
-    section === "agent"
-      ? dictionary.agent.breadcrumb
-      : section === "settings"
-        ? dictionary.common.settings
-        : dictionary.wiki.articlesBreadcrumb;
 
   return (
     <SidebarProvider>
       <WikiSidebar
         tree={tree}
         siteName={siteSettings.siteName}
-        adminSlot={<Suspense fallback={null}><WikiSidebarAdminSlot /></Suspense>}
-        accountSlot={<Suspense fallback={null}><WikiSidebarAccountSlot /></Suspense>}
+        adminSlot={<Suspense key="admin-navigation" fallback={null}><WikiSidebarAdminSlot /></Suspense>}
+        accountSlot={<Suspense key="account-navigation" fallback={null}><WikiSidebarAccountSlot /></Suspense>}
       />
-      <SidebarInset className="m-0! min-h-svh">
-        <header className="sticky md:rounded-tl-2xl top-0 z-20 bg-background/50 backdrop-blur-md flex justify-between h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12 ">
-          <div className="flex items-center gap-2 px-4">
+      <SidebarInset className="min-h-svh">
+        <header className="sticky top-0 z-20 flex h-14 shrink-0 items-center justify-between gap-3 border-b border-border/60 bg-background/80 px-3 backdrop-blur-xl sm:px-4">
+          <div className="flex min-w-0 items-center gap-1.5">
             <SidebarTrigger className="-ml-1" />
-            <div className="flex items-center">
-              <Separator
-                orientation="vertical"
-                className="mr-2 h-4"
-            />
-            </div>
-            <Breadcrumb>
-                <BreadcrumbList>
-                  <BreadcrumbItem className="hidden md:block">
-                    <BreadcrumbLink href={localizeHref(locale, "/wiki/home")}>
-                      {dictionary.metadata.wiki}
-                    </BreadcrumbLink>
-                  </BreadcrumbItem>
-                  <BreadcrumbSeparator className="hidden md:block" />
-                  <BreadcrumbItem>
-                    <BreadcrumbPage>{breadcrumbLabel}</BreadcrumbPage>
-                  </BreadcrumbItem>
-                </BreadcrumbList>
-              </Breadcrumb>
+            <Separator orientation="vertical" className="mx-1 h-4" />
+            <WikiBreadcrumb section={section} />
           </div>
-          <div className="md:hidden items-center gap-2">
-              <WikiSearchCommand className="md:w-40 lg:w-64" />
-            </div>
+          <div className="flex items-center gap-1">
+            <WikiSearchCommand className="md:hidden" compact />
+          </div>
         </header>
-        <div className="flex-1">{children}</div>
-        <SiteFooter />
+        <div className="flex min-h-0 flex-1 flex-col">{children}</div>
+        {section === "agent" ? null : <SiteFooter />}
       </SidebarInset>
     </SidebarProvider>
   );

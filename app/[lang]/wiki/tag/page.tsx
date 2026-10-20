@@ -1,7 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Badge } from "@/components/ui/badge";
+import { ArrowUpRight, Tags } from "lucide-react";
+import {
+  EmptyState,
+  List,
+  Page,
+  PageHeader,
+  Panel,
+} from "@/components/ui/page-ui";
 import { getDictionary } from "@/lib/i18n/get-dictionary";
 import { formatNumber } from "@/lib/i18n/format";
 import { hasLocale, localizeHref } from "@/lib/i18n/config";
@@ -36,28 +43,57 @@ export default async function WikiTagIndexPage({ params }: { params: Params }) {
   ]);
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-10 md:px-8 lg:px-12">
-      <header className="mb-8 space-y-3">
-        <p className="eyebrow">{dictionary.wiki.tagBreadcrumb}</p>
-        <h1 className="text-4xl font-bold tracking-tight">{dictionary.wiki.tagIndexTitle}</h1>
-        <p className="max-w-2xl text-sm leading-7 text-muted-foreground">
-          {dictionary.wiki.taxonomyIndexDescription}
-        </p>
-      </header>
+    <Page className="max-w-4xl">
+      <PageHeader
+        actions={
+          <p className="text-[12px] tabular-nums text-muted-foreground">
+            {formatNumber(lang, taxonomy.tags.length)}{" "}
+            {dictionary.common.tags.toLowerCase()}
+          </p>
+        }
+        descriptionClassName="text-[13.5px] leading-6"
+        description={dictionary.wiki.taxonomyIndexDescription}
+        title={dictionary.wiki.tagIndexTitle}
+        titleClassName="text-[28px] sm:text-[30px]"
+      />
 
-      {taxonomy.tags.length > 0 ? (
-        <div className="flex flex-wrap gap-3">
-          {taxonomy.tags.map((item) => (
-            <Badge key={item.tag} asChild variant="secondary" className="h-8 px-3 text-sm">
-              <Link href={buildWikiTagHref(item.tag, lang)}>
-                {item.tag} · {formatNumber(lang, item.articleCount)}
+      <Panel
+        title={
+          <span className="inline-flex items-center gap-2">
+            <Tags className="size-4 text-muted-foreground" />
+            {dictionary.common.tags}
+          </span>
+        }
+      >
+        {taxonomy.tags.length > 0 ? (
+          <List>
+            {taxonomy.tags.map((item) => (
+              <Link
+                className="flex items-center justify-between gap-4 px-5 py-4 transition-colors hover:bg-muted/35"
+                href={buildWikiTagHref(item.tag, lang)}
+                key={item.tag}
+              >
+                <p className="min-w-0 truncate text-[13.5px] font-medium text-foreground">
+                  #{item.tag}
+                </p>
+                <div className="flex shrink-0 items-center gap-3">
+                  <span className="text-[12px] tabular-nums text-muted-foreground">
+                    {formatNumber(lang, item.articleCount)}{" "}
+                    {dictionary.common.articles}
+                  </span>
+                  <ArrowUpRight className="size-4 text-muted-foreground/60" />
+                </div>
               </Link>
-            </Badge>
-          ))}
-        </div>
-      ) : (
-        <p className="text-sm text-muted-foreground">{dictionary.admin.noTagsYet}</p>
-      )}
-    </div>
+            ))}
+          </List>
+        ) : (
+          <EmptyState
+            description={dictionary.admin.noTagsYet}
+            icon={Tags}
+            title={dictionary.wiki.tagIndexTitle}
+          />
+        )}
+      </Panel>
+    </Page>
   );
 }

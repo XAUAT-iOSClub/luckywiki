@@ -12,11 +12,11 @@ import { RestoreRevisionForm } from "@/components/admin/restore-revision-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-  AdminEmpty,
-  AdminPage,
-  AdminPageHeader,
-  AdminPanel,
-} from "@/components/admin/admin-ui";
+  EmptyState,
+  Page,
+  PageHeader,
+  Panel,
+} from "@/components/ui/page-ui";
 import { getArticleById } from "@/lib/articles";
 import { getArticleRevisionDetail } from "@/lib/articles/revisions";
 import { diffArticleMarkdown } from "@/lib/articles/revision-diff";
@@ -69,8 +69,8 @@ export default async function ArticleRevisionDiffPage({
   const compareTo = formatTemplate(labels.version, { version: String(version) });
 
   return (
-    <AdminPage>
-      <AdminPageHeader
+    <Page>
+      <PageHeader
         actions={
           <div className="flex flex-wrap items-center gap-1.5">
             <Button asChild size="sm" variant="outline">
@@ -149,7 +149,7 @@ export default async function ArticleRevisionDiffPage({
       />
 
       {titleChanged && previous ? (
-        <AdminPanel title={labels.titleChanged}>
+        <Panel title={labels.titleChanged}>
           <div className="space-y-1.5 p-5 text-[13px] leading-6">
             <p className="text-muted-foreground">
               {formatTemplate(labels.titleFrom, { title: previous.title })}
@@ -158,10 +158,10 @@ export default async function ArticleRevisionDiffPage({
               {formatTemplate(labels.titleTo, { title: revision.title })}
             </p>
           </div>
-        </AdminPanel>
+        </Panel>
       ) : null}
 
-      <AdminPanel
+      <Panel
         action={
           <div className="flex items-center gap-1.5">
             <Badge variant="success">
@@ -188,7 +188,7 @@ export default async function ArticleRevisionDiffPage({
         }
       >
         {changedLines === 0 ? (
-          <AdminEmpty
+          <EmptyState
             description={labels.noChanges}
             icon={FileDiff}
             title={labels.noChanges}
@@ -238,7 +238,7 @@ export default async function ArticleRevisionDiffPage({
             ))}
           </div>
         )}
-      </AdminPanel>
-    </AdminPage>
+      </Panel>
+    </Page>
   );
 }

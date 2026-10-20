@@ -14,13 +14,13 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import {
-  AdminEmpty,
-  AdminList,
-  AdminListRow,
-  AdminPage,
-  AdminPageHeader,
-  AdminPanel,
-} from "@/components/admin/admin-ui";
+  EmptyState,
+  List,
+  ListRow,
+  Page,
+  PageHeader,
+  Panel,
+} from "@/components/ui/page-ui";
 import { formatDateTime, formatTemplate } from "@/lib/i18n/format";
 import { getDictionary } from "@/lib/i18n/get-dictionary";
 import { hasLocale, localizeHref, type Locale } from "@/lib/i18n/config";
@@ -75,13 +75,13 @@ export default async function AdminLogsPage({
   });
 
   return (
-    <AdminPage>
-      <AdminPageHeader
+    <Page>
+      <PageHeader
         description={dictionary.admin.logsDescription}
         title={dictionary.common.logs}
       />
 
-      <AdminPanel
+      <Panel
         description={
           totalCount === 0 ? dictionary.admin.noLogsFound : pageLabel
         }
@@ -134,23 +134,23 @@ export default async function AdminLogsPage({
         </form>
 
         {logs.length === 0 ? (
-          <AdminEmpty
+          <EmptyState
             description={dictionary.admin.noLogsFound}
             icon={ScrollText}
             title={dictionary.admin.noLogsFound}
           />
         ) : (
-          <AdminList>
+          <List>
             {logs.map((log) => (
-              <AdminListRow key={log.id}>
+              <ListRow key={log.id}>
                 <LogRow
                   dictionary={dictionary}
                   lang={lang}
                   log={log}
                 />
-              </AdminListRow>
+              </ListRow>
             ))}
-          </AdminList>
+          </List>
         )}
 
         {totalPages > 1 ? (
@@ -196,8 +196,8 @@ export default async function AdminLogsPage({
             </Pagination>
           </div>
         ) : null}
-      </AdminPanel>
-    </AdminPage>
+      </Panel>
+    </Page>
   );
 }
 

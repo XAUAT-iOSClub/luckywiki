@@ -6,6 +6,8 @@ import { MarkdownRenderer } from "@/components/markdown-renderer";
 import { WikiHtmlRenderer } from "@/components/wiki-html-renderer";
 import { WikiToc } from "@/components/wiki-toc";
 import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { Page } from "@/components/ui/page-ui";
 import { getPublishedArticleByPath } from "@/lib/articles";
 import { getDictionary } from "@/lib/i18n/get-dictionary";
 import { formatDate } from "@/lib/i18n/format";
@@ -102,55 +104,69 @@ export default async function WikiArticlePage({
     : null;
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-10 md:px-8 lg:px-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
-      <div className="flex flex-col gap-10">
-        <header className="space-y-6 max-w-5xl">
-          <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-balance text-foreground">
-            {article.title}
-          </h1>
-
-          {article.description?.trim() ? (
-            <p className="text-pretty text-lg leading-relaxed text-muted-foreground">
-              {article.description.trim()}
-            </p>
+    <Page className="max-w-[1180px] gap-8 px-5 py-8 sm:px-8 md:px-12 md:py-10">
+      <header className="max-w-3xl space-y-4">
+        <div className="flex flex-wrap items-center gap-2 text-[12px] text-muted-foreground">
+          {category && article.path.includes("/") ? (
+            <>
+              <Link
+                className="transition-colors hover:text-foreground"
+                href={buildWikiCategoryHref(category, lang)}
+              >
+                {category}
+              </Link>
+              <span aria-hidden className="text-border">/</span>
+            </>
           ) : null}
+          <span className="truncate font-mono text-[11.5px]">/{article.path}</span>
+        </div>
 
-          <div className="flex flex-wrap items-center gap-6 text-sm text-muted-foreground">
-            {publishedDate ? (
-              <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4" />
-                <span>{publishedDate}</span>
-              </div>
-            ) : null}
+        <h1 className="text-balance text-[32px] font-semibold leading-[1.15] tracking-[-0.025em] text-foreground sm:text-[38px]">
+          {article.title}
+        </h1>
 
-            {article.tags.length > 0 ? (
-              article.tags.map((tag) => (
+        {article.description?.trim() ? (
+          <p className="text-pretty text-[15.5px] leading-7 text-muted-foreground">
+            {article.description.trim()}
+          </p>
+        ) : null}
+
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[12.5px] text-muted-foreground">
+          {publishedDate ? (
+            <span className="inline-flex items-center gap-1.5">
+              <Calendar className="size-3.5" />
+              {publishedDate}
+            </span>
+          ) : null}
+          <span>{article.author.name}</span>
+          {article.tags.length > 0 ? (
+            <span className="flex flex-wrap items-center gap-1.5">
+              {article.tags.map((tag) => (
                 <Badge key={tag} asChild variant="secondary">
                   <Link href={buildWikiTagHref(tag, lang)}>{tag}</Link>
                 </Badge>
-              ))
-            ) : null}
-            {category ? (
-              <Badge asChild variant="outline">
-                <Link href={buildWikiCategoryHref(category, lang)}>{category}</Link>
-              </Badge>
-            ) : null}
-          </div>
-        </header>
+              ))}
+            </span>
+          ) : null}
+        </div>
+      </header>
 
-        <div className="grid grid-cols-1 gap-10 lg:grid-cols-[1fr_250px]">
-          <div className="min-w-0">
-            <article className="surface-panel md:p-12! md:shadow-xl shadow-black/5 dark:shadow-black/20 border-border/40 overflow-hidden">
-              {article.editor === "html" ? (
-                <WikiHtmlRenderer html={article.markdown} />
-              ) : (
-                <MarkdownRenderer
-                  linkToSectionLabel={dictionary.common.linkToSection}
-                  markdown={article.markdown}
-                />
-              )}
-            </article>
+      <Separator className="bg-border/60" />
 
+      <div className="grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,1fr)_220px] lg:gap-16">
+        <div className="min-w-0">
+          <article className="max-w-3xl">
+            {article.editor === "html" ? (
+              <WikiHtmlRenderer html={article.markdown} />
+            ) : (
+              <MarkdownRenderer
+                linkToSectionLabel={dictionary.common.linkToSection}
+                markdown={article.markdown}
+              />
+            )}
+          </article>
+
+          <div className="max-w-3xl">
             <WikiComments
               articleId={article.id}
               articleHref={articleHref}
@@ -159,13 +175,13 @@ export default async function WikiArticlePage({
               searchParams={searchParams}
             />
           </div>
-
-          <aside className="hidden lg:block">
-            <div className="sticky top-24">
-              <WikiToc markdown={article.editor === "html" ? "" : article.markdown} />
-            </div>
-          </aside>
         </div>
+
+        <aside className="hidden lg:block">
+          <div className="sticky top-20">
+            <WikiToc markdown={article.editor === "html" ? "" : article.markdown} />
+          </div>
+        </aside>
       </div>
 
       <ArticleJsonLd
@@ -182,7 +198,7 @@ export default async function WikiArticlePage({
         locale={lang}
       />
       <BreadcrumbListJsonLd path={article.path} locale={lang} />
-    </div>
+    </Page>
   );
 }
 

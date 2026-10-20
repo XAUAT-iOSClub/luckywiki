@@ -31,52 +31,49 @@ export function SettingsProfileForm({
   const t = useT();
 
   return (
-    <form action={formAction} className="space-y-5">
+    <form action={formAction} className="flex flex-col gap-5">
       <div className="grid gap-5 md:grid-cols-2">
-        <div className="space-y-2">
-          <Label htmlFor="settings-name">{t.settings.profile.name}</Label>
+        <div className="flex flex-col gap-1.5">
+          <Label className="text-[12px] font-medium" htmlFor="settings-name">{t.settings.profile.name}</Label>
           <Input
             id="settings-name"
             name="name"
             defaultValue={user.name}
             required
-            className="rounded-xl"
           />
           {state.fieldErrors?.name?.length ? (
-            <p className="text-sm text-destructive">{state.fieldErrors.name[0]}</p>
+            <p className="text-[11.5px] text-destructive">{state.fieldErrors.name[0]}</p>
           ) : null}
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="settings-image">{t.settings.profile.image}</Label>
+        <div className="flex flex-col gap-1.5">
+          <Label className="text-[12px] font-medium" htmlFor="settings-image">{t.settings.profile.image}</Label>
           <Input
             id="settings-image"
             name="image"
             defaultValue={user.image ?? ""}
             placeholder="https://example.com/avatar.png"
-            className="rounded-xl"
           />
-          <p className="text-xs text-muted-foreground">
+          <p className="text-[11.5px] leading-4 text-muted-foreground">
             {t.settings.profile.imageHint}
           </p>
           {state.fieldErrors?.image?.length ? (
-            <p className="text-sm text-destructive">{state.fieldErrors.image[0]}</p>
+            <p className="text-[11.5px] text-destructive">{state.fieldErrors.image[0]}</p>
           ) : null}
         </div>
       </div>
 
       <div className="grid gap-5 md:grid-cols-2">
-        <div className="space-y-2">
-          <Label htmlFor="settings-email">{t.settings.profile.email}</Label>
+        <div className="flex flex-col gap-1.5">
+          <Label className="text-[12px] font-medium" htmlFor="settings-email">{t.settings.profile.email}</Label>
           <Input
             id="settings-email"
             value={user.email}
             disabled
             readOnly
-            className="rounded-xl opacity-100"
           />
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="settings-email-status">{t.settings.profile.emailStatus}</Label>
+        <div className="flex flex-col gap-1.5">
+          <Label className="text-[12px] font-medium" htmlFor="settings-email-status">{t.settings.profile.emailStatus}</Label>
           <Input
             id="settings-email-status"
             value={
@@ -86,7 +83,6 @@ export function SettingsProfileForm({
             }
             disabled
             readOnly
-            className="rounded-xl opacity-100"
           />
         </div>
       </div>
@@ -94,13 +90,13 @@ export function SettingsProfileForm({
       <div className="flex flex-wrap items-center gap-3">
         <SubmitButton>{t.common.saveChanges}</SubmitButton>
         {state.error ? (
-          <p className="inline-flex items-center gap-2 rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          <p className="inline-flex items-center gap-2 rounded-md bg-destructive/10 px-3 py-2 text-[12px] text-destructive">
             <AlertCircle className="size-4 shrink-0" />
             {state.error}
           </p>
         ) : null}
         {state.success ? (
-          <p className="inline-flex items-center gap-2 rounded-xl bg-emerald-500/10 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-400">
+          <p className="inline-flex items-center gap-2 rounded-md bg-emerald-500/10 px-3 py-2 text-[12px] text-emerald-700 dark:text-emerald-400">
             <CheckCircle2 className="size-4 shrink-0" />
             {state.success}
           </p>

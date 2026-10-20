@@ -18,7 +18,7 @@ export function Chat({
   return (
     <div
       className={cn(
-        "my-6 space-y-4 rounded-3xl border border-border/50 bg-muted/30 p-6",
+        "my-6 space-y-3 rounded-lg border border-border/70 bg-muted/20 p-4",
         className,
       )}
     >
@@ -30,15 +30,15 @@ export function Chat({
             msg.isMe ? "flex-row-reverse" : "flex-row",
           )}
         >
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-card text-sm font-bold text-muted-foreground shadow-sm ring-1 ring-border">
+          <div className="flex size-8 shrink-0 items-center justify-center rounded-md border border-border/70 bg-card text-[11px] font-medium text-muted-foreground">
             {msg.userName?.[0] || "?"}
           </div>
           <div
             className={cn(
-              "max-w-[80%] px-4 py-2 text-sm shadow-sm",
+              "max-w-[80%] px-3 py-2 text-[13px] leading-5",
               msg.isMe
-                ? "rounded-2xl rounded-tr-none bg-primary text-primary-foreground"
-                : "rounded-2xl rounded-tl-none border border-border/50 bg-card text-foreground",
+                ? "rounded-lg rounded-tr-none bg-primary text-primary-foreground"
+                : "rounded-lg rounded-tl-none border border-border/70 bg-card text-foreground",
             )}
           >
             {msg.messages}

@@ -24,13 +24,13 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import {
-  AdminEmpty,
-  AdminList,
-  AdminListRow,
-  AdminPage,
-  AdminPageHeader,
-  AdminPanel,
-} from "@/components/admin/admin-ui";
+  EmptyState,
+  List,
+  ListRow,
+  Page,
+  PageHeader,
+  Panel,
+} from "@/components/ui/page-ui";
 
 type ApiKeyInfo = {
   id: string;
@@ -138,7 +138,7 @@ export default function McpKeysClientPage() {
   };
 
   return (
-    <AdminPage>
+    <Page>
       <Dialog
         open={createOpen}
         onOpenChange={(open) => {
@@ -149,7 +149,7 @@ export default function McpKeysClientPage() {
           setCreateOpen(open);
         }}
       >
-        <AdminPageHeader
+        <PageHeader
           actions={
             <DialogTrigger asChild>
               <Button size="sm">
@@ -269,21 +269,21 @@ export default function McpKeysClientPage() {
         </div>
       ) : null}
 
-      <AdminPanel
+      <Panel
         description="每个 Key 独立限流，最近使用时间会实时更新。"
         title="API Keys"
       >
         {loading ? (
-          <AdminList>
+          <List>
             {[0, 1, 2].map((item) => (
-              <AdminListRow key={item}>
+              <ListRow key={item}>
                 <Skeleton className="h-3.5 w-40" />
                 <Skeleton className="mt-2 h-3 w-64" />
-              </AdminListRow>
+              </ListRow>
             ))}
-          </AdminList>
+          </List>
         ) : keys.length === 0 ? (
-          <AdminEmpty
+          <EmptyState
             action={
               <Button onClick={() => setCreateOpen(true)} size="sm" variant="outline">
                 <Plus data-icon="inline-start" />
@@ -295,9 +295,9 @@ export default function McpKeysClientPage() {
             title="还没有创建任何 MCP API Key"
           />
         ) : (
-          <AdminList>
+          <List>
             {keys.map((key) => (
-              <AdminListRow key={key.id}>
+              <ListRow key={key.id}>
                 <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                   <div className="min-w-0 space-y-1">
                     <div className="flex flex-wrap items-center gap-2">
@@ -334,13 +334,13 @@ export default function McpKeysClientPage() {
                     <Trash2 />
                   </Button>
                 </div>
-              </AdminListRow>
+              </ListRow>
             ))}
-          </AdminList>
+          </List>
         )}
-      </AdminPanel>
+      </Panel>
 
-      <AdminPanel
+      <Panel
         description="在 LobeHub 或其他 MCP 客户端中配置以下信息。"
         title="MCP 接入信息"
       >
@@ -360,7 +360,7 @@ export default function McpKeysClientPage() {
             <span className="text-[13px]">Bearer Token</span>
           </div>
         </div>
-      </AdminPanel>
+      </Panel>
 
       <Dialog
         open={deleteTarget !== null}
@@ -394,6 +394,6 @@ export default function McpKeysClientPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </AdminPage>
+    </Page>
   );
 }

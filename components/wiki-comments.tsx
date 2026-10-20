@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { Suspense } from "react";
-import { MessageCircle } from "lucide-react";
 import { createCommentAction } from "@/app/actions/comments";
 import { CommentForm } from "@/components/comment-form";
 import { Button } from "@/components/ui/button";
@@ -60,14 +59,13 @@ async function WikiCommentsContent({
   const comments = await listPublishedArticleComments(articleId, page);
 
   return (
-    <section className="mt-16 space-y-8">
-      <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
-          <MessageCircle className="h-5 w-5" />
-        </div>
+    <section className="mt-14 border-t border-border/60 pt-10">
+      <div className="flex items-baseline justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">{dictionary.wiki.discussion}</h2>
-          <p className="text-sm text-muted-foreground">
+          <h2 className="text-[18px] font-semibold tracking-[-0.01em] text-foreground">
+            {dictionary.wiki.discussion}
+          </h2>
+          <p className="mt-1 text-[12.5px] text-muted-foreground">
             {formatTemplate(dictionary.wiki.commentCount, {
               count: formatNumber(lang, comments.totalCount),
             })}
@@ -75,44 +73,53 @@ async function WikiCommentsContent({
         </div>
       </div>
 
-      <div className="grid gap-8">
-        <div className="space-y-6">
-          {comments.totalCount === 0 ? (
-            <div className="rounded-3xl border border-dashed border-border/60 p-10 text-center">
-              <p className="text-sm text-muted-foreground italic">{dictionary.wiki.noComments}</p>
-            </div>
-          ) : (
-            <>
-              <div className="space-y-6">
-                {comments.comments.map((comment) => (
-                  <article key={comment.id} className="group rounded-3xl border border-border/50 bg-card/50 p-6 shadow-sm transition-all hover:shadow-md dark:bg-zinc-900/40">
-                    <div className="mb-4 flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-primary/20 to-primary/5 font-bold text-primary">
-                          {comment.author.name.slice(0, 1).toUpperCase()}
-                        </div>
-                        <div>
-                          <p className="text-sm font-semibold">{comment.author.name}</p>
-                          <p className="text-xs text-muted-foreground">{formatDate(lang, comment.createdAt)}</p>
-                        </div>
-                      </div>
+      <div className="mt-6 space-y-6">
+        {comments.totalCount === 0 ? (
+          <div className="rounded-lg border border-dashed border-border/70 px-5 py-10 text-center">
+            <p className="text-[13px] text-muted-foreground">
+              {dictionary.wiki.noComments}
+            </p>
+          </div>
+        ) : (
+          <>
+            <div className="divide-y divide-border/60 overflow-hidden rounded-lg border border-border/70 bg-card">
+              {comments.comments.map((comment) => (
+                <article className="px-5 py-4" key={comment.id}>
+                  <div className="flex items-center gap-3">
+                    <div className="flex size-8 shrink-0 items-center justify-center rounded-md bg-muted text-[11px] font-medium text-muted-foreground">
+                      {comment.author.name.slice(0, 1).toUpperCase()}
                     </div>
-                    <p className="whitespace-pre-wrap text-[15px] leading-relaxed text-foreground/90">{comment.body}</p>
-                  </article>
-                ))}
-              </div>
-              <CommentPagination
-                articleHref={articleHref}
-                dictionary={dictionary}
-                page={comments.page}
-                totalPages={comments.totalPages}
-              />
-            </>
-          )}
-        </div>
+                    <div className="min-w-0">
+                      <p className="truncate text-[12.5px] font-medium text-foreground">
+                        {comment.author.name}
+                      </p>
+                      <p className="text-[11.5px] text-muted-foreground">
+                        {formatDate(lang, comment.createdAt)}
+                      </p>
+                    </div>
+                  </div>
+                  <p className="mt-3 whitespace-pre-wrap text-[13.5px] leading-6 text-foreground/85">
+                    {comment.body}
+                  </p>
+                </article>
+              ))}
+            </div>
+            <CommentPagination
+              articleHref={articleHref}
+              dictionary={dictionary}
+              page={comments.page}
+              totalPages={comments.totalPages}
+            />
+          </>
+        )}
 
-        <Suspense fallback={<div className="h-36 rounded-[2rem] border border-border/50 bg-muted/30" />}>
-          <CommentComposer articleId={articleId} articleHref={articleHref} dictionary={dictionary} lang={lang} />
+        <Suspense fallback={<div className="h-36 rounded-lg border border-border/70 bg-muted/20" />}>
+          <CommentComposer
+            articleHref={articleHref}
+            articleId={articleId}
+            dictionary={dictionary}
+            lang={lang}
+          />
         </Suspense>
       </div>
     </section>
@@ -134,10 +141,27 @@ function CommentPagination({
   const hrefFor = (targetPage: number) => `${articleHref}?commentsPage=${targetPage}`;
 
   return (
-    <nav aria-label={dictionary.wiki.discussion} className="flex items-center justify-between gap-3">
-      {page > 1 ? <Button asChild variant="outline"><Link href={hrefFor(page - 1)}>{dictionary.common.previous}</Link></Button> : <span />}
-      <span className="text-sm text-muted-foreground">{page} / {totalPages}</span>
-      {page < totalPages ? <Button asChild variant="outline"><Link href={hrefFor(page + 1)}>{dictionary.common.next}</Link></Button> : <span />}
+    <nav
+      aria-label={dictionary.wiki.discussion}
+      className="flex items-center justify-between gap-3"
+    >
+      {page > 1 ? (
+        <Button asChild size="sm" variant="outline">
+          <Link href={hrefFor(page - 1)}>{dictionary.common.previous}</Link>
+        </Button>
+      ) : (
+        <span />
+      )}
+      <span className="text-[12px] tabular-nums text-muted-foreground">
+        {page} / {totalPages}
+      </span>
+      {page < totalPages ? (
+        <Button asChild size="sm" variant="outline">
+          <Link href={hrefFor(page + 1)}>{dictionary.common.next}</Link>
+        </Button>
+      ) : (
+        <span />
+      )}
     </nav>
   );
 }
@@ -157,28 +181,37 @@ async function CommentComposer({
   const canPostComment = canComment(session?.user ?? null);
 
   return (
-    <div className="w-full rounded-[2rem] border border-border/50 bg-muted/30 p-6 backdrop-blur-sm">
-      <h3 className="mb-4 font-bold">{dictionary.wiki.joinDiscussion}</h3>
-      {canPostComment ? (
-        <CommentForm action={createCommentAction.bind(null, lang, articleId, articleHref)} initialState={{}} />
-      ) : (
-        <div className="space-y-4">
-          <p className="text-sm leading-relaxed text-muted-foreground">
-            {session ? dictionary.wiki.verifyToComment : dictionary.wiki.signInToDiscuss}
-          </p>
-          {!session ? (
-            <Button asChild className="w-full rounded-xl">
-              <Link href={`${localizeHref(lang, "/auth/sign-in")}?next=${encodeURIComponent(articleHref)}`}>
-                {dictionary.common.signIn}
-              </Link>
-            </Button>
-          ) : null}
-        </div>
-      )}
+    <div className="rounded-lg border border-border/70 bg-card p-5">
+      <h3 className="text-[14px] font-semibold text-foreground">
+        {dictionary.wiki.joinDiscussion}
+      </h3>
+      <div className="mt-4">
+        {canPostComment ? (
+          <CommentForm
+            action={createCommentAction.bind(null, lang, articleId, articleHref)}
+            initialState={{}}
+          />
+        ) : (
+          <div className="space-y-4">
+            <p className="text-[13px] leading-6 text-muted-foreground">
+              {session ? dictionary.wiki.verifyToComment : dictionary.wiki.signInToDiscuss}
+            </p>
+            {!session ? (
+              <Button asChild size="sm">
+                <Link
+                  href={`${localizeHref(lang, "/auth/sign-in")}?next=${encodeURIComponent(articleHref)}`}
+                >
+                  {dictionary.common.signIn}
+                </Link>
+              </Button>
+            ) : null}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
 
 function CommentsSkeleton() {
-  return <div className="mt-16 h-48 animate-pulse rounded-3xl bg-muted/40" />;
+  return <div className="mt-14 h-44 animate-pulse rounded-lg bg-muted/40" />;
 }

@@ -118,8 +118,8 @@ export function SettingsAccountConnections({
   }
 
   return (
-    <div className="space-y-4">
-      <div className="space-y-3">
+    <div className="flex flex-col gap-4">
+      <div className="divide-y divide-border/60 overflow-hidden rounded-md border border-border/70">
         {accounts.map((account) => {
           const isLinking = linkingProvider === account.provider;
           const canUnlink = account.connected && totalLinkedAccountCount > 1;
@@ -127,10 +127,10 @@ export function SettingsAccountConnections({
           return (
             <div
               key={account.providerId}
-              className="flex flex-col gap-4 rounded-2xl p-4 md:flex-row md:items-center md:justify-between"
+              className="flex flex-col gap-3 px-4 py-3.5 md:flex-row md:items-center md:justify-between"
             >
               <div className="flex items-start gap-3">
-                <div className="rounded-xl bg-muted p-2">
+                <div className="rounded-md bg-muted p-1.5">
                   {account.provider === "github" ? (
                     <GitHubIcon className="size-5" />
                   ) : (
@@ -138,14 +138,14 @@ export function SettingsAccountConnections({
                   )}
                 </div>
                 <div className="space-y-1">
-                  <div className="font-medium">{account.label}</div>
-                  <p className="text-sm text-muted-foreground">
+                  <div className="text-[13px] font-medium">{account.label}</div>
+                  <p className="text-[12px] text-muted-foreground">
                     {account.connected
                       ? t.settings.accounts.connected
                       : t.settings.accounts.notConnected}
                   </p>
                   {account.connected && account.accountId ? (
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-[11.5px] text-muted-foreground">
                       {t.settings.accounts.accountIdentifier}: {account.accountId}
                     </p>
                   ) : null}
@@ -158,7 +158,6 @@ export function SettingsAccountConnections({
                   variant="outline"
                   disabled={!canUnlink || isPending}
                   onClick={() => handleUnlink(account)}
-                  className="rounded-xl"
                 >
                   {isPending ? (
                     <>
@@ -174,7 +173,6 @@ export function SettingsAccountConnections({
                   type="button"
                   disabled={isLinking}
                   onClick={() => handleLink(account.provider)}
-                  className="rounded-xl"
                 >
                   {isLinking ? (
                     <>
@@ -192,30 +190,30 @@ export function SettingsAccountConnections({
       </div>
 
       {accounts.length > 0 && !accounts.some((account) => account.connected) ? (
-        <p className="rounded-xl bg-muted/60 px-4 py-3 text-sm text-muted-foreground">
+        <p className="rounded-md bg-muted/40 px-3 py-2 text-[12px] leading-5 text-muted-foreground">
           {t.settings.accounts.noConnectedAccounts}
         </p>
       ) : null}
       {accounts.length === 0 ? (
-        <p className="rounded-xl bg-muted/60 px-4 py-3 text-sm text-muted-foreground">
+        <p className="rounded-md bg-muted/40 px-3 py-2 text-[12px] leading-5 text-muted-foreground">
           {t.settings.accounts.noProvidersConfigured}
         </p>
       ) : null}
 
       {accounts.length > 0 && totalLinkedAccountCount <= 1 ? (
-        <p className="rounded-xl bg-muted/60 px-4 py-3 text-sm text-muted-foreground">
+        <p className="rounded-md bg-muted/40 px-3 py-2 text-[12px] leading-5 text-muted-foreground">
           {t.settings.accounts.unlinkLastAccountHint}
         </p>
       ) : null}
 
       {actionState.error ? (
-        <p className="inline-flex items-center gap-2 rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">
+        <p className="inline-flex items-center gap-2 rounded-md bg-destructive/10 px-3 py-2 text-[12px] text-destructive">
           <AlertCircle className="size-4 shrink-0" />
           {actionState.error}
         </p>
       ) : null}
       {actionState.success ? (
-        <p className="inline-flex items-center gap-2 rounded-xl bg-emerald-500/10 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-400">
+        <p className="inline-flex items-center gap-2 rounded-md bg-emerald-500/10 px-3 py-2 text-[12px] text-emerald-700 dark:text-emerald-400">
           <CheckCircle2 className="size-4 shrink-0" />
           {actionState.success}
         </p>

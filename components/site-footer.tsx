@@ -9,15 +9,15 @@ export async function SiteFooter() {
   }
 
   return (
-    <footer className="border-t bg-card/50">
-      <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-center gap-x-4 gap-y-1 px-4 py-4 text-xs text-muted-foreground">
+    <footer className="border-t border-border/60">
+      <div className="mx-auto flex max-w-[1180px] flex-wrap items-center justify-center gap-x-4 gap-y-1 px-5 py-4 text-[11.5px] text-muted-foreground sm:px-8 md:px-12">
         {footerCopyright ? <span>{footerCopyright}</span> : null}
         {footerIcp ? (
           <a
+            className="transition-colors hover:text-foreground hover:underline"
             href="https://beian.miit.gov.cn"
-            target="_blank"
             rel="noopener noreferrer"
-            className="hover:underline"
+            target="_blank"
           >
             {footerIcp}
           </a>

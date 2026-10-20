@@ -5,14 +5,14 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-  AdminEmpty,
-  AdminList,
-  AdminListRow,
-  AdminPage,
-  AdminPageHeader,
-  AdminPanel,
+  EmptyState,
+  List,
+  ListRow,
+  Page,
+  PageHeader,
+  Panel,
   StatusDot,
-} from "@/components/admin/admin-ui";
+} from "@/components/ui/page-ui";
 import { listAdminUsers } from "@/lib/admin";
 import { formatNumber, formatTemplate } from "@/lib/i18n/format";
 import { getDictionary } from "@/lib/i18n/get-dictionary";
@@ -39,8 +39,8 @@ export default async function AdminUsersPage({ params }: { params: Params }) {
   const authorCount = users.filter((user) => user.role === Role.AUTHOR).length;
 
   return (
-    <AdminPage>
-      <AdminPageHeader
+    <Page>
+      <PageHeader
         actions={
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-muted-foreground">
             <span>
@@ -66,7 +66,7 @@ export default async function AdminUsersPage({ params }: { params: Params }) {
         title={dictionary.common.contributors}
       />
 
-      <AdminPanel
+      <Panel
         description={dictionary.admin.peopleDirectoryDescription}
         title={
           <span className="inline-flex items-center gap-2">
@@ -76,11 +76,11 @@ export default async function AdminUsersPage({ params }: { params: Params }) {
         }
       >
         {users.length === 0 ? (
-          <AdminEmpty icon={Users} title={dictionary.admin.noLogsFound} />
+          <EmptyState icon={Users} title={dictionary.admin.noLogsFound} />
         ) : (
-          <AdminList>
+          <List>
             {users.map((user) => (
-              <AdminListRow key={user.id}>
+              <ListRow key={user.id}>
                 <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                   <div className="flex min-w-0 items-start gap-3">
                     <Avatar className="size-9 shrink-0 rounded-md">
@@ -158,12 +158,12 @@ export default async function AdminUsersPage({ params }: { params: Params }) {
                     })}
                   </div>
                 </div>
-              </AdminListRow>
+              </ListRow>
             ))}
-          </AdminList>
+          </List>
         )}
-      </AdminPanel>
-    </AdminPage>
+      </Panel>
+    </Page>
   );
 }
 

@@ -12,15 +12,15 @@ import {
 import { ArticleStatus } from "@/generated/prisma/enums";
 import { Button } from "@/components/ui/button";
 import {
-  AdminEmpty,
-  AdminList,
-  AdminListRow,
-  AdminMetrics,
-  AdminPage,
-  AdminPageHeader,
-  AdminPanel,
+  EmptyState,
+  List,
+  ListRow,
+  Metrics,
+  Page,
+  PageHeader,
+  Panel,
   StatusDot,
-} from "@/components/admin/admin-ui";
+} from "@/components/ui/page-ui";
 import { getAdminDashboardData } from "@/lib/admin";
 import { buildWikiHref } from "@/lib/wiki/path";
 import { formatDateTime, formatNumber, formatTemplate } from "@/lib/i18n/format";
@@ -91,8 +91,8 @@ export default async function AdminHomePage({ params }: { params: Params }) {
   ];
 
   return (
-    <AdminPage>
-      <AdminPageHeader
+    <Page>
+      <PageHeader
         actions={
           <Button asChild size="sm">
             <Link href={localizeHref(lang, "/admin/articles/new")}>
@@ -105,23 +105,23 @@ export default async function AdminHomePage({ params }: { params: Params }) {
         title={dictionary.common.dashboard}
       />
 
-      <AdminMetrics items={metrics} />
+      <Metrics items={metrics} />
 
       <div className="grid gap-7 xl:grid-cols-[minmax(0,1.45fr)_minmax(0,1fr)]">
-        <AdminPanel
+        <Panel
           description={dictionary.admin.recentlyUpdatedDescription}
           title={dictionary.admin.recentlyUpdated}
         >
           {dashboard.recentArticles.length === 0 ? (
-            <AdminEmpty
+            <EmptyState
               description={dictionary.admin.noArticlesFound}
               icon={FileText}
               title={dictionary.admin.noArticlesMatchFilters}
             />
           ) : (
-            <AdminList>
+            <List>
               {dashboard.recentArticles.map((article) => (
-                <AdminListRow key={article.id}>
+                <ListRow key={article.id}>
                   <div className="flex items-center justify-between gap-4">
                     <div className="min-w-0 space-y-1">
                       <Link
@@ -163,26 +163,26 @@ export default async function AdminHomePage({ params }: { params: Params }) {
                       ) : null}
                     </div>
                   </div>
-                </AdminListRow>
+                </ListRow>
               ))}
-            </AdminList>
+            </List>
           )}
-        </AdminPanel>
+        </Panel>
 
-        <AdminPanel
+        <Panel
           description={dictionary.admin.pendingCommentsDescription}
           title={dictionary.admin.pendingComments}
         >
           {dashboard.pendingComments.length === 0 ? (
-            <AdminEmpty
+            <EmptyState
               description={dictionary.admin.pendingCommentsDescription}
               icon={MessageSquare}
               title={dictionary.admin.noPendingComments}
             />
           ) : (
-            <AdminList>
+            <List>
               {dashboard.pendingComments.map((comment) => (
-                <AdminListRow key={comment.id}>
+                <ListRow key={comment.id}>
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between gap-3">
                       <p className="truncate text-[12.5px] font-medium">
@@ -205,14 +205,14 @@ export default async function AdminHomePage({ params }: { params: Params }) {
                       <ArrowUpRight className="size-3" />
                     </Link>
                   </div>
-                </AdminListRow>
+                </ListRow>
               ))}
-            </AdminList>
+            </List>
           )}
-        </AdminPanel>
+        </Panel>
       </div>
 
-      <AdminPanel
+      <Panel
         action={
           <Button asChild size="sm" variant="outline">
             <Link href={localizeHref(lang, "/admin/taxonomy")}>
@@ -272,7 +272,7 @@ export default async function AdminHomePage({ params }: { params: Params }) {
             </div>
           </div>
         </div>
-      </AdminPanel>
-    </AdminPage>
+      </Panel>
+    </Page>
   );
 }

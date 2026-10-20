@@ -36,17 +36,17 @@ export default async function VerifyEmailPage({
   const isVerified = session?.user.emailVerified;
 
   return (
-    <div className="surface-panel max-w-xl space-y-5">
-      <p className="eyebrow">{dictionary.auth.verifyEmail}</p>
-      <h1 className="text-3xl font-semibold text-balance">
+    <div className="w-full space-y-4 rounded-xl border border-border/70 bg-card p-6 text-center">
+      <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">{dictionary.auth.verifyEmail}</p>
+      <h1 className="text-[24px] font-semibold tracking-[-0.015em] text-balance">
         {isVerified ? dictionary.auth.emailVerified : dictionary.auth.checkInbox}
       </h1>
-      <p className="text-sm leading-7 text-muted-foreground">
+      <p className="text-[13px] leading-6 text-muted-foreground">
         {status === "required"
           ? dictionary.auth.verifyRequired
           : dictionary.auth.verifySent}
       </p>
-      <div className="flex flex-wrap gap-3">
+      <div className="flex flex-wrap justify-center gap-2 pt-1">
         <Link
           className="button-primary"
           href={isVerified ? localizeHref(lang, "/wiki") : localizeHref(lang, "/auth/sign-in")}

@@ -62,23 +62,29 @@ export function WikiSidebar({
   const isAgentRoute = pathname === localizeHref(locale, "/agent");
 
   return (
-    <Sidebar variant="inset" collapsible="icon" className="border-r-0 bg-sidebar/40 backdrop-blur-xl">
-      <SidebarHeader className="py-4">
+    <Sidebar collapsible="icon">
+      <SidebarHeader className="py-3">
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild className="hover:bg-transparent group">
               <Link href={localizeHref(locale, "/wiki")}>
-                <Image src="/favicon.png" alt={siteName} width={32} height={32} />
-                <div className="grid flex-1 text-left text-sm leading-tight ml-2">
-                  <span className="truncate font-bold text-lg tracking-tight">{siteName}</span>
-                  <span className="truncate text-xs opacity-60 font-medium">{t.wiki.knowledgeBase}</span>
+                <Image
+                  alt={siteName}
+                  className="size-7 shrink-0 rounded-md"
+                  height={28}
+                  src="/favicon.png"
+                  width={28}
+                />
+                <div className="grid flex-1 text-left leading-tight">
+                  <span className="truncate text-[15px] font-semibold tracking-[-0.01em]">{siteName}</span>
+                  <span className="truncate text-[11px] text-muted-foreground">{t.wiki.knowledgeBase}</span>
                 </div>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
 
-        <div className="px-2 mt-4 group-data-[collapsible=icon]:hidden">
+        <div className="mt-2 px-2 group-data-[collapsible=icon]:hidden">
           <WikiSearchCommand />
         </div>
       </SidebarHeader>
@@ -87,13 +93,13 @@ export function WikiSidebar({
         {adminSlot}
 
         <SidebarGroup>
-          <SidebarGroupLabel className="text-[10px] uppercase tracking-widest font-bold opacity-40 group-data-[collapsible=icon]:hidden">{t.common.platform}</SidebarGroupLabel>
+          <SidebarGroupLabel className="group-data-[collapsible=icon]:hidden">{t.common.platform}</SidebarGroupLabel>
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive={isAgentRoute} tooltip={t.common.agent} className="rounded-xl">
+              <SidebarMenuButton asChild isActive={isAgentRoute} tooltip={t.common.agent}>
                 <Link href={localizeHref(locale, "/agent")}>
                   <Bot className="size-4 text-muted-foreground" />
-                  <span className="font-medium">{t.common.agent}</span>
+                  <span className="truncate">{t.common.agent}</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
@@ -101,7 +107,7 @@ export function WikiSidebar({
         </SidebarGroup>
 
         <SidebarGroup>
-          <SidebarGroupLabel className="text-[10px] uppercase tracking-widest font-bold opacity-40 group-data-[collapsible=icon]:hidden">
+          <SidebarGroupLabel className="group-data-[collapsible=icon]:hidden">
             {t.common.taxonomy}
           </SidebarGroupLabel>
           <SidebarMenu>
@@ -110,11 +116,11 @@ export function WikiSidebar({
                 asChild
                 isActive={isPathInSection(pathname, localizeHref(locale, "/wiki/category"))}
                 tooltip={t.common.sections}
-                className="rounded-xl"
+
               >
                 <Link href={localizeHref(locale, "/wiki/category")}>
                   <FolderTree className="size-4 text-muted-foreground" />
-                  <span className="font-medium">{t.common.sections}</span>
+                  <span className="truncate">{t.common.sections}</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
@@ -123,11 +129,11 @@ export function WikiSidebar({
                 asChild
                 isActive={isPathInSection(pathname, localizeHref(locale, "/wiki/tag"))}
                 tooltip={t.common.tags}
-                className="rounded-xl"
+
               >
                 <Link href={localizeHref(locale, "/wiki/tag")}>
                   <Tags className="size-4 text-muted-foreground" />
-                  <span className="font-medium">{t.common.tags}</span>
+                  <span className="truncate">{t.common.tags}</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
@@ -135,7 +141,7 @@ export function WikiSidebar({
         </SidebarGroup>
 
         <SidebarGroup>
-          <SidebarGroupLabel className="text-[10px] uppercase tracking-widest font-bold opacity-40 group-data-[collapsible=icon]:hidden">{t.common.articles}</SidebarGroupLabel>
+          <SidebarGroupLabel className="group-data-[collapsible=icon]:hidden">{t.common.articles}</SidebarGroupLabel>
           <SidebarMenu>
             <TreeNav
               node={tree}
@@ -145,20 +151,13 @@ export function WikiSidebar({
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="py-4 px-2 space-y-2">
-        <SidebarMenu className="group-data-[collapsible=icon]:hidden">
-          <SidebarMenuItem>
-            <div className="px-1 w-full">
-              <React.Suspense fallback={null}>
-                <LocaleSwitcher className="justify-center w-full" />
-              </React.Suspense>
-            </div>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <ThemeSwitcher/>
-          </SidebarMenuItem>
-        </SidebarMenu>
-
+      <SidebarFooter>
+        <div className="flex items-center justify-between gap-1 px-2 group-data-[collapsible=icon]:hidden">
+          <React.Suspense fallback={null}>
+            <LocaleSwitcher className="w-auto justify-center" />
+          </React.Suspense>
+          <ThemeSwitcher />
+        </div>
         {accountSlot}
       </SidebarFooter>
       <SidebarRail />
@@ -173,15 +172,15 @@ export function WikiSidebarAdminNavigation() {
 
   return (
     <SidebarGroup>
-      <SidebarGroupLabel className="text-[10px] uppercase tracking-widest font-bold opacity-40 group-data-[collapsible=icon]:hidden">
+      <SidebarGroupLabel className="group-data-[collapsible=icon]:hidden">
         {t.wiki.management}
       </SidebarGroupLabel>
       <SidebarMenu>
         <SidebarMenuItem>
           <SidebarMenuButton asChild tooltip={t.common.dashboard} isActive={pathname.startsWith(`/${locale}/admin`)}>
-            <Link href={localizeHref(locale, "/admin")} className="rounded-xl">
+            <Link href={localizeHref(locale, "/admin")}>
               <ShieldCheck className="size-4" />
-              <span className="font-medium">{t.wiki.adminPanel}</span>
+              <span className="truncate">{t.wiki.adminPanel}</span>
             </Link>
           </SidebarMenuButton>
         </SidebarMenuItem>
@@ -202,7 +201,7 @@ export function WikiSidebarAccount({
 
   return (
     <div className="px-2 pb-2 group-data-[collapsible=icon]:hidden">
-      <Button asChild variant="outline" className="w-full h-11 rounded-xl border-border/50 bg-background/50 backdrop-blur-sm shadow-sm hover:bg-background transition-all">
+      <Button asChild className="h-8 w-full" variant="outline">
         <Link href={localizeHref(locale, "/auth/sign-in")}>{t.common.signIn}</Link>
       </Button>
     </div>
@@ -262,10 +261,10 @@ function TreeItem({
   if (!hasChildren) {
     return (
       <SidebarMenuItem>
-        <SidebarMenuButton asChild isActive={isActive} tooltip={node.label} className="rounded-xl">
+        <SidebarMenuButton asChild isActive={isActive} tooltip={node.label}>
           <Link href={href}>
             <FileText className={cn("size-4", isActive ? "text-primary" : "text-muted-foreground")} />
-            <span className={cn(isActive && "font-semibold")}>{node.label}</span>
+            <span className={cn("truncate", isActive && "font-medium")}>{node.label}</span>
           </Link>
         </SidebarMenuButton>
       </SidebarMenuItem>
@@ -281,17 +280,17 @@ function TreeItem({
     >
       <SidebarMenuItem>
         {hasArticle ? (
-          <SidebarMenuButton asChild isActive={isActive} tooltip={node.label} className="rounded-xl">
+          <SidebarMenuButton asChild isActive={isActive} tooltip={node.label}>
             <Link href={href}>
               <Folder className={cn("size-4", isActive ? "text-primary" : "text-muted-foreground")} />
-              <span className={cn(isActive && "font-semibold")}>{node.label}</span>
+              <span className={cn("truncate", isActive && "font-medium")}>{node.label}</span>
             </Link>
           </SidebarMenuButton>
         ) : (
           <CollapsibleTrigger asChild>
-            <SidebarMenuButton tooltip={node.label} className="rounded-xl">
+            <SidebarMenuButton tooltip={node.label}>
               <Folder className="size-4 text-muted-foreground" />
-              <span>{node.label}</span>
+              <span className="truncate">{node.label}</span>
             </SidebarMenuButton>
           </CollapsibleTrigger>
         )}
@@ -311,7 +310,7 @@ function TreeItem({
         )}
 
         <CollapsibleContent>
-          <SidebarMenuSub className="border-l-0 ml-4 pl-2 space-y-1 mt-1 mr-0">
+          <SidebarMenuSub className="ml-3 mt-0.5 space-y-0.5 border-l border-sidebar-border/60 pl-2">
             {node.children.map((child) => (
               <TreeItem
                 key={child.path}

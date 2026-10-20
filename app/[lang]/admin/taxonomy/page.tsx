@@ -2,12 +2,12 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowUpRight, FolderTree, Tags } from "lucide-react";
 import {
-  AdminEmpty,
-  AdminList,
-  AdminPage,
-  AdminPageHeader,
-  AdminPanel,
-} from "@/components/admin/admin-ui";
+  EmptyState,
+  List,
+  Page,
+  PageHeader,
+  Panel,
+} from "@/components/ui/page-ui";
 import { listAdminTaxonomy } from "@/lib/admin";
 import { formatDateTime, formatNumber } from "@/lib/i18n/format";
 import { getDictionary } from "@/lib/i18n/get-dictionary";
@@ -35,8 +35,8 @@ export default async function AdminTaxonomyPage({
   ]);
 
   return (
-    <AdminPage>
-      <AdminPageHeader
+    <Page>
+      <PageHeader
         actions={
           <p className="text-[12px] tabular-nums text-muted-foreground">
             {formatNumber(lang, taxonomy.sections.length)}{" "}
@@ -51,7 +51,7 @@ export default async function AdminTaxonomyPage({
       />
 
       <div className="grid gap-7 xl:grid-cols-2">
-        <AdminPanel
+        <Panel
           description={dictionary.admin.groupArticlesBy}
           title={
             <span className="inline-flex items-center gap-2">
@@ -61,13 +61,13 @@ export default async function AdminTaxonomyPage({
           }
         >
           {taxonomy.sections.length === 0 ? (
-            <AdminEmpty
+            <EmptyState
               description={dictionary.admin.noArticlesFound}
               icon={FolderTree}
               title={dictionary.admin.noArticlesMatchFilters}
             />
           ) : (
-            <AdminList>
+            <List>
               {taxonomy.sections.map((section) => (
                 <Link
                   key={section.slug || "root"}
@@ -112,11 +112,11 @@ export default async function AdminTaxonomyPage({
                   </div>
                 </Link>
               ))}
-            </AdminList>
+            </List>
           )}
-        </AdminPanel>
+        </Panel>
 
-        <AdminPanel
+        <Panel
           description={dictionary.admin.trackTopics}
           title={
             <span className="inline-flex items-center gap-2">
@@ -126,13 +126,13 @@ export default async function AdminTaxonomyPage({
           }
         >
           {taxonomy.tags.length === 0 ? (
-            <AdminEmpty
+            <EmptyState
               description={dictionary.admin.noTagsYet}
               icon={Tags}
               title={dictionary.admin.noTagsYet}
             />
           ) : (
-            <AdminList>
+            <List>
               {taxonomy.tags.map((tag) => (
                 <Link
                   key={tag.tag}
@@ -172,10 +172,10 @@ export default async function AdminTaxonomyPage({
                   </div>
                 </Link>
               ))}
-            </AdminList>
+            </List>
           )}
-        </AdminPanel>
+        </Panel>
       </div>
-    </AdminPage>
+    </Page>
   );
 }

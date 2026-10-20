@@ -71,24 +71,24 @@ export function WikiToc({ markdown }: { markdown: string }) {
   if (items.length === 0) return null;
 
   return (
-    <div className="space-y-4 max-h-[calc(100vh-10rem)] overflow-y-auto no-scrollbar py-2 pr-2">
-      <h4 className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/40 px-3">
+    <div className="max-h-[calc(100vh-7rem)] space-y-3 overflow-y-auto pb-4 no-scrollbar">
+      <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground/70">
         {t.wiki.onThisPage}
-      </h4>
-      <nav className="space-y-0.5 relative px-1">
+      </p>
+      <nav className="border-l border-border/70">
         {items.map((item) => (
           <a
-            key={item.id}
-            href={`#${item.id}`}
             className={cn(
-              "block py-1.5 px-3 text-[13px] transition-all rounded-xl relative group",
-              item.level === 1 && "font-semibold",
-              item.level >= 2 && "pl-5",
-              item.level === 3 && "pl-8",
+              "-ml-px block border-l-2 py-1.5 pl-3 text-[12.5px] leading-5 transition-colors",
+              item.level === 1 && "font-medium",
+              item.level === 2 && "pl-4",
+              item.level >= 3 && "pl-6",
               activeId === item.id
-                ? "text-primary bg-primary/5 font-medium"
-                : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                ? "border-primary font-medium text-foreground"
+                : "border-transparent text-muted-foreground hover:text-foreground",
             )}
+            href={`#${item.id}`}
+            key={item.id}
             onClick={(e) => {
               e.preventDefault();
               const element = document.getElementById(item.id);
@@ -99,10 +99,7 @@ export function WikiToc({ markdown }: { markdown: string }) {
               }
             }}
           >
-            {activeId === item.id && (
-              <span className="absolute left-1.5 top-2.5 bottom-2.5 w-0.5 bg-primary rounded-full" />
-            )}
-            <span className="truncate block">{item.text}</span>
+            <span className="block truncate">{item.text}</span>
           </a>
         ))}
       </nav>

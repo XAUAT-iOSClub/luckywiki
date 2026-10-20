@@ -13,14 +13,14 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import {
-  AdminEmpty,
-  AdminList,
-  AdminListRow,
-  AdminPage,
-  AdminPageHeader,
-  AdminPanel,
+  EmptyState,
+  List,
+  ListRow,
+  Page,
+  PageHeader,
+  Panel,
   StatusDot,
-} from "@/components/admin/admin-ui";
+} from "@/components/ui/page-ui";
 import { getArticleById } from "@/lib/articles";
 import {
   ARTICLE_REVISIONS_PAGE_SIZE,
@@ -69,8 +69,8 @@ export default async function ArticleHistoryPage({
   const labels = dictionary.admin.revisionHistory;
 
   return (
-    <AdminPage>
-      <AdminPageHeader
+    <Page>
+      <PageHeader
         actions={
           <Button asChild size="sm" variant="outline">
             <Link href={editorHref}>
@@ -90,7 +90,7 @@ export default async function ArticleHistoryPage({
         title={article.title}
       />
 
-      <AdminPanel
+      <Panel
         description={
           totalCount === 0
             ? labels.noRevisions
@@ -106,13 +106,13 @@ export default async function ArticleHistoryPage({
         }
       >
         {revisions.length === 0 ? (
-          <AdminEmpty
+          <EmptyState
             description={labels.noRevisions}
             icon={History}
             title={labels.noRevisions}
           />
         ) : (
-          <AdminList>
+          <List>
             {revisions.map((revision, index) => {
               const version = totalCount - ((page - 1) * pageSize + index);
               const isLatest = version === totalCount;
@@ -122,7 +122,7 @@ export default async function ArticleHistoryPage({
               );
 
               return (
-                <AdminListRow key={revision.id}>
+                <ListRow key={revision.id}>
                   <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-4 gap-y-2 md:grid-cols-[84px_minmax(0,1fr)_160px_auto] md:items-center">
                     <div className="flex items-center gap-2 md:block">
                       <Badge className="font-mono" variant="outline">
@@ -180,10 +180,10 @@ export default async function ArticleHistoryPage({
                       ) : null}
                     </div>
                   </div>
-                </AdminListRow>
+                </ListRow>
               );
             })}
-          </AdminList>
+          </List>
         )}
 
         {totalPages > 1 ? (
@@ -219,8 +219,8 @@ export default async function ArticleHistoryPage({
             </Pagination>
           </div>
         ) : null}
-      </AdminPanel>
-    </AdminPage>
+      </Panel>
+    </Page>
   );
 }
 

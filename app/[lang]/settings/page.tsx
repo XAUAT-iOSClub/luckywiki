@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Page, PageHeader, Panel, PanelBody } from "@/components/ui/page-ui";
 import { SettingsAccountConnections } from "@/components/settings-account-connections";
 import { SettingsProfileForm } from "@/components/settings-profile-form";
 import { updateProfileAction, unlinkAccountAction } from "@/app/actions/settings";
@@ -103,25 +103,19 @@ export default async function SettingsPage({
     errorCode ? dictionary.settings.accounts.linkError : null;
 
   return (
-    <section className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-8 md:px-6">
-      <div className="space-y-2">
-        <p className="text-sm font-medium uppercase tracking-[0.24em] text-primary/70">
-          {dictionary.common.settings}
-        </p>
-        <h1 className="text-3xl font-semibold tracking-tight">
-          {dictionary.settings.title}
-        </h1>
-        <p className="max-w-2xl text-sm text-muted-foreground">
-          {dictionary.settings.description}
-        </p>
-      </div>
+    <Page className="max-w-4xl">
+      <PageHeader
+        description={dictionary.settings.description}
+        descriptionClassName="text-[13.5px] leading-6"
+        title={dictionary.settings.title}
+        titleClassName="text-[28px] sm:text-[30px]"
+      />
 
-      <Card className="border-border/60 bg-card/90 shadow-sm">
-        <CardHeader>
-          <CardTitle>{dictionary.settings.profile.title}</CardTitle>
-          <CardDescription>{dictionary.settings.profile.description}</CardDescription>
-        </CardHeader>
-        <CardContent>
+      <Panel
+        description={dictionary.settings.profile.description}
+        title={dictionary.settings.profile.title}
+      >
+        <PanelBody>
           <SettingsProfileForm
             action={updateProfileAction.bind(null, locale)}
             initialState={{}}
@@ -132,24 +126,23 @@ export default async function SettingsPage({
               emailVerified: session.user.emailVerified,
             }}
           />
-        </CardContent>
-      </Card>
+        </PanelBody>
+      </Panel>
 
-      <Card className="border-border/60 bg-card/90 shadow-sm">
-        <CardHeader>
-          <CardTitle>{dictionary.settings.accounts.title}</CardTitle>
-          <CardDescription>{dictionary.settings.accounts.description}</CardDescription>
-        </CardHeader>
-        <CardContent>
+      <Panel
+        description={dictionary.settings.accounts.description}
+        title={dictionary.settings.accounts.title}
+      >
+        <PanelBody>
           <SettingsAccountConnections
             accounts={configuredAccounts}
             totalLinkedAccountCount={linkedAccounts.length}
             unlinkAction={unlinkAccountAction}
             initialError={initialConnectionError}
           />
-        </CardContent>
-      </Card>
-    </section>
+        </PanelBody>
+      </Panel>
+    </Page>
   );
 }
 

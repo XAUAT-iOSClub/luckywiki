@@ -21,27 +21,27 @@ export function Timeline({
   return (
     <div className={cn("my-8", className)}>
       {title && (
-        <h3 className="mb-6 text-lg font-semibold tracking-tight text-foreground">
+        <h3 className="mb-5 text-[16px] font-semibold tracking-[-0.01em] text-foreground">
           {title}
         </h3>
       )}
-      <div className="ml-3 space-y-8 border-l-2 border-border/50 pl-6">
+      <div className="ml-2.5 space-y-6 border-l border-border/70 pl-5">
         {data?.map((item, i) => (
           <div key={i} className="relative">
-            <div className="absolute -left-[33px] top-1.5 h-4 w-4 rounded-full border-4 border-background bg-primary ring-1 ring-border" />
-            <div className="mb-1 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+            <div className="absolute -left-[26px] top-2 size-2.5 rounded-full bg-primary ring-4 ring-background" />
+            <div className="mb-1 text-[11px] font-medium text-muted-foreground">
               {item.date}
             </div>
             <div className="flex items-center gap-3">
-              <div className="font-semibold text-foreground">{item.title}</div>
+              <div className="text-[13.5px] font-semibold text-foreground">{item.title}</div>
               {item.badge && (
-                <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-primary">
+                <span className="rounded-md bg-muted px-1.5 py-0.5 text-[10.5px] font-medium text-muted-foreground">
                   {item.badge}
                 </span>
               )}
             </div>
             {item.description && (
-              <div className="mt-2 text-sm leading-relaxed text-muted-foreground">
+              <div className="mt-1.5 text-[12.5px] leading-5 text-muted-foreground">
                 {item.description}
               </div>
             )}

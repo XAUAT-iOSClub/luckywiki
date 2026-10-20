@@ -58,7 +58,7 @@ const x: number = 1;
 
   // Mermaid (mapped to mdx-mermaid, which renders as a div with specific classes)
   assert.match(html, /flex justify-center/);
-  assert.match(html, /rounded-3xl border/);
+  assert.match(html, /rounded-lg border/);
   assert.match(html, /bg-muted\/20/);
 
   // Code Highlighting (rehype-highlight adds hljs classes)

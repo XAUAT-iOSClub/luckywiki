@@ -25,14 +25,14 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import {
-  AdminEmpty,
-  AdminList,
-  AdminListRow,
-  AdminPage,
-  AdminPageHeader,
-  AdminPanel,
+  EmptyState,
+  List,
+  ListRow,
+  Page,
+  PageHeader,
+  Panel,
   StatusDot,
-} from "@/components/admin/admin-ui";
+} from "@/components/ui/page-ui";
 import { formatDateTime, formatNumber, formatTemplate } from "@/lib/i18n/format";
 import { getDictionary } from "@/lib/i18n/get-dictionary";
 import { hasLocale, localizeHref, type Locale } from "@/lib/i18n/config";
@@ -89,8 +89,8 @@ export default async function AdminArticlesPage({
   });
 
   return (
-    <AdminPage>
-      <AdminPageHeader
+    <Page>
+      <PageHeader
         actions={
           <Button asChild size="sm">
             <Link href={localizeHref(lang, "/admin/articles/new")}>
@@ -103,7 +103,7 @@ export default async function AdminArticlesPage({
         title={dictionary.common.articles}
       />
 
-      <AdminPanel
+      <Panel
         description={
           totalCount === 0
             ? dictionary.admin.noArticlesMatchFilters
@@ -206,7 +206,7 @@ export default async function AdminArticlesPage({
         ) : null}
 
         {articles.length === 0 ? (
-          <AdminEmpty
+          <EmptyState
             action={
               activeFilterCount > 0 ? (
                 <Button asChild size="sm" variant="outline">
@@ -221,7 +221,7 @@ export default async function AdminArticlesPage({
             title={dictionary.admin.noArticlesMatchFilters}
           />
         ) : (
-          <AdminList>
+          <List>
             {articles.map((article) => {
               const targetStatus =
                 article.status === ArticleStatus.PUBLISHED
@@ -229,7 +229,7 @@ export default async function AdminArticlesPage({
                   : ArticleStatus.PUBLISHED;
 
               return (
-                <AdminListRow key={article.id}>
+                <ListRow key={article.id}>
                   <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 md:grid-cols-[minmax(0,1fr)_96px_auto]">
                     <div className="col-span-2 min-w-0 md:col-span-1">
                       <Link
@@ -321,10 +321,10 @@ export default async function AdminArticlesPage({
                       ) : null}
                     </div>
                   </div>
-                </AdminListRow>
+                </ListRow>
               );
             })}
-          </AdminList>
+          </List>
         )}
 
         {totalPages > 1 ? (
@@ -374,8 +374,8 @@ export default async function AdminArticlesPage({
             </Pagination>
           </div>
         ) : null}
-      </AdminPanel>
-    </AdminPage>
+      </Panel>
+    </Page>
   );
 }
 

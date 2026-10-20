@@ -129,16 +129,16 @@ export function AuthForm({
           <LocaleSwitcher />
         </Suspense>
       </div>
-      <Link href={localizeHref(locale, "/wiki")} className="flex items-center gap-2 group transition-transform hover:scale-105 active:scale-95">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary shadow-lg shadow-primary/20 ring-1 ring-white/10">
-          <BookOpen className="h-5 w-5 text-primary-foreground" />
+      <Link href={localizeHref(locale, "/wiki")} className="flex items-center gap-2">
+        <div className="flex size-9 items-center justify-center rounded-lg bg-primary">
+          <BookOpen className="size-4 text-primary-foreground" />
         </div>
-        <span className="text-xl font-bold tracking-tight text-foreground">LuckyWiki</span>
+        <span className="text-[17px] font-semibold tracking-[-0.01em] text-foreground">LuckyWiki</span>
       </Link>
-      
-      <Card className="w-full max-w-[400px] overflow-hidden border-border/50 bg-white/70 shadow-2xl shadow-black/5 backdrop-blur-xl dark:bg-zinc-900/70 dark:shadow-black/20">
-        <CardHeader className="space-y-1 pb-6 text-center">
-          <CardTitle className="text-2xl font-semibold tracking-tight">
+
+      <Card className="w-full max-w-[400px] border-border/70 bg-card shadow-none">
+        <CardHeader className="gap-1 pb-4 text-center">
+          <CardTitle className="text-[22px] font-semibold tracking-[-0.015em]">
             {isSignUp ? t.auth.createAccount : t.auth.welcomeBack}
           </CardTitle>
           <CardDescription className="text-sm text-muted-foreground">
@@ -156,7 +156,7 @@ export function AuthForm({
                     type="button"
                     variant="outline"
                     size="lg"
-                    className="w-full rounded-xl border-border/50 bg-background/60 py-6"
+                    className="h-9 w-full"
                     disabled={pending || oauthPending !== null}
                     onClick={() => handleSocialSignIn("github")}
                   >
@@ -178,7 +178,7 @@ export function AuthForm({
                     type="button"
                     variant="outline"
                     size="lg"
-                    className="w-full rounded-xl border-border/50 bg-background/60 py-6"
+                    className="h-9 w-full"
                     disabled={pending || oauthPending !== null}
                     onClick={() => handleSocialSignIn("oidc")}
                   >
@@ -205,22 +205,21 @@ export function AuthForm({
               </div>
             </div>
           )}
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             {isSignUp && (
-              <div className="space-y-2">
-                <Label htmlFor="name">{t.auth.name}</Label>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="name" className="text-[12px] font-medium">{t.auth.name}</Label>
                 <Input
                   id="name"
                   placeholder="Steve Jobs"
                   required
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="rounded-xl border-border/50 bg-background/50 focus-visible:ring-primary/30"
                 />
               </div>
             )}
-            <div className="space-y-2">
-              <Label htmlFor="email">{t.auth.email}</Label>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="email" className="text-[12px] font-medium">{t.auth.email}</Label>
               <Input
                 id="email"
                 type="email"
@@ -228,12 +227,11 @@ export function AuthForm({
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="rounded-xl border-border/50 bg-background/50 focus-visible:ring-primary/30"
               />
             </div>
-            <div className="space-y-2">
+            <div className="flex flex-col gap-1.5">
               <div className="flex items-center justify-between">
-                <Label htmlFor="password">{t.auth.password}</Label>
+                <Label htmlFor="password" className="text-[12px] font-medium">{t.auth.password}</Label>
                 {!isSignUp && (
                   <Link 
                     href={localizeHref(locale, "/auth/forgot-password")} 
@@ -250,27 +248,26 @@ export function AuthForm({
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="rounded-xl border-border/50 bg-background/50 focus-visible:ring-primary/30"
               />
             </div>
             
             {error && (
-              <div className="flex items-center gap-2 rounded-xl bg-destructive/10 p-3 text-xs text-destructive">
+              <div className="flex items-center gap-2 rounded-md bg-destructive/10 p-2.5 text-[12px] text-destructive">
                 <AlertCircle className="h-4 w-4 shrink-0" />
                 <p>{error}</p>
               </div>
             )}
 
             {notice && (
-              <div className="flex items-center gap-2 rounded-xl bg-emerald-500/10 p-3 text-xs text-emerald-600 dark:text-emerald-400">
+              <div className="flex items-center gap-2 rounded-md bg-emerald-500/10 p-2.5 text-[12px] text-emerald-700 dark:text-emerald-400">
                 <CheckCircle2 className="h-4 w-4 shrink-0" />
                 <p>{notice}</p>
               </div>
             )}
 
-            <Button 
-              type="submit" 
-              className="w-full rounded-xl py-6 text-sm font-semibold shadow-lg shadow-primary/20 transition-all hover:translate-y-[-1px] active:translate-y-[0px]" 
+            <Button
+              type="submit"
+              className="h-9 w-full text-[13px] font-medium"
               disabled={pending || oauthPending !== null}
             >
               {pending ? (
@@ -284,8 +281,8 @@ export function AuthForm({
             </Button>
           </form>
         </CardContent>
-        <CardFooter className="flex flex-col border-t border-border/50 bg-muted/30 py-4 text-center">
-          <p className="text-xs text-muted-foreground">
+        <CardFooter className="flex flex-col border-t border-border/60 bg-muted/30 py-3 text-center">
+          <p className="text-[11.5px] text-muted-foreground">
             {isSignUp ? t.auth.hasAccount : t.auth.noAccount}{" "}
             <Link 
               href={isSignUp 
@@ -300,7 +297,7 @@ export function AuthForm({
         </CardFooter>
       </Card>
       
-      <p className="px-8 text-center text-xs leading-relaxed text-muted-foreground">
+      <p className="px-6 text-center text-[11.5px] leading-5 text-muted-foreground">
         {t.auth.byContinuing}{" "}
         <Link href={localizeHref(locale, "/terms")} className="underline underline-offset-4 hover:text-primary">
           {t.auth.terms}

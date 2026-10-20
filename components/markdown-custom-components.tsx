@@ -237,10 +237,10 @@ function MarkdownBadge({
   return (
     <span
       className={clsx(
-        "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold tracking-wide",
+        "inline-flex items-center rounded-md border px-2 py-0.5 text-[11px] font-medium",
         shape === "outline"
-          ? "border-primary/30 bg-transparent text-primary"
-          : "border-primary/10 bg-primary/10 text-primary",
+          ? "border-border/70 bg-transparent text-foreground"
+          : "border-primary/20 bg-primary/10 text-primary",
         className,
       )}
       {...props}
@@ -266,7 +266,7 @@ function MarkdownTip({
     return (
       <button
         className={clsx(
-          "inline-flex items-center gap-1 rounded-full border border-border bg-muted px-2.5 py-1 text-xs font-medium text-foreground transition hover:border-primary/40 hover:text-primary",
+          "inline-flex items-center gap-1.5 rounded-md border border-border/70 bg-muted px-2 py-0.5 text-[11px] font-medium text-foreground transition-colors hover:border-primary/30 hover:text-primary",
           className,
         )}
         onClick={() => copyToClipboard(value || label)}
@@ -275,7 +275,7 @@ function MarkdownTip({
         {...props}
       >
         <span>{label}</span>
-        <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+        <span className="text-[10px] text-muted-foreground">
           {t.common.copy}
         </span>
       </button>
@@ -285,7 +285,7 @@ function MarkdownTip({
   return (
     <span
       className={clsx(
-        "inline-flex items-center rounded-full border border-amber-200/50 bg-amber-500/10 px-2.5 py-1 text-xs font-medium text-amber-600 dark:border-amber-500/20 dark:text-amber-400",
+        "inline-flex items-center rounded-md border border-amber-500/25 bg-amber-500/[0.06] px-2 py-0.5 text-[11px] font-medium text-amber-700 dark:text-amber-400",
         className,
       )}
       title={tip || label}
@@ -376,7 +376,7 @@ export function MarkdownImageGalleryProvider({
         >
           {currentImage ? (
             <div className="flex max-h-[90vh] flex-col gap-4">
-              <div className="flex flex-wrap items-center justify-between gap-3 rounded-full bg-black/45 px-3 py-2 text-white shadow-lg shadow-black/20 backdrop-blur-md">
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-black/60 px-3 py-2 text-white">
                 <div className="flex items-center gap-2">
                   <Button
                     aria-label="Previous image"
@@ -389,7 +389,7 @@ export function MarkdownImageGalleryProvider({
                   >
                     <ChevronLeftIcon />
                   </Button>
-                  <span className="min-w-20 text-center text-xs font-medium tracking-[0.18em] text-white/85 uppercase">
+                  <span className="min-w-20 text-center text-[11.5px] font-medium text-white/85">
                     {currentImagePosition + 1} / {images.length}
                   </span>
                   <Button
@@ -450,7 +450,7 @@ export function MarkdownImageGalleryProvider({
                   </DialogClose>
                 </div>
               </div>
-              <div className="rounded-[2rem]">
+              <div className="rounded-lg">
                 <div className="flex min-h-[50vh] min-w-full items-center justify-center p-2">
                   <img
                     alt={currentImage.alt}
@@ -506,7 +506,7 @@ export function MarkdownImage({
         title={title}
         {...props}
       />
-      <span className="pointer-events-none absolute right-5 top-5 rounded-full bg-black/45 px-3 py-1 text-[11px] font-medium tracking-[0.18em] text-white opacity-0 transition duration-200 group-hover:opacity-100 group-focus-visible:opacity-100">
+      <span className="pointer-events-none absolute right-4 top-4 rounded-md bg-black/55 px-2 py-0.5 text-[10px] font-medium text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-visible:opacity-100">
         VIEW
       </span>
     </button>
@@ -531,7 +531,7 @@ function MarkdownTabsList({
   ...props
 }: MarkdownTabsListProps) {
   return (
-    <ShadcnTabsList className={className} {...props}>
+    <ShadcnTabsList className={clsx("border border-border/70 bg-muted/40", className)} {...props}>
       {children}
     </ShadcnTabsList>
   );
@@ -543,7 +543,7 @@ function MarkdownTabsTrigger({
   ...props
 }: MarkdownTabsTriggerProps) {
   return (
-    <ShadcnTabsTrigger className={className} {...props}>
+    <ShadcnTabsTrigger className={clsx("px-3 text-[12.5px]", className)} {...props}>
       {children}
     </ShadcnTabsTrigger>
   );
@@ -586,7 +586,7 @@ function MarkdownComponentBlock({
       <Suspense
         fallback={
           <div
-            className="flex h-24 animate-pulse items-center justify-center rounded-3xl border border-dashed border-border bg-muted/50 text-xs font-medium text-muted-foreground"
+            className="flex h-24 animate-pulse items-center justify-center rounded-lg border border-dashed border-border/70 bg-muted/40 text-[11.5px] font-medium text-muted-foreground"
             data-mdx-name={name}
             data-mdx-props={propsStr}
           >
@@ -606,20 +606,20 @@ function MarkdownComponentBlock({
   return (
     <div
       className={clsx(
-        "mt-6 rounded-3xl border border-dashed border-border bg-muted/30 p-4",
+        "mt-6 rounded-lg border border-dashed border-border/70 bg-muted/20 p-4",
         className,
       )}
     >
-      <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+      <div className="flex flex-wrap items-center gap-2 text-[11px] font-medium text-muted-foreground">
         <span>{name || "Component"}</span>
         {language ? (
-          <span className="rounded-full bg-card px-2 py-1 tracking-normal border border-border/50">
+          <span className="rounded-md border border-border/60 bg-card px-1.5 py-0.5">
             {language}
           </span>
         ) : null}
       </div>
       {preview ? (
-        <pre className="mt-3 overflow-x-auto rounded-2xl bg-zinc-950 p-4 text-xs leading-6 text-zinc-100">
+        <pre className="mt-3 overflow-x-auto rounded-md border border-border/60 bg-muted/40 p-3 text-[11.5px] leading-5 text-foreground/80">
           <code>{preview}</code>
         </pre>
       ) : null}
@@ -656,7 +656,7 @@ function MarkdownComponentInline({
   return (
     <span
       className={clsx(
-        "inline-flex items-center rounded-full border border-dashed border-border bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground",
+        "inline-flex items-center rounded-md border border-dashed border-border/70 bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground",
         className,
       )}
       title={name || "Component"}
@@ -699,7 +699,7 @@ function MarkdownMermaid({ chart }: { chart?: string }) {
 
   return (
     <div
-      className="mt-6 flex justify-center overflow-hidden rounded-3xl border border-border bg-muted/20 p-6"
+      className="mt-6 flex justify-center overflow-x-auto rounded-lg border border-border/70 bg-muted/20 p-4"
       dangerouslySetInnerHTML={{ __html: svg }}
     />
   );
@@ -714,7 +714,7 @@ function MarkdownPlantUML({ code }: { code?: string }) {
   const url = `https://www.plantuml.com/plantuml/svg/${encoded}`;
 
   return (
-    <div className="mt-6 flex justify-center overflow-hidden rounded-3xl border border-border bg-muted/20 p-6">
+    <div className="mt-6 flex justify-center overflow-x-auto rounded-lg border border-border/70 bg-muted/20 p-4">
       <img
         src={url}
         alt="PlantUML diagram"
@@ -746,32 +746,37 @@ type MarkdownAlertProps = HTMLAttributes<HTMLElement> & {
 const ALERT_CONFIG = {
   NOTE: {
     icon: Info,
-    className: "border-blue-200/50 bg-blue-500/5 text-blue-700 dark:border-blue-500/20 dark:text-blue-400",
-    iconClassName: "text-blue-500",
+    className: "border-sky-500/25 bg-sky-500/[0.04]",
+    iconClassName: "text-sky-500",
+    labelClassName: "text-sky-700 dark:text-sky-400",
     label: "Note",
   },
   TIP: {
     icon: Lightbulb,
-    className: "border-emerald-200/50 bg-emerald-500/5 text-emerald-700 dark:border-emerald-500/20 dark:text-emerald-400",
+    className: "border-emerald-500/25 bg-emerald-500/[0.04]",
     iconClassName: "text-emerald-500",
+    labelClassName: "text-emerald-700 dark:text-emerald-400",
     label: "Tip",
   },
   WARNING: {
     icon: AlertTriangle,
-    className: "border-amber-200/50 bg-amber-500/5 text-amber-700 dark:border-amber-500/20 dark:text-amber-400",
+    className: "border-amber-500/25 bg-amber-500/[0.04]",
     iconClassName: "text-amber-500",
+    labelClassName: "text-amber-700 dark:text-amber-400",
     label: "Warning",
   },
   IMPORTANT: {
     icon: AlertCircle,
-    className: "border-indigo-200/50 bg-indigo-500/5 text-indigo-700 dark:border-indigo-500/20 dark:text-indigo-400",
-    iconClassName: "text-indigo-500",
+    className: "border-violet-500/25 bg-violet-500/[0.04]",
+    iconClassName: "text-violet-500",
+    labelClassName: "text-violet-700 dark:text-violet-400",
     label: "Important",
   },
   CAUTION: {
     icon: ShieldAlert,
-    className: "border-red-200/50 bg-red-500/5 text-red-700 dark:border-red-500/20 dark:text-red-400",
+    className: "border-red-500/25 bg-red-500/[0.04]",
     iconClassName: "text-red-500",
+    labelClassName: "text-red-700 dark:text-red-400",
     label: "Caution",
   },
 };
@@ -783,17 +788,17 @@ function MarkdownAlert({ children, className, type = "NOTE", ...props }: Markdow
   return (
     <div
       className={clsx(
-        "my-6 flex gap-4 rounded-2xl border p-4 text-sm leading-relaxed",
+        "my-6 flex gap-3 rounded-lg border p-4 text-[13.5px] leading-6 text-foreground/90",
         config.className,
         className,
       )}
       {...props}
     >
       <div className="mt-0.5 shrink-0">
-        <Icon className={clsx("h-5 w-5", config.iconClassName)} />
+        <Icon className={clsx("size-4", config.iconClassName)} />
       </div>
-      <div className="flex-1">
-        <div className="mb-1 font-semibold tracking-wide uppercase text-xs opacity-90">
+      <div className="min-w-0 flex-1">
+        <div className={clsx("mb-1 text-[11px] font-semibold uppercase tracking-[0.08em]", config.labelClassName)}>
           {config.label}
         </div>
         <div className="markdown-alert-content">{children}</div>
@@ -806,7 +811,7 @@ function MarkdownInfographic({ syntax }: { syntax?: string }) {
   return (
     <Suspense
       fallback={
-        <div className="mt-6 flex h-48 animate-pulse items-center justify-center rounded-3xl border border-dashed border-border bg-muted/50 text-xs font-medium text-muted-foreground">
+        <div className="mt-6 flex h-48 animate-pulse items-center justify-center rounded-lg border border-dashed border-border bg-muted/50 text-xs font-medium text-muted-foreground">
           Loading infographic...
         </div>
       }

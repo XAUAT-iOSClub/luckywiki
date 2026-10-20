@@ -4,14 +4,12 @@ import Link from "next/link";
 import { startTransition, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowUp,
-  Cpu,
   FileText,
   RefreshCcw,
   Sparkles,
   Square,
 } from "lucide-react";
 import { MarkdownRenderer } from "@/components/markdown-renderer";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Bubble, BubbleContent } from "@/components/ui/bubble";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,7 +19,6 @@ import {
 } from "@/components/ui/marker";
 import {
   Message,
-  MessageAvatar,
   MessageContent,
   MessageFooter,
   MessageGroup,
@@ -251,23 +248,23 @@ export function WikiAgent() {
   const hasMessages = messages.length > 0;
 
   return (
-    <div className="relative flex h-full flex-col">
+    <div className="flex h-[calc(100dvh-3.5rem)] flex-col">
       {!hasMessages ? (
-        <div className="flex flex-1 items-center justify-center px-4 pb-32">
-          <div className="mx-auto w-full max-w-xl animate-in fade-in slide-in-from-bottom-6 duration-700">
-            <div className="mb-8 flex justify-center">
-              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary ring-1 ring-primary/10">
-                <Sparkles className="h-8 w-8" />
+        <div className="flex flex-1 items-center justify-center px-5 pb-24">
+          <div className="mx-auto w-full max-w-2xl">
+            <div className="mb-6 flex justify-center">
+              <div className="flex size-10 items-center justify-center rounded-lg border border-border/70 bg-card text-primary">
+                <Sparkles className="size-5" />
               </div>
             </div>
-            <h1 className="text-center text-2xl font-semibold tracking-tight text-foreground md:text-3xl">
+            <h1 className="text-center text-[26px] font-semibold leading-tight tracking-[-0.02em] text-foreground sm:text-[30px]">
               {t.agent.title}
             </h1>
-            <p className="mt-3 text-center text-sm leading-relaxed text-muted-foreground md:text-base">
+            <p className="mx-auto mt-2 max-w-xl text-center text-[13.5px] leading-6 text-muted-foreground">
               {t.agent.description}
             </p>
 
-            <div className="mt-10 grid gap-3 sm:grid-cols-2">
+            <div className="mt-8 grid gap-2 sm:grid-cols-2">
               {t.agent.promptIdeas.map((idea) => (
                 <button
                   key={idea}
@@ -276,7 +273,7 @@ export function WikiAgent() {
                     textareaRef.current?.focus();
                   }}
                   type="button"
-                  className="rounded-2xl border border-border/40 bg-card/60 px-5 py-4 text-left text-sm leading-relaxed text-muted-foreground backdrop-blur-sm transition-all duration-200 hover:border-primary/30 hover:bg-card hover:text-foreground hover:shadow-sm"
+                  className="rounded-lg border border-border/70 bg-card px-4 py-3 text-left text-[13px] leading-5 text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground"
                 >
                   {idea}
                 </button>
@@ -290,7 +287,7 @@ export function WikiAgent() {
           onScroll={handleScroll}
           className="flex-1 overflow-y-auto"
         >
-          <div className="mx-auto max-w-3xl px-4 py-8">
+          <div className="mx-auto max-w-3xl px-5 py-8">
             <MessageGroup className="gap-8">
               {messages.map((message) => (
                 <Message
@@ -313,6 +310,7 @@ export function WikiAgent() {
                         <Bubble variant="ghost">
                           <BubbleContent className="prose-sm prose-p:my-2 prose-headings:mb-3 prose-headings:mt-5 prose-ul:my-2 prose-ol:my-2 prose-li:my-1 prose-pre:my-3 prose-code:text-inherit dark:prose-invert">
                             <MarkdownRenderer
+                              className="text-[13.5px] leading-6"
                               linkToSectionLabel={t.common.linkToSection}
                               markdown={message.content}
                             />
@@ -331,7 +329,7 @@ export function WikiAgent() {
                     ) : (
                       <Bubble>
                         <BubbleContent>
-                          <span className="whitespace-pre-wrap">
+                          <span className="whitespace-pre-wrap text-[13.5px] leading-6">
                             {message.content}
                           </span>
                         </BubbleContent>
@@ -341,7 +339,7 @@ export function WikiAgent() {
                     {message.role === "assistant" &&
                       message.toolCalls &&
                       message.toolCalls.length > 0 && (
-                        <MessageFooter className="flex-col items-start gap-2 px-0">
+                        <MessageFooter className="flex-col items-start gap-1.5 px-0 text-[11.5px]">
                           {message.toolCalls.map((call, index) => (
                             <Marker key={`${call.name}-${index}`} variant="border">
                               <MarkerIcon>
@@ -360,7 +358,7 @@ export function WikiAgent() {
                     {message.role === "assistant" &&
                       message.sources &&
                       message.sources.length > 0 && (
-                        <MessageFooter className="flex-col items-start gap-2 px-0">
+                        <MessageFooter className="flex-col items-start gap-1.5 px-0 text-[11.5px]">
                           {message.sources.map((source) => (
                             <Marker
                               asChild
@@ -388,11 +386,11 @@ export function WikiAgent() {
       <div
         className={
           hasMessages
-            ? "shrink-0 border-t border-border/40 bg-background/80 backdrop-blur-xl"
+            ? "shrink-0 border-t border-border/60 bg-background/80 backdrop-blur-xl"
             : "shrink-0"
         }
       >
-        <div className="mx-auto max-w-3xl px-4 py-4">
+        <div className="mx-auto max-w-3xl px-5 py-4">
           <form onSubmit={handleSubmit} className="relative">
             <label className="sr-only" htmlFor="agent-input">
               {t.agent.inputPlaceholder}
@@ -405,16 +403,16 @@ export function WikiAgent() {
               onKeyDown={handleKeyDown}
               placeholder={t.agent.inputPlaceholder}
               rows={1}
-              className="min-h-14 resize-none rounded-2xl border-border/50 bg-card/60 py-4 pl-5 pr-14 text-sm leading-7 shadow-sm backdrop-blur-sm transition-all duration-200 placeholder:text-muted-foreground/70 hover:border-border focus:border-primary/40 focus:bg-card focus:shadow-md focus:ring-0"
+              className="min-h-11 resize-none rounded-lg border-input bg-card py-3 pl-3.5 pr-12 text-[13.5px] leading-6 transition-colors placeholder:text-muted-foreground/70"
             />
-            <div className="absolute bottom-3 right-3 flex items-center gap-1">
+            <div className="absolute bottom-2 right-2 flex items-center gap-1">
               {isLoading ? (
                 <Button
                   type="button"
                   size="icon"
                   variant="ghost"
                   onClick={handleStop}
-                  className="h-8 w-8 rounded-xl text-muted-foreground hover:text-foreground"
+                  className="size-7 text-muted-foreground hover:text-foreground"
                 >
                   <Square className="h-4 w-4" fill="currentColor" />
                 </Button>
@@ -423,7 +421,7 @@ export function WikiAgent() {
                   type="submit"
                   size="icon"
                   disabled={!input.trim()}
-                  className="h-8 w-8 rounded-xl transition-all duration-200 disabled:opacity-30"
+                  className="size-7 disabled:opacity-30"
                 >
                   <ArrowUp className="h-4 w-4" />
                 </Button>
@@ -431,8 +429,8 @@ export function WikiAgent() {
             </div>
           </form>
 
-          <div className="mt-3 flex items-center justify-between px-1">
-            <p className="text-xs leading-5 text-muted-foreground/70">
+          <div className="mt-2.5 flex items-center justify-between gap-4">
+            <p className="text-[11.5px] leading-5 text-muted-foreground/80">
               {t.agent.disclaimer}
             </p>
             {hasMessages && (
@@ -441,7 +439,7 @@ export function WikiAgent() {
                 type="button"
                 variant="ghost"
                 size="sm"
-                className="h-auto gap-1.5 rounded-xl px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground"
+                className="h-7 shrink-0 gap-1.5 px-2 text-[11.5px] text-muted-foreground hover:text-foreground"
               >
                 <RefreshCcw className="h-3 w-3" />
                 {t.agent.reset}

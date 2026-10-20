@@ -26,10 +26,10 @@ export function CommentForm({ action, initialState }: CommentFormProps) {
 
   return (
     <form action={formAction} className="space-y-4" ref={formRef}>
-      <label className="field-block">
+      <label className="flex flex-col gap-2 text-[13px] font-medium text-foreground">
         <span>{t.wiki.leaveComment}</span>
         <textarea
-          className="field-textarea min-h-36"
+          className="min-h-32 w-full resize-y rounded-md border border-input bg-card px-3 py-2.5 text-[13px] leading-6 text-foreground outline-none transition-colors placeholder:text-muted-foreground/70 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30"
           name="body"
           placeholder={t.wiki.commentPlaceholder}
         />
@@ -37,12 +37,12 @@ export function CommentForm({ action, initialState }: CommentFormProps) {
       <div className="flex flex-wrap items-center gap-3">
         <SubmitButton>{t.wiki.submitForReview}</SubmitButton>
         {state.error ? (
-          <p className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700">
+          <p className="rounded-md bg-destructive/10 px-3 py-2 text-[12.5px] text-destructive">
             {state.error}
           </p>
         ) : null}
         {state.success ? (
-          <p className="rounded-2xl bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+          <p className="rounded-md bg-emerald-500/10 px-3 py-2 text-[12.5px] text-emerald-700 dark:text-emerald-400">
             {state.success}
           </p>
         ) : null}

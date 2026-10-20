@@ -5,14 +5,14 @@ import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /**
- * Shared layout primitives for the admin console.
+ * Shared layout primitives for the admin console and public site.
  *
  * The visual language follows macOS 15: a quiet canvas, hairline separators,
  * 10px corner radii, no elevation on content surfaces, 13px body copy and
  * generous vertical rhythm.
  */
 
-export function AdminPage({
+export function Page({
   children,
   className,
   wide = false,
@@ -34,16 +34,20 @@ export function AdminPage({
   );
 }
 
-export function AdminPageHeader({
+export function PageHeader({
   title,
   description,
   actions,
   className,
+  titleClassName,
+  descriptionClassName,
 }: {
   title: ReactNode;
   description?: ReactNode;
   actions?: ReactNode;
   className?: string;
+  titleClassName?: string;
+  descriptionClassName?: string;
 }) {
   return (
     <header
@@ -53,11 +57,21 @@ export function AdminPageHeader({
       )}
     >
       <div className="min-w-0 space-y-1.5">
-        <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.015em] text-foreground">
+        <h1
+          className={cn(
+            "text-[22px] font-semibold leading-tight tracking-[-0.015em] text-foreground",
+            titleClassName,
+          )}
+        >
           {title}
         </h1>
         {description ? (
-          <p className="max-w-2xl text-[13px] leading-5 text-muted-foreground">
+          <p
+            className={cn(
+              "max-w-2xl text-[13px] leading-5 text-muted-foreground",
+              descriptionClassName,
+            )}
+          >
             {description}
           </p>
         ) : null}
@@ -71,7 +85,7 @@ export function AdminPageHeader({
   );
 }
 
-export function AdminPanel({
+export function Panel({
   title,
   description,
   action,
@@ -133,7 +147,7 @@ export function AdminPanel({
   );
 }
 
-export function AdminPanelBody({
+export function PanelBody({
   children,
   className,
 }: {
@@ -143,7 +157,7 @@ export function AdminPanelBody({
   return <div className={cn("p-5", className)}>{children}</div>;
 }
 
-export function AdminList({
+export function List({
   children,
   className,
 }: {
@@ -155,7 +169,7 @@ export function AdminList({
   );
 }
 
-export function AdminListRow({
+export function ListRow({
   children,
   className,
 }: {
@@ -174,18 +188,18 @@ export function AdminListRow({
   );
 }
 
-export type AdminMetricItem = {
+export type MetricItem = {
   label: ReactNode;
   value: ReactNode;
   detail?: ReactNode;
   href?: string;
 };
 
-export function AdminMetrics({
+export function Metrics({
   items,
   className,
 }: {
-  items: AdminMetricItem[];
+  items: MetricItem[];
   className?: string;
 }) {
   return (
@@ -228,7 +242,7 @@ export function AdminMetrics({
   );
 }
 
-export function AdminEmpty({
+export function EmptyState({
   icon: Icon,
   title,
   description,

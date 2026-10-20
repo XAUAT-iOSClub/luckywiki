@@ -12,15 +12,15 @@ import { requireRootSession } from "@/lib/auth/session";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
-  AdminEmpty,
-  AdminList,
-  AdminListRow,
-  AdminPage,
-  AdminPageHeader,
-  AdminPanel,
+  EmptyState,
+  List,
+  ListRow,
+  Page,
+  PageHeader,
+  Panel,
   StatusDot,
   type StatusTone,
-} from "@/components/admin/admin-ui";
+} from "@/components/ui/page-ui";
 import { cn } from "@/lib/utils";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
@@ -56,13 +56,13 @@ export default async function AdminCommentsPage({
   );
 
   return (
-    <AdminPage>
-      <AdminPageHeader
+    <Page>
+      <PageHeader
         description={dictionary.admin.moderateFeedback}
         title={dictionary.common.comments}
       />
 
-      <AdminPanel
+      <Panel
         action={
           <nav
             aria-label={dictionary.common.status}
@@ -97,15 +97,15 @@ export default async function AdminCommentsPage({
         title={dictionary.common.comments}
       >
         {comments.length === 0 ? (
-          <AdminEmpty
+          <EmptyState
             description={dictionary.admin.noCommentsForFilter}
             icon={MessageSquare}
             title={dictionary.admin.noCommentsForFilter}
           />
         ) : (
-          <AdminList>
+          <List>
             {comments.map((comment) => (
-              <AdminListRow key={comment.id}>
+              <ListRow key={comment.id}>
                 <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                   <div className="flex min-w-0 gap-3">
                     <Avatar className="size-8 shrink-0 rounded-md">
@@ -185,12 +185,12 @@ export default async function AdminCommentsPage({
                     </form>
                   </div>
                 </div>
-              </AdminListRow>
+              </ListRow>
             ))}
-          </AdminList>
+          </List>
         )}
-      </AdminPanel>
-    </AdminPage>
+      </Panel>
+    </Page>
   );
 }
 

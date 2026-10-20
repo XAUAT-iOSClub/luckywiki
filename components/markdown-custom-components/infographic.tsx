@@ -7,9 +7,7 @@ export function InfographicDiagram({ syntax }: { syntax?: string }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const infographicRef = useRef<Infographic | null>(null);
   const generatedId = useId();
-  const containerId = useRef(
-    `infographic-${generatedId.replace(/:/g, "")}`,
-  );
+  const containerId = `infographic-${generatedId.replace(/:/g, "")}`;
 
   useEffect(() => {
     if (!syntax || !containerRef.current) return;
@@ -17,7 +15,7 @@ export function InfographicDiagram({ syntax }: { syntax?: string }) {
     infographicRef.current?.destroy?.();
 
     const instance = new Infographic({
-      container: `#${containerId.current}`,
+      container: `#${containerId}`,
       width: "100%",
       height: "100%",
     });
@@ -29,15 +27,15 @@ export function InfographicDiagram({ syntax }: { syntax?: string }) {
       infographicRef.current?.destroy?.();
       infographicRef.current = null;
     };
-  }, [syntax]);
+  }, [syntax, containerId]);
 
   if (!syntax) return null;
 
   return (
     <div
-      id={containerId.current}
+      id={containerId}
       ref={containerRef}
-      className="mt-6 overflow-hidden rounded-3xl border border-border bg-muted/20 p-6"
+      className="mt-6 overflow-hidden rounded-lg border border-border bg-muted/20 p-6"
     />
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { Check, Copy, ChevronDown, ChevronUp } from "lucide-react";
-import { useState, useRef, useEffect, type ReactNode } from "react";
+import { useState, useRef, useEffect, type ReactElement, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
@@ -22,7 +22,9 @@ export function CodeBlock({
   const containerRef = useRef<HTMLDivElement>(null);
   
   // Extract language from children's className if available
-  const codeElement = (Array.isArray(children) ? children[0] : children) as any;
+  const codeElement = (Array.isArray(children) ? children[0] : children) as
+    | ReactElement<{ className?: string }>
+    | undefined;
   const codeClassName = codeElement?.props?.className || "";
   const language = codeClassName.match(/language-(\w+)/)?.[1] || "";
 
@@ -46,8 +48,8 @@ export function CodeBlock({
 
   return (
     <div className="code-block-container group relative">
-      <div className="flex items-center justify-between border-b border-border/40 bg-muted/30 px-6 py-2">
-        <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/80">
+      <div className="flex items-center justify-between border-b border-border/60 bg-muted/30 px-4 py-2">
+        <span className="text-[11px] font-medium text-muted-foreground">
           {language || "code"}
         </span>
         <Button
@@ -70,23 +72,23 @@ export function CodeBlock({
       >
         <pre 
           ref={preRef}
-          className={cn("m-0! rounded-none! border-none! bg-transparent! overflow-x-auto p-6 text-sm leading-relaxed", className)} 
+          className={cn("m-0! overflow-x-auto border-none! bg-transparent! p-4 text-[13px] leading-6", className)} 
           {...props}
         >
           {children}
         </pre>
         
         {isCollapsible && !isExpanded && (
-          <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-slate-100/90 to-transparent pointer-events-none dark:from-zinc-950/90" />
+          <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-card to-transparent pointer-events-none" />
         )}
       </div>
 
       {isCollapsible && (
-        <div className="flex justify-center border-t border-border/20 bg-muted/10 py-2">
+        <div className="flex justify-center border-t border-border/60 bg-muted/20 py-1.5">
           <Button
             variant="ghost"
             size="sm"
-            className="h-8 gap-2 text-xs font-medium text-muted-foreground hover:text-foreground"
+            className="h-7 gap-1.5 text-[11.5px] font-medium text-muted-foreground hover:text-foreground"
             onClick={() => setIsExpanded(!isExpanded)}
           >
             {isExpanded ? (

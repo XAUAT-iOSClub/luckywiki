@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ArrowLeft } from "lucide-react";
 import { WikiArticleResults } from "@/components/wiki-article-results";
+import { Page, PageHeader } from "@/components/ui/page-ui";
 import { getDictionary } from "@/lib/i18n/get-dictionary";
 import { formatNumber, formatTemplate } from "@/lib/i18n/format";
 import { hasLocale, localizeHref } from "@/lib/i18n/config";
@@ -43,17 +46,25 @@ export default async function WikiCategoryPage({ params }: { params: Params }) {
   if (articles.length === 0) notFound();
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-10 md:px-8 lg:px-12">
-      <header className="mb-8 space-y-3">
-        <p className="eyebrow">{dictionary.wiki.categoryBreadcrumb}</p>
-        <h1 className="text-4xl font-bold tracking-tight">
-          {formatTemplate(dictionary.wiki.categoryPageTitle, { category })}
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          {formatTemplate(dictionary.wiki.articleCount, { count: formatNumber(lang, articles.length) })}
-        </p>
-      </header>
+    <Page className="max-w-4xl">
+      <PageHeader
+        actions={
+          <Link
+            className="inline-flex h-8 items-center gap-1.5 rounded-md border border-border/70 bg-card px-2.5 text-[12px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            href={localizeHref(lang, "/wiki/category")}
+          >
+            <ArrowLeft className="size-3.5" />
+            {dictionary.wiki.categoryBreadcrumb}
+          </Link>
+        }
+        descriptionClassName="text-[13.5px] leading-6"
+        description={formatTemplate(dictionary.wiki.articleCount, {
+          count: formatNumber(lang, articles.length),
+        })}
+        titleClassName="text-[28px] sm:text-[30px]"
+        title={formatTemplate(dictionary.wiki.categoryPageTitle, { category })}
+      />
       <WikiArticleResults articles={articles} locale={lang} />
-    </div>
+    </Page>
   );
 }
