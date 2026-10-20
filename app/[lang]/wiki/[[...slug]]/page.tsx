@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { Calendar } from "lucide-react";
 import { MarkdownRenderer } from "@/components/markdown-renderer";
+import { WikiArticleLayout } from "@/components/wiki-article-layout";
 import { WikiHtmlRenderer } from "@/components/wiki-html-renderer";
 import { WikiToc } from "@/components/wiki-toc";
 import { Badge } from "@/components/ui/badge";
@@ -18,6 +19,7 @@ import {
   buildWikiTagHref,
   canonicalizeSlugSegments,
 } from "@/lib/wiki/path";
+import { hasHtmlHeadings, hasMarkdownHeadings } from "@/lib/wiki/headings";
 import { buildArticleMetadata } from "@/lib/metadata";
 import { ArticleJsonLd, BreadcrumbListJsonLd } from "@/lib/structured-data";
 import { WikiComments } from "@/components/wiki-comments";
@@ -95,6 +97,11 @@ export default async function WikiArticlePage({
 
   const articleHref = buildWikiHref(article.path, lang);
   const category = article.path.split("/")[0] ?? "";
+  const tocMarkdown = article.editor === "html" ? "" : article.markdown;
+  const hasInitialToc =
+    article.editor === "html"
+      ? hasHtmlHeadings(article.markdown)
+      : hasMarkdownHeadings(tocMarkdown);
   const publishedDate = article.publishedAt
     ? formatDate(lang, article.publishedAt, {
       month: "long",
@@ -152,36 +159,32 @@ export default async function WikiArticlePage({
 
       <Separator className="bg-border/60" />
 
-      <div className={'grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,1fr)_220px] lg:gap-16'}>
-        <div className="min-w-0">
-          <article className="max-w-3xl">
-            {article.editor === "html" ? (
-              <WikiHtmlRenderer html={article.markdown} />
-            ) : (
-              <MarkdownRenderer
-                linkToSectionLabel={dictionary.common.linkToSection}
-                markdown={article.markdown}
-              />
-            )}
-          </article>
-
-          <div className="max-w-3xl">
-            <WikiComments
-              articleId={article.id}
-              articleHref={articleHref}
-              dictionary={dictionary}
-              lang={lang}
-              searchParams={searchParams}
+      <WikiArticleLayout
+        hasInitialToc={hasInitialToc}
+        key={article.id}
+        toc={<WikiToc markdown={tocMarkdown} />}
+      >
+        <article>
+          {article.editor === "html" ? (
+            <WikiHtmlRenderer html={article.markdown} />
+          ) : (
+            <MarkdownRenderer
+              linkToSectionLabel={dictionary.common.linkToSection}
+              markdown={article.markdown}
             />
-          </div>
-        </div>
+          )}
+        </article>
 
-        <aside className="hidden lg:block">
-          <div className="sticky top-20">
-            <WikiToc markdown={article.editor === "html" ? "" : article.markdown} />
-          </div>
-        </aside>
-      </div>
+        <div>
+          <WikiComments
+            articleId={article.id}
+            articleHref={articleHref}
+            dictionary={dictionary}
+            lang={lang}
+            searchParams={searchParams}
+          />
+        </div>
+      </WikiArticleLayout>
 
       <ArticleJsonLd
         article={{

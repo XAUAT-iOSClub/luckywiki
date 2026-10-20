@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useWikiTocPresence } from "@/components/wiki-article-layout";
 import { cn } from "@/lib/utils";
 import { useT } from "@/lib/i18n/provider";
 
@@ -11,9 +12,18 @@ interface TocItem {
 }
 
 export function WikiToc({ markdown }: { markdown: string }) {
-  const [items, setItems] = useState<TocItem[]>([]);
+  const [items, setItems] = useState<TocItem[] | null>(null);
   const [activeId, setActiveId] = useState<string>("");
+  const setTocPresent = useWikiTocPresence();
   const t = useT();
+
+  // Report whether the TOC has anything to render, so the article layout can
+  // collapse the sidebar column when the page has no headings.
+  useEffect(() => {
+    if (items === null) return;
+
+    setTocPresent?.(items.length > 0);
+  }, [items, setTocPresent]);
 
   // Extract headings from the DOM after rendering
   useEffect(() => {
@@ -39,7 +49,7 @@ export function WikiToc({ markdown }: { markdown: string }) {
   }, [markdown]);
 
   useEffect(() => {
-    if (items.length === 0) return;
+    if (!items || items.length === 0) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -68,7 +78,7 @@ export function WikiToc({ markdown }: { markdown: string }) {
     };
   }, [items]);
 
-  if (items.length === 0) return null;
+  if (!items || items.length === 0) return null;
 
   return (
     <div className="max-h-[calc(100vh-7rem)] space-y-3 overflow-y-auto pb-4 no-scrollbar">
