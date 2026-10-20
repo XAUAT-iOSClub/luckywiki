@@ -34,10 +34,24 @@ export type WikiQaGraphDeps = {
     locale: StreamAgentAnswerInput["locale"];
     context: AgentContext;
   }) => Promise<WikiQaGraphAgent> | WikiQaGraphAgent;
+  /**
+   * Stream an answer straight from the retrieved context, without binding
+   * tools. Used when retrieval is confident enough to skip the ReAct loop.
+   */
+  createDirectAnswer?: (input: {
+    locale: StreamAgentAnswerInput["locale"];
+    context: AgentContext;
+  }) => Promise<WikiQaGraphAgent> | WikiQaGraphAgent;
   retrieveRelevantChunks?: (query: string) => Promise<RetrievedAgentChunk[]>;
   onDelta: (delta: string) => void;
   onToolCall?: (event: AgentToolCallEvent) => void;
 };
+
+/**
+ * Above this confidence we answer directly from the retrieved chunks. The
+ * ReAct loop is only worth its extra model turns when retrieval is weak.
+ */
+const DIRECT_ANSWER_MIN_SCORE = 0.45;
 
 const QaState = Annotation.Root({
   locale: Annotation<StreamAgentAnswerInput["locale"]>(),
@@ -100,6 +114,29 @@ function routeAfterAnswer(state: typeof QaState.State) {
     : "finishNode";
 }
 
+function isConfidentContext(context: AgentContext) {
+  if (context.length === 0) {
+    return false;
+  }
+
+  const topScore = context.reduce(
+    (highest, chunk) => Math.max(highest, chunk.score ?? 1),
+    0,
+  );
+
+  return topScore >= DIRECT_ANSWER_MIN_SCORE;
+}
+
+/**
+ * Listing/navigation questions need the tools to enumerate articles rather
+ * than a single passage of retrieved text. Keep those on the ReAct path.
+ */
+function prefersToolAnswer(query: string) {
+  return /(最近|最新|近期).{0,8}(更新|发布)|更新了?哪些|哪些(文章|内容)|哪几篇|几篇文章|列出|列表|分类|目录|索引/.test(
+    query,
+  );
+}
+
 /**
  * Build the explicit QA workflow used by the wiki Agent.
  *
@@ -113,10 +150,21 @@ export function createWikiQaGraph(deps: WikiQaGraphDeps) {
       query: latestUserQuery(state.messages),
     }))
     .addNode("answerNode", async (state) => {
-      const agent = await deps.createAgent({
-        locale: state.locale,
-        context: state.context,
-      });
+      const useDirectAnswer =
+        state.attempt === 0 &&
+        deps.createDirectAnswer !== undefined &&
+        !prefersToolAnswer(state.query) &&
+        isConfidentContext(state.context);
+
+      const agent = useDirectAnswer
+        ? await deps.createDirectAnswer!({
+            locale: state.locale,
+            context: state.context,
+          })
+        : await deps.createAgent({
+            locale: state.locale,
+            context: state.context,
+          });
       const stream = await agent.stream(
         { messages: state.messages },
         { streamMode: "messages", signal: state.signal },
@@ -158,6 +206,7 @@ export function createWikiQaGraph(deps: WikiQaGraphDeps) {
             path: chunk.path,
             heading: chunk.heading,
             content: chunk.content,
+            score: chunk.score,
           })),
           attempt: state.attempt + 1,
         };

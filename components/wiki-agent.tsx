@@ -1,7 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { startTransition, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  memo,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   ArrowUp,
   FileText,
@@ -28,6 +35,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { resolveAgentMessageContentOnError } from "@/lib/agent/message-state";
 import { buildWikiHref } from "@/lib/wiki/path";
 import { useLocale, useT } from "@/lib/i18n/provider";
+import type { AgentLocale } from "@/types/agent";
 import type { AgentToolCallEvent } from "@/types/agent";
 
 type AgentSource = {
@@ -43,7 +51,11 @@ type AgentMessage = {
   toolCalls?: AgentToolCallEvent[];
 };
 
+type AgentStatusStage = "retrieving" | "answering";
+
 const storageKeyPrefix = "luckywiki-agent:";
+const deltaFlushIntervalMs = 60;
+const storageFlushDelayMs = 400;
 
 export function WikiAgent() {
   const locale = useLocale();
@@ -51,32 +63,67 @@ export function WikiAgent() {
   const [messages, setMessages] = useState<AgentMessage[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const bottomRef = useRef<HTMLDivElement>(null);
+  const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null);
+  const [statusStage, setStatusStage] = useState<AgentStatusStage | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const requestIdRef = useRef(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const storageKey = useMemo(() => `${storageKeyPrefix}${locale}`, [locale]);
+  const hasLoadedStorageRef = useRef(false);
   const [userScrolledUp, setUserScrolledUp] = useState(false);
 
   useEffect(() => {
     try {
       const saved = sessionStorage.getItem(storageKey);
-      if (!saved) return;
-      const parsed = JSON.parse(saved) as AgentMessage[];
-      if (Array.isArray(parsed)) setMessages(parsed);
+      if (saved) {
+        const parsed = JSON.parse(saved) as AgentMessage[];
+        if (Array.isArray(parsed)) setMessages(parsed);
+      }
     } catch {
-      sessionStorage.removeItem(storageKey);
+      try {
+        sessionStorage.removeItem(storageKey);
+      } catch {
+        // Storage can be unavailable in private mode; chat still works.
+      }
+    } finally {
+      hasLoadedStorageRef.current = true;
     }
   }, [storageKey]);
 
+  // Persisting on every token means a synchronous JSON.stringify for the whole
+  // conversation on the main thread. Debounce it so streaming stays smooth.
   useEffect(() => {
-    sessionStorage.setItem(storageKey, JSON.stringify(messages));
+    if (!hasLoadedStorageRef.current) return;
+
+    const timer = window.setTimeout(() => {
+      try {
+        if (messages.length === 0) {
+          sessionStorage.removeItem(storageKey);
+        } else {
+          sessionStorage.setItem(storageKey, JSON.stringify(messages));
+        }
+      } catch {
+        // Storage can be unavailable in private mode; chat still works.
+      }
+    }, storageFlushDelayMs);
+
+    return () => window.clearTimeout(timer);
   }, [messages, storageKey]);
 
   useEffect(() => {
-    if (!userScrolledUp) {
-      bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-    }
+    if (userScrolledUp) return;
+
+    // Jump to the bottom without stacking smooth-scroll animations on every
+    // streaming update.
+    const frame = window.requestAnimationFrame(() => {
+      const container = scrollContainerRef.current;
+      if (container) {
+        container.scrollTop = container.scrollHeight;
+      }
+    });
+
+    return () => window.cancelAnimationFrame(frame);
   }, [messages, isLoading, userScrolledUp]);
 
   const handleScroll = useCallback(() => {
@@ -91,9 +138,12 @@ export function WikiAgent() {
   }, [messages.length]);
 
   const handleStop = useCallback(() => {
+    requestIdRef.current += 1;
     abortRef.current?.abort();
     abortRef.current = null;
     setIsLoading(false);
+    setStreamingMessageId(null);
+    setStatusStage(null);
   }, []);
 
   async function handleSubmit(event?: React.FormEvent<HTMLFormElement>) {
@@ -122,9 +172,40 @@ export function WikiAgent() {
       },
     ]);
     setIsLoading(true);
+    setStreamingMessageId(assistantId);
+    setStatusStage("retrieving");
 
     const controller = new AbortController();
+    const requestId = requestIdRef.current + 1;
+    requestIdRef.current = requestId;
     abortRef.current = controller;
+
+    let pendingDelta = "";
+    let flushTimer: number | null = null;
+
+    const flushDelta = () => {
+      if (flushTimer !== null) {
+        window.clearTimeout(flushTimer);
+        flushTimer = null;
+      }
+
+      if (!pendingDelta) return;
+
+      const delta = pendingDelta;
+      pendingDelta = "";
+      setMessages((current) =>
+        current.map((message) =>
+          message.id === assistantId
+            ? { ...message, content: message.content + delta }
+            : message,
+        ),
+      );
+    };
+
+    const scheduleDeltaFlush = () => {
+      if (flushTimer !== null) return;
+      flushTimer = window.setTimeout(flushDelta, deltaFlushIntervalMs);
+    };
 
     try {
       const response = await fetch("/api/agent", {
@@ -132,16 +213,16 @@ export function WikiAgent() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           locale,
-          messages: [
-            ...messages,
-            userMessage,
-          ]
+          messages: [...messages, userMessage]
             .filter(
-              (m) =>
-                (m.role === "user" || m.role === "assistant") &&
-                m.content.trim().length > 0,
+              (message) =>
+                (message.role === "user" || message.role === "assistant") &&
+                message.content.trim().length > 0,
             )
-            .map((m) => ({ role: m.role, content: m.content })),
+            .map((message) => ({
+              role: message.role,
+              content: message.content,
+            })),
         }),
         signal: controller.signal,
       });
@@ -151,87 +232,93 @@ export function WikiAgent() {
       }
 
       await readAgentEventStream(response.body, {
+        onStatus: (stage) => {
+          setStatusStage(stage);
+        },
         onSources: (sources) => {
-          startTransition(() => {
-            setMessages((current) =>
-              current.map((m) =>
-                m.id === assistantId ? { ...m, sources } : m,
-              ),
-            );
-          });
+          setMessages((current) =>
+            current.map((message) =>
+              message.id === assistantId ? { ...message, sources } : message,
+            ),
+          );
         },
         onDelta: (delta) => {
-          startTransition(() => {
-            setMessages((current) =>
-              current.map((m) =>
-                m.id === assistantId
-                  ? { ...m, content: m.content + delta }
-                  : m,
-              ),
-            );
-          });
+          pendingDelta += delta;
+          scheduleDeltaFlush();
         },
-        onToolCall: (event) => {
-          startTransition(() => {
-            setMessages((current) =>
-              current.map((m) =>
-                m.id === assistantId
-                  ? { ...m, toolCalls: [...(m.toolCalls ?? []), event] }
-                  : m,
-              ),
-            );
-          });
+        onToolCall: (toolCall) => {
+          setMessages((current) =>
+            current.map((message) =>
+              message.id === assistantId
+                ? {
+                    ...message,
+                    toolCalls: [...(message.toolCalls ?? []), toolCall],
+                  }
+                : message,
+            ),
+          );
         },
         onMessage: (message) => {
-          startTransition(() => {
-            setMessages((current) =>
-              current.map((m) =>
-                m.id === assistantId ? { ...m, content: message } : m,
-              ),
-            );
-          });
+          pendingDelta = "";
+          setMessages((current) =>
+            current.map((item) =>
+              item.id === assistantId ? { ...item, content: message } : item,
+            ),
+          );
         },
         onError: (message) => {
-          startTransition(() => {
-            setMessages((current) =>
-              current.map((m) =>
-                m.id === assistantId
-                  ? {
-                      ...m,
-                      content: resolveAgentMessageContentOnError(
-                        m.content,
-                        message || t.agent.errors.generic,
-                      ),
-                    }
-                  : m,
-              ),
-            );
-          });
+          flushDelta();
+          setMessages((current) =>
+            current.map((item) =>
+              item.id === assistantId
+                ? {
+                    ...item,
+                    content: resolveAgentMessageContentOnError(
+                      item.content,
+                      message || t.agent.errors.generic,
+                    ),
+                  }
+                : item,
+            ),
+          );
         },
         signal: controller.signal,
       });
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") return;
+      flushDelta();
       setMessages((current) =>
-        current.map((m) =>
-          m.id === assistantId
+        current.map((message) =>
+          message.id === assistantId
             ? {
-                ...m,
+                ...message,
                 content: resolveAgentMessageContentOnError(
-                  m.content,
+                  message.content,
                   error instanceof Error ? error.message : t.agent.errors.generic,
                 ),
               }
-            : m,
+            : message,
         ),
       );
     } finally {
-      setIsLoading(false);
-      abortRef.current = null;
+      flushDelta();
+
+      if (requestIdRef.current === requestId) {
+        setIsLoading(false);
+        setStreamingMessageId(null);
+        setStatusStage(null);
+        abortRef.current = null;
+      }
     }
   }
 
   function handleReset() {
+    requestIdRef.current += 1;
+    abortRef.current?.abort();
+    abortRef.current = null;
+    setIsLoading(false);
+    setStreamingMessageId(null);
+    setStatusStage(null);
     setMessages([]);
     sessionStorage.removeItem(storageKey);
     setInput("");
@@ -246,6 +333,12 @@ export function WikiAgent() {
   }
 
   const hasMessages = messages.length > 0;
+  const thinkingLabel =
+    statusStage === "retrieving"
+      ? t.agent.retrieving
+      : statusStage === "answering"
+        ? t.agent.answering
+        : t.agent.thinking;
 
   return (
     <div className="flex h-[calc(100dvh-3.5rem)] flex-col">
@@ -290,94 +383,15 @@ export function WikiAgent() {
           <div className="mx-auto max-w-3xl px-5 py-8">
             <MessageGroup className="gap-8">
               {messages.map((message) => (
-                <Message
-                  align={message.role === "user" ? "end" : "start"}
+                <AgentMessageRow
                   key={message.id}
-                >
-                  {/* {message.role === "assistant" && (
-                    <MessageAvatar>
-                      <Avatar>
-                        <AvatarFallback>
-                          <Sparkles />
-                        </AvatarFallback>
-                      </Avatar>
-                    </MessageAvatar>
-                  )} */}
-
-                  <MessageContent>
-                    {message.role === "assistant" ? (
-                      message.content ? (
-                        <Bubble variant="ghost">
-                          <BubbleContent className="text-[13.5px] leading-6">
-                            <MarkdownRenderer
-                              className="text-[13.5px] leading-6"
-                              linkToSectionLabel={t.common.linkToSection}
-                              markdown={message.content}
-                            />
-                          </BubbleContent>
-                        </Bubble>
-                      ) : isLoading ? (
-                        <Marker role="status">
-                          <MarkerIcon>
-                            <Spinner />
-                          </MarkerIcon>
-                          <MarkerContent className="sr-only">
-                            {t.agent.title}
-                          </MarkerContent>
-                        </Marker>
-                      ) : null
-                    ) : (
-                      <Bubble>
-                        <BubbleContent>
-                          <span className="whitespace-pre-wrap text-[13.5px] leading-6">
-                            {message.content}
-                          </span>
-                        </BubbleContent>
-                      </Bubble>
-                    )}
-                    {/* 工具调用记录已隐藏
-                    {message.role === "assistant" &&
-                      message.toolCalls &&
-                      message.toolCalls.length > 0 && (
-                        <MessageFooter className="flex-col items-start gap-1.5 px-0 text-[11.5px]">
-                          {message.toolCalls.map((call, index) => (
-                            <Marker key={`${call.name}-${index}`} variant="border">
-                              <MarkerIcon>
-                                <Cpu />
-                              </MarkerIcon>
-                              <MarkerContent>
-                                {call.summary
-                                  ? `${call.label}: ${call.summary}`
-                                  : call.label}
-                              </MarkerContent>
-                            </Marker>
-                          ))}
-                        </MessageFooter>
-                      )} */}
-
-                    {message.role === "assistant" &&
-                      message.sources &&
-                      message.sources.length > 0 && (
-                        <MessageFooter className="flex-col items-start gap-1.5 px-0 text-[11.5px]">
-                          {message.sources.map((source) => (
-                            <Marker
-                              asChild
-                              key={source.path}
-                            >
-                              <Link href={buildWikiHref(source.path, locale)}>
-                                <MarkerIcon>
-                                  <FileText />
-                                </MarkerIcon>
-                                <MarkerContent>{source.title}</MarkerContent>
-                              </Link>
-                            </Marker>
-                          ))}
-                        </MessageFooter>
-                      )}
-                  </MessageContent>
-                </Message>
+                  isStreaming={message.id === streamingMessageId}
+                  linkToSectionLabel={t.common.linkToSection}
+                  locale={locale}
+                  message={message}
+                  thinkingLabel={thinkingLabel}
+                />
               ))}
-              <div ref={bottomRef} />
             </MessageGroup>
           </div>
         </div>
@@ -452,6 +466,86 @@ export function WikiAgent() {
   );
 }
 
+const AgentMessageRow = memo(
+  function AgentMessageRow({
+    message,
+    isStreaming,
+    locale,
+    linkToSectionLabel,
+    thinkingLabel,
+  }: {
+    message: AgentMessage;
+    isStreaming: boolean;
+    locale: AgentLocale;
+    linkToSectionLabel: string;
+    thinkingLabel: string;
+  }) {
+    const isAssistant = message.role === "assistant";
+
+    return (
+      <Message align={isAssistant ? "start" : "end"}>
+        <MessageContent>
+          {isAssistant ? (
+            message.content ? (
+              <Bubble variant="ghost">
+                <BubbleContent className="text-[13.5px] leading-6">
+                  {isStreaming ? (
+                    <span className="whitespace-pre-wrap">{message.content}</span>
+                  ) : (
+                    <MarkdownRenderer
+                      className="text-[13.5px] leading-6"
+                      linkToSectionLabel={linkToSectionLabel}
+                      markdown={message.content}
+                    />
+                  )}
+                </BubbleContent>
+              </Bubble>
+            ) : isStreaming ? (
+              <Marker role="status">
+                <MarkerIcon>
+                  <Spinner />
+                </MarkerIcon>
+                <MarkerContent>{thinkingLabel}</MarkerContent>
+              </Marker>
+            ) : null
+          ) : (
+            <Bubble>
+              <BubbleContent>
+                <span className="whitespace-pre-wrap text-[13.5px] leading-6">
+                  {message.content}
+                </span>
+              </BubbleContent>
+            </Bubble>
+          )}
+
+          {isAssistant &&
+            message.sources &&
+            message.sources.length > 0 && (
+              <MessageFooter className="flex-col items-start gap-1.5 px-0 text-[11.5px]">
+                {message.sources.map((source) => (
+                  <Marker asChild key={source.path}>
+                    <Link href={buildWikiHref(source.path, locale)}>
+                      <MarkerIcon>
+                        <FileText />
+                      </MarkerIcon>
+                      <MarkerContent>{source.title}</MarkerContent>
+                    </Link>
+                  </Marker>
+                ))}
+              </MessageFooter>
+            )}
+        </MessageContent>
+      </Message>
+    );
+  },
+  (previous, next) =>
+    previous.message === next.message &&
+    previous.isStreaming === next.isStreaming &&
+    previous.locale === next.locale &&
+    previous.linkToSectionLabel === next.linkToSectionLabel &&
+    (!next.isStreaming || previous.thinkingLabel === next.thinkingLabel),
+);
+
 async function readAgentEventStream(
   stream: ReadableStream<Uint8Array>,
   handlers: {
@@ -459,6 +553,7 @@ async function readAgentEventStream(
     onDelta: (delta: string) => void;
     onMessage: (message: string) => void;
     onError: (message: string) => void;
+    onStatus?: (stage: AgentStatusStage) => void;
     onToolCall?: (event: AgentToolCallEvent) => void;
     signal?: AbortSignal;
   },
@@ -495,12 +590,18 @@ async function readAgentEventStream(
         const payload = JSON.parse(data) as {
           text?: string;
           message?: string;
+          stage?: string;
           sources?: AgentSource[];
           name?: string;
           label?: string;
           summary?: string;
         };
 
+        if (eventName === "status") {
+          if (payload.stage === "retrieving" || payload.stage === "answering") {
+            handlers.onStatus?.(payload.stage);
+          }
+        }
         if (eventName === "sources") {
           handlers.onSources(payload.sources ?? []);
         }

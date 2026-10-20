@@ -1113,12 +1113,12 @@ ORDER BY GREATEST(similarity(title,q), similarity(description,q), similarity(mar
    │ POST /api/agent（JSON）
    ▼
 app/api/agent/route.ts → lib/agent/route.ts
-   │ 1. Zod 校验
-   │ 2. retrieveRelevantAgentChunks（可失败）
-   │ 3. SSE 先发 sources
+   │ 1. Zod 校验后立即建立 SSE（status: retrieving）
+   │ 2. retrieveRelevantAgentChunks（BM25 先行，嵌入可回退）
+   │ 3. SSE 发 sources + status: answering
    ▼
 lib/agent/openai.ts → LangGraph 图（lib/agent/graph.ts）
-   │ answerNode：LangChain createAgent + 工具 + 系统提示
+   │ answerNode：强上下文 → 直接流式回答（无工具）；否则 ReAct 工具 Agent
    ▼
 工具（lib/agent/tools.ts）
    ├─ 语义/词法混合检索（lib/agent/search.ts）
@@ -1140,6 +1140,8 @@ lib/agent/openai.ts → LangGraph 图（lib/agent/graph.ts）
 | `AGENT_EMBEDDING_DIMENSIONS` | `1024` | 数据库向量维度，必须与列一致 |
 | `OPENAI_EMBEDDING_DIMENSIONS` | 空 | 仅当 provider 支持 `dimensions` 字段时设置；必须等于 `AGENT_EMBEDDING_DIMENSIONS` |
 | `OPENAI_EMBEDDING_TIMEOUT_MS` | 60000 | 单次嵌入请求超时 |
+| `AGENT_RETRIEVAL_TIMEOUT_MS` | 3500 | 聊天检索的嵌入预算；超时后回退 BM25 |
+| `AGENT_MODEL_TIMEOUT_MS` | 45000 | 单次 Agent 模型流的总超时 |
 | `AGENT_REINDEX_CONCURRENCY` | 4（上限 8） | `agent:index` 并行数 |
 
 `ChatOpenAI` 配置：
@@ -1225,13 +1227,15 @@ send("article-embedding-sync", { articleId, updatedAt }, {
 
 ```text
 retrieveRelevantAgentChunks(query)
-  ├─ embedTexts([query])
-  │    └─ 失败 → 有 pg_search 则仅 BM25；否则抛错（上层会容忍）
-  ├─ pgvector 可用?
-  │    ├─ 否 → 全量读 agent_chunks，应用层 cosine 排序
-  │    └─ 是 → ANN top 24 + BM25 top 24
-  │             融合分数 = semantic * 0.75 + (1/lexicalRank) * 0.25
-  │             BM25-only 命中：0.25 / rank
+  ├─ 并行启动 BM25 与查询嵌入
+  ├─ BM25 top score ≥ 20 → 直接采用 BM25，取消嵌入请求（低延迟快路径）
+  ├─ 否则等待嵌入（≤ AGENT_RETRIEVAL_TIMEOUT_MS）
+  ├─ ANN top 24
+  │    ├─ top ≥ 0.7 → 只使用 ANN
+  │    └─ 否则融合 BM25（仅注入 bm25Score ≥ 15 的 lexical-only 命中）
+  │         融合分数 = semantic * 0.75 + (1/lexicalRank) * 0.25
+  │         BM25-only 命中：0.6 - rank * 0.02（下限 0.45）
+  ├─ ANN 不可用 → 有 BM25 则用 BM25，否则全量 cosine 兜底
   └─ limitRetrievedChunks
        ├─ 默认丢弃 score < 0.35（若没有任何语义相关结果则允许低分）
        ├─ 每篇文章最多 2 个 chunk
@@ -1240,12 +1244,11 @@ retrieveRelevantAgentChunks(query)
 
 细节：
 
-- `pgvector` 可用性检查同时确认 `agent_chunks.embedding` 列存在；
-- `pg_search` 可用性检查只确认扩展存在；
-- ANN SQL 使用 `1 - (embedding <=> query::vector)` 作为余弦相似度；
-- BM25 SQL 使用 `content @@@ query OR heading @@@ query` + `paradedb.score`；
-- 词法-only 结果会再用 Prisma 取正文与文章信息；
-- 最终按融合分数降序。
+- 自然语言问题先经 `buildLexicalQuery()` 提取关键词：去掉疑问词，把相邻单字合并成词（`校园` + `卡` → `校园卡`），再拼成 BM25 查询；
+- BM25 SQL 使用 `content @@@ query OR heading @@@ query` + `paradedb.score`，正文与文章信息在同一个查询里返回；
+- ANN SQL 使用 `1 - (embedding <=> query::vector)` 作为余弦相似度，并设置 2s 超时；
+- 查询嵌入缓存 5 分钟（最多 128 条），检索结果缓存 60 秒（最多 64 条）；
+- 同一实例内共享缓存，避免重复问题和连续追问重复走嵌入/检索。
 
 **建议来源兜底**：
 
@@ -1274,13 +1277,15 @@ retrieveRelevantAgentChunks(query)
 **处理**
 
 1. 取字典用于错误文案；
-2. 尝试语义检索（失败只记录日志）；
-3. 有 chunk → 用 chunk 去重后的文章作为 `sources`；
-4. 没有 chunk → 用 `findSuggestedSources()`；
-5. 建立 `ReadableStream`，按 SSE 发送：
+2. 先建立 `ReadableStream` 并立即发送 `status: retrieving`，避免检索期间响应头被代理挂住；
+3. 尝试检索（失败只记录日志）；
+4. 有 chunk → 用 chunk 去重后的文章作为 `sources`；
+5. 没有 chunk → 用 `findSuggestedSources()`；
+6. 发送 `sources` 与 `status: answering`，再开始流式回答：
 
 | 事件 | 数据 | 含义 |
 |---|---|---|
+| `status` | `{ stage: "retrieving" \| "answering" }` | 当前阶段，驱动前端等待文案 |
 | `sources` | `{ sources: [{path,title}] }` | 先告诉前端来源 |
 | `delta` | `{ text }` | 模型增量文本 |
 | `tool` | `{ name,label,summary }` | 工具调用（前端目前隐藏展示） |
@@ -1304,13 +1309,18 @@ locale, messages, context, query, answer, toolCalls, attempt, signal
 ```text
 START
   → prepareNode（取最后一条 user 消息作为 query）
-  → answerNode（createAgent + streamMode:"messages"）
+  → answerNode
+       ├─ attempt === 0
+       │    且 top score ≥ 0.45
+       │    且不是“最近更新 / 列出 / 分类 / 目录 / 哪几篇”等列表意图
+       │    → createDirectAnswer：不绑定工具，直接流式回答
+       └─ 否则 → createAgent：ReAct 工具流
        ├─ 收集 tool_call 事件 → onToolCall
        └─ 收集文本 delta → onDelta，累加 answer
   → routeAfterAnswer
        ├─ answer 为空且 attempt === 0 → recoverNode
        │     → retrieveRelevantChunks(最近 3 条 user 消息拼接)
-       │     → attempt+1 → 回到 answerNode
+       │     → attempt+1 → 回到 answerNode（重试时走工具 Agent）
        └─ 否则 → finishNode
   → finishNode
        ├─ 有 answer：保留
@@ -1318,7 +1328,11 @@ START
   → END
 ```
 
-设计意图：模型是 ReAct 工具 Agent，LangGraph 只负责“检索失败重试一次 + 空答案兜底”的确定性控制流。
+设计意图：
+
+- 大多数内容问题已经由路由层检索到足够上下文，直接一次模型调用即可回答，避免 ReAct 多次工具往返；
+- 列表/导航类问题需要枚举文章，仍交给工具 Agent；
+- LangGraph 继续负责“检索失败重试一次 + 空答案兜底”的确定性控制流。
 
 **直接运行路径**：`streamAgentAnswer()` 在没有 `createGraph` 的自定义 runtime 下，会直接 `agent.stream()` 并解析文本/工具事件（测试用）。
 
@@ -1339,14 +1353,15 @@ START
 
 ### 13.9 系统提示
 
-中文/英文两套：
+中文/英文两套，分工具 Agent 与直接回答两条：
 
 - 只能依据已发布 Wiki 和只读工具；
 - 不得编造或用站外常识补全；
-- 上下文不足先用工具继续查，仍不足就明确说明；
+- 工具 Agent：已附带的上下文足够时直接回答，避免重复搜索；上下文不足再用工具；仍不足就明确说明；
+- 直接回答：只根据已检索上下文回答，不调用工具；不足时明确说明；
 - 回答简洁、自然；
 - 尽量提文章标题或路径；
-- **不要输出思考过程或工具调用说明**；
+- **不要输出思考过程、检索过程或工具调用说明**；
 - 附带本轮检索到的 chunk 文本（标题、路径、heading、内容）。
 
 ### 13.10 前端行为
@@ -1356,11 +1371,14 @@ START
 - 未开始时的空状态：标题、说明、3 个推荐问题；
 - 消息存在时：可滚动列表、气泡样式、Markdown 渲染回答、来源链接；
 - 输入框：Enter 发送，Shift+Enter 换行；加载中显示停止按钮（AbortController）；
-- SSE 解析：按 `\n\n` 分帧，读取 `event:` 与 `data:`；支持 `sources/delta/message/tool/error/done`；
+- SSE 解析：按 `\n\n` 分帧，读取 `event:` 与 `data:`；支持 `status/sources/delta/message/tool/error/done`；
+- `status` 事件驱动等待文案（检索 Wiki / 生成回答）；
+- 流式期间按 60ms 批量合并 delta，并以纯文本显示；结束后一次性渲染完整 Markdown，避免每个 token 都重跑 KaTeX/highlight 等 15 个 rehype 插件；
+- 消息行使用 `memo`，历史消息不会随当前回答的 token 重渲染；
+- 会话按 locale 存在 `sessionStorage`（`luckywiki-agent:{locale}`），写入做 400ms 防抖，避免每个 token 同步序列化整段会话；
+- 自动滚动到底部使用 rAF + 直接设置 `scrollTop`，用户上滚超过 120px 时暂停自动滚动；
 - 错误时保留已生成内容，仅在内容为空时显示错误；
-- 会话按 locale 存在 `sessionStorage`（`luckywiki-agent:{locale}`）；
-- 自动滚动到底部，用户上滚超过 120px 时暂停自动滚动；
-- 重置会清空消息与存储。
+- 重置会清空消息与存储，并中止进行中的请求。
 
 ---
 

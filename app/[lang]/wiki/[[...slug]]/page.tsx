@@ -104,7 +104,7 @@ export default async function WikiArticlePage({
     : null;
 
   return (
-    <Page className="max-w-[1180px] gap-8 px-5 py-8 sm:px-8 md:px-12 md:py-10">
+    <Page className="max-w-295 gap-8 px-5 py-8 sm:px-8 md:px-12 md:py-10">
       <header className="max-w-3xl space-y-4">
         <div className="flex flex-wrap items-center gap-2 text-[12px] text-muted-foreground">
           {category && article.path.includes("/") ? (
@@ -152,7 +152,7 @@ export default async function WikiArticlePage({
 
       <Separator className="bg-border/60" />
 
-      <div className="grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,1fr)_220px] lg:gap-16">
+      <div className={'grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,1fr)_220px] lg:gap-16'}>
         <div className="min-w-0">
           <article className="max-w-3xl">
             {article.editor === "html" ? (

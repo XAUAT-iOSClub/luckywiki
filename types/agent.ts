@@ -29,6 +29,8 @@ export type StreamAgentAnswerInput = {
     path: string;
     heading: string | null;
     content: string;
+    /** Retrieval confidence. Missing values are treated as confident. */
+    score?: number;
   }>;
   messages: AgentChatMessage[];
   onDelta: (delta: string) => void;

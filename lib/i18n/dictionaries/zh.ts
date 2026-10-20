@@ -198,6 +198,8 @@ export const zh = {
     send: "发送",
     reset: "重置会话",
     thinking: "正在整理 Wiki 内容并生成回答...",
+    retrieving: "正在检索 Wiki 内容...",
+    answering: "正在生成回答...",
     disclaimer: "回答仅依据当前已发布的 Wiki 文案生成，仍建议点开来源文章核对细节。",
     promptIdeasTitle: "你可以这样问",
     promptIdeas: [

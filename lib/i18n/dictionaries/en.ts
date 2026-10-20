@@ -199,6 +199,8 @@ export const en = {
     send: "Send",
     reset: "Reset chat",
     thinking: "Reviewing wiki content and drafting an answer...",
+    retrieving: "Searching the wiki...",
+    answering: "Drafting an answer...",
     disclaimer: "Answers are generated only from currently published wiki content. You should still open the source articles for the final details.",
     promptIdeasTitle: "Try asking",
     promptIdeas: [

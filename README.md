@@ -242,10 +242,12 @@ unset. For OpenAI `text-embedding-3-*`, set it to `1024` so the API requests a
 matching vector. After deploying the embedding-consolidation migration, run
 `npm run agent:index` once to regenerate any legacy chunks that used a
 different dimension. Set `OPENAI_EMBEDDING_TIMEOUT_MS` if an embedding gateway
-needs a request timeout other than the default 60 seconds. `pnpm agent:index`
-processes four articles in parallel by default; set
-`AGENT_REINDEX_CONCURRENCY` to a value from 1 to 8 if the gateway needs a
-different request rate.
+needs a request timeout other than the default 60 seconds. Chat retrieval has
+its own budget: `AGENT_RETRIEVAL_TIMEOUT_MS` (default 3500 ms) bounds the
+embedding call before falling back to BM25, and `AGENT_MODEL_TIMEOUT_MS`
+(default 45000 ms) caps one Agent model stream. `pnpm agent:index` processes
+four articles in parallel by default; set `AGENT_REINDEX_CONCURRENCY` to a
+value from 1 to 8 if the gateway needs a different request rate.
 
 ## Database Seed
 

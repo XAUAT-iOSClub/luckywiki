@@ -21,7 +21,10 @@ export async function createAgentRouteResponse(
   request: Request,
   deps: {
     getDictionary: (locale: Locale) => Promise<Dictionary>;
-    retrieveRelevantChunks: (query: string) => Promise<RetrievedAgentChunk[]>;
+    retrieveRelevantChunks: (
+      query: string,
+      options?: { signal?: AbortSignal },
+    ) => Promise<RetrievedAgentChunk[]>;
     findSuggestedSources: (query: string) => Promise<AgentSource[]>;
     streamAnswer: (input: {
       locale: Locale;
@@ -58,33 +61,63 @@ export async function createAgentRouteResponse(
     );
   }
 
-  let chunks: RetrievedAgentChunk[] = [];
-
-  try {
-    chunks = await deps.retrieveRelevantChunks(latestMessage.content);
-  } catch (error) {
-    // Embedding providers are optional for the chat path. Let the agent use
-    // its article/path tools when semantic retrieval is unavailable.
-    console.error("[agent] semantic retrieval failed", error);
-  }
-
-  const sources =
-    chunks.length > 0
-      ? dedupeSources(chunks)
-      : await deps.findSuggestedSources(latestMessage.content);
-
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
       const encoder = new TextEncoder();
       const sendEvent = (event: string, data: unknown) => {
-        controller.enqueue(
-          encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`),
-        );
+        try {
+          controller.enqueue(
+            encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`),
+          );
+        } catch {
+          // The client disconnected; there is nothing left to deliver.
+        }
       };
+      const close = () => {
+        try {
+          controller.close();
+        } catch {
+          // Already closed by the client.
+        }
+      };
+
+      // Open the SSE response before retrieval so headers reach the client
+      // immediately and proxies do not sit on an idle connection.
+      sendEvent("status", { stage: "retrieving" });
+
+      let chunks: RetrievedAgentChunk[] = [];
+
+      try {
+        chunks = await deps.retrieveRelevantChunks(latestMessage.content, {
+          signal: request.signal,
+        });
+      } catch (error) {
+        // Embedding providers are optional for the chat path. Let the agent use
+        // its article/path tools when semantic retrieval is unavailable.
+        console.error("[agent] semantic retrieval failed", error);
+      }
+
+      if (request.signal.aborted) {
+        close();
+        return;
+      }
+
+      let sources: AgentSource[] = [];
+
+      if (chunks.length > 0) {
+        sources = dedupeSources(chunks);
+      } else {
+        try {
+          sources = await deps.findSuggestedSources(latestMessage.content);
+        } catch (error) {
+          console.error("[agent] suggested source lookup failed", error);
+        }
+      }
 
       sendEvent("sources", {
         sources,
       });
+      sendEvent("status", { stage: "answering" });
 
       try {
         await deps.streamAnswer({
@@ -101,13 +134,13 @@ export async function createAgentRouteResponse(
         });
 
         sendEvent("done", {});
-        controller.close();
+        close();
       } catch (error) {
         console.error("[agent] response stream failed", error);
         sendEvent("error", {
           message: dictionary.agent.errors.generic,
         });
-        controller.close();
+        close();
       }
     },
   });

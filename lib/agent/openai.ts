@@ -20,9 +20,14 @@ export type { AgentChatMessage, AgentToolCallEvent, StreamAgentAnswerInput } fro
 export { normalizeOpenAiBaseUrl };
 
 const defaultResponsesModel = "gpt-4.1-mini";
+const defaultModelTimeoutMs = 45_000;
 
 export type WikiAgentRuntime = {
   createAgent: (input: {
+    locale: StreamAgentAnswerInput["locale"];
+    context: StreamAgentAnswerInput["context"];
+  }) => Promise<WikiAgentLike> | WikiAgentLike;
+  createDirectAnswer?: (input: {
     locale: StreamAgentAnswerInput["locale"];
     context: StreamAgentAnswerInput["context"];
   }) => Promise<WikiAgentLike> | WikiAgentLike;
@@ -107,6 +112,18 @@ export function buildEmbeddingRequest(
 function getEmbeddingTimeoutMs(env: NodeJS.ProcessEnv = process.env) {
   const parsed = Number(env.OPENAI_EMBEDDING_TIMEOUT_MS);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : 60_000;
+}
+
+function withModelTimeout(signal?: AbortSignal) {
+  const timeout = AbortSignal.timeout(getModelTimeoutMs());
+  return signal ? AbortSignal.any([signal, timeout]) : timeout;
+}
+
+function getModelTimeoutMs(env: NodeJS.ProcessEnv = process.env) {
+  const parsed = Number(env.AGENT_MODEL_TIMEOUT_MS);
+  return Number.isFinite(parsed) && parsed > 0
+    ? parsed
+    : defaultModelTimeoutMs;
 }
 
 const TOOL_LABELS: Record<string, string> = {
@@ -200,6 +217,8 @@ export async function streamAgentAnswer(
   input: StreamAgentAnswerInput,
   runtime: WikiAgentRuntime = defaultWikiAgentRuntime,
 ) {
+  const signal = withModelTimeout(input.signal);
+
   if (runtime.createGraph) {
     const graph = runtime.createGraph({
       locale: input.locale,
@@ -212,7 +231,7 @@ export async function streamAgentAnswer(
       locale: input.locale,
       context: input.context,
       messages: input.messages,
-      signal: input.signal,
+      signal,
     });
     return;
   }
@@ -228,7 +247,7 @@ export async function streamAgentAnswer(
     },
     {
       streamMode: "messages",
-      signal: input.signal,
+      signal,
     },
   );
 
@@ -251,15 +270,38 @@ export async function streamAgentAnswer(
 export const defaultWikiAgentRuntime: WikiAgentRuntime = {
   createAgent({ locale, context }) {
     return createLangChainAgent({
-      model: createWikiChatModel(),
+      model: getWikiChatModel(),
       tools: createWikiAgentTools(),
       systemPrompt: buildSystemPrompt(locale, context),
     });
+  },
+  createDirectAnswer({ locale, context }) {
+    const model = getWikiChatModel();
+
+    return {
+      async stream(state, config) {
+        return model.stream(
+          [
+            {
+              role: "system",
+              content: buildDirectSystemPrompt(locale, context),
+            },
+            ...state.messages,
+          ],
+          { signal: config.signal },
+        );
+      },
+    };
   },
   createGraph({ onDelta, onToolCall }) {
     return createWikiQaGraph({
       createAgent: ({ locale: agentLocale, context: agentContext }) =>
         defaultWikiAgentRuntime.createAgent({
+          locale: agentLocale,
+          context: agentContext,
+        }),
+      createDirectAnswer: ({ locale: agentLocale, context: agentContext }) =>
+        defaultWikiAgentRuntime.createDirectAnswer!({
           locale: agentLocale,
           context: agentContext,
         }),
@@ -269,6 +311,16 @@ export const defaultWikiAgentRuntime: WikiAgentRuntime = {
     });
   },
 };
+
+let wikiChatModel: ChatOpenAI | undefined;
+
+function getWikiChatModel() {
+  if (!wikiChatModel) {
+    wikiChatModel = createWikiChatModel();
+  }
+
+  return wikiChatModel;
+}
 
 function createWikiChatModel() {
   const baseURL = normalizeOpenAiBaseUrl(process.env.OPENAI_API_BASE_URL ?? defaultApiBaseUrl);
@@ -286,11 +338,8 @@ function createWikiChatModel() {
   });
 }
 
-function buildSystemPrompt(
-  locale: StreamAgentAnswerInput["locale"],
-  context: StreamAgentAnswerInput["context"],
-) {
-  const contextText = context.length
+function formatWikiContext(context: StreamAgentAnswerInput["context"]) {
+  return context.length
     ? context
         .map(
           (entry, index) =>
@@ -298,12 +347,21 @@ function buildSystemPrompt(
         )
         .join("\n\n")
     : "No direct wiki chunks were retrieved for this turn.";
+}
+
+function buildSystemPrompt(
+  locale: StreamAgentAnswerInput["locale"],
+  context: StreamAgentAnswerInput["context"],
+) {
+  const contextText = formatWikiContext(context);
 
   if (locale === "zh") {
     return [
       "你是 LuckyWiki 的问答助手。",
       "只能根据当前已发布的 Wiki 内容和你可调用的只读工具回答，不能编造，也不能使用站外常识补全。",
-      "如果当前上下文不足，先使用工具继续查找相关文章；如果仍然不足，就明确说明 Wiki 中没有足够信息。",
+      "下面已经附上了本轮检索到的 Wiki 内容。如果这些内容足以回答，就直接回答，不要重复搜索；只有明显缺少关键信息时才调用工具。",
+      "如果使用工具，避免重复调用同一个工具或反复搜索相同的关键词；拿到足够信息后立即回答。",
+      "如果仍然不足，就明确说明 Wiki 中没有足够信息。",
       "回答使用简体中文，语气自然、简洁、直接。",
       "尽量在回答里提到相关文章的标题或路径，方便用户继续阅读原文。",
       "重要：不要输出你的思考过程或工具调用的说明，直接给出最终答案。用户不需要知道你做了什么搜索，只需要答案本身。",
@@ -316,12 +374,49 @@ function buildSystemPrompt(
   return [
     "You are the LuckyWiki assistant.",
     "Answer only from currently published wiki content and the read-only tools available to you. Do not invent facts or fill gaps with outside knowledge.",
-    "If the current context is insufficient, first use tools to look up relevant articles; if it is still insufficient, clearly say the wiki does not contain enough information.",
+    "The wiki context retrieved for this turn is already included below. If it is enough to answer, answer directly and do not repeat the search; only use tools when key information is clearly missing.",
+    "When you do use tools, avoid calling the same tool repeatedly or searching the same keywords again; answer as soon as you have enough information.",
+    "If it is still insufficient, clearly say the wiki does not contain enough information.",
     "Reply in English with a concise, direct tone.",
     "Prefer mentioning article titles or paths so the user can continue reading the original source.",
     "IMPORTANT: Do NOT output your thinking process or narrate your tool usage. Give the final answer directly. Users do not need to know what searches you performed.",
     "",
     "Available wiki context:",
+    contextText,
+  ].join("\n");
+}
+
+function buildDirectSystemPrompt(
+  locale: StreamAgentAnswerInput["locale"],
+  context: StreamAgentAnswerInput["context"],
+) {
+  const contextText = formatWikiContext(context);
+
+  if (locale === "zh") {
+    return [
+      "你是 LuckyWiki 的问答助手。",
+      "下面已经检索到了与这个问题相关的 Wiki 内容，请直接根据这些内容回答，不需要调用工具。",
+      "只能根据这些内容回答，不能编造，也不能使用站外常识补全。",
+      "如果这些内容不足以回答，就明确说明 Wiki 中没有足够信息，不要猜测。",
+      "回答使用简体中文，语气自然、简洁、直接。",
+      "尽量提到相关文章的标题或路径，方便用户继续阅读原文。",
+      "不要输出思考过程或检索过程，直接给出最终答案。",
+      "",
+      "Wiki 上下文：",
+      contextText,
+    ].join("\n");
+  }
+
+  return [
+    "You are the LuckyWiki assistant.",
+    "The wiki content relevant to this question has already been retrieved and is included below. Answer directly from it; you do not need to call tools.",
+    "Answer only from this content. Do not invent facts or fill gaps with outside knowledge.",
+    "If the content is insufficient, clearly say the wiki does not contain enough information instead of guessing.",
+    "Reply in English with a concise, direct tone.",
+    "Prefer mentioning article titles or paths so the user can continue reading the original source.",
+    "Do NOT output your thinking or retrieval process. Give the final answer directly.",
+    "",
+    "Wiki context:",
     contextText,
   ].join("\n");
 }
