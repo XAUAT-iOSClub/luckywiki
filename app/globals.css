@@ -3,8 +3,6 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
-@plugin "@tailwindcss/typography";
-
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
@@ -261,8 +259,7 @@
   }
 
   .markdown-body {
-    @apply prose prose-slate dark:prose-invert max-w-none;
-    @apply text-[16px] leading-[1.75] text-foreground/90;
+    @apply max-w-none text-[16px] leading-[1.75] text-foreground/90;
     font-feature-settings: "kern" 1, "liga" 1;
   }
 
@@ -287,7 +284,19 @@
   .markdown-body h6 { @apply mt-5 mb-1.5 text-[12px] uppercase tracking-[0.08em] text-muted-foreground; }
 
   .markdown-body p {
-    @apply text-foreground/90;
+    @apply my-0 text-foreground/90;
+  }
+
+  .markdown-body p + p,
+  .markdown-body [data-slot="tabs-content"] > * + *,
+  .markdown-body .markdown-alert-content > * + *,
+  .markdown-body [data-slot="card-content"] > * + *,
+  .markdown-body blockquote > * + * {
+    @apply mt-4;
+  }
+
+  .markdown-body li > p {
+    @apply my-0;
   }
 
   .markdown-body strong {
@@ -358,7 +367,6 @@
 
   .markdown-body pre code {
     @apply bg-transparent p-0 text-inherit before:content-none after:content-none font-normal;
-    color: var(--hljs-color);
   }
 
   /* hljs tokens */

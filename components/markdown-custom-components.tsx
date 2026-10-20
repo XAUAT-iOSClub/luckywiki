@@ -21,6 +21,7 @@ import {
   Dialog,
   DialogClose,
   DialogContent,
+  DialogTitle,
 } from "@/components/ui/dialog";
 import {
   Tabs as ShadcnTabs,
@@ -374,6 +375,7 @@ export function MarkdownImageGalleryProvider({
           className="max-w-[min(96vw,1280px)] border-none bg-transparent p-0 shadow-none ring-0"
           showCloseButton={false}
         >
+          <DialogTitle className="sr-only">Image preview</DialogTitle>
           {currentImage ? (
             <div className="flex max-h-[90vh] flex-col gap-4">
               <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-black/60 px-3 py-2 text-white">
@@ -746,35 +748,35 @@ type MarkdownAlertProps = HTMLAttributes<HTMLElement> & {
 const ALERT_CONFIG = {
   NOTE: {
     icon: Info,
-    className: "border-sky-500/25 bg-sky-500/[0.04]",
+    className: "border-border/70 border-l-2 border-l-sky-500/70 bg-muted/20",
     iconClassName: "text-sky-500",
     labelClassName: "text-sky-700 dark:text-sky-400",
     label: "Note",
   },
   TIP: {
     icon: Lightbulb,
-    className: "border-emerald-500/25 bg-emerald-500/[0.04]",
+    className: "border-border/70 border-l-2 border-l-emerald-500/70 bg-muted/20",
     iconClassName: "text-emerald-500",
     labelClassName: "text-emerald-700 dark:text-emerald-400",
     label: "Tip",
   },
   WARNING: {
     icon: AlertTriangle,
-    className: "border-amber-500/25 bg-amber-500/[0.04]",
+    className: "border-border/70 border-l-2 border-l-amber-500/70 bg-muted/20",
     iconClassName: "text-amber-500",
     labelClassName: "text-amber-700 dark:text-amber-400",
     label: "Warning",
   },
   IMPORTANT: {
     icon: AlertCircle,
-    className: "border-violet-500/25 bg-violet-500/[0.04]",
+    className: "border-border/70 border-l-2 border-l-violet-500/70 bg-muted/20",
     iconClassName: "text-violet-500",
     labelClassName: "text-violet-700 dark:text-violet-400",
     label: "Important",
   },
   CAUTION: {
     icon: ShieldAlert,
-    className: "border-red-500/25 bg-red-500/[0.04]",
+    className: "border-border/70 border-l-2 border-l-red-500/70 bg-muted/20",
     iconClassName: "text-red-500",
     labelClassName: "text-red-700 dark:text-red-400",
     label: "Caution",

@@ -308,7 +308,7 @@ export function WikiAgent() {
                     {message.role === "assistant" ? (
                       message.content ? (
                         <Bubble variant="ghost">
-                          <BubbleContent className="prose-sm prose-p:my-2 prose-headings:mb-3 prose-headings:mt-5 prose-ul:my-2 prose-ol:my-2 prose-li:my-1 prose-pre:my-3 prose-code:text-inherit dark:prose-invert">
+                          <BubbleContent className="text-[13.5px] leading-6">
                             <MarkdownRenderer
                               className="text-[13.5px] leading-6"
                               linkToSectionLabel={t.common.linkToSection}

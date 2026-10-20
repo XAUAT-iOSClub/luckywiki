@@ -88,6 +88,7 @@ export default async function RootLayout({
     <html
       lang={getIntlLocale(locale)}
       className={cn("h-full", "antialiased", "font-sans")}
+      data-scroll-behavior="smooth"
       style={fontVariables}
       suppressHydrationWarning
     >

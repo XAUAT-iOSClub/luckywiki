@@ -45,9 +45,32 @@ function extractTabsLabelBlocks(markdown: string) {
   const blocks: string[][] = [];
   const lines = markdown.split(/\r?\n/);
   let index = 0;
+  let openFence: { char: string; length: number } | null = null;
 
   while (index < lines.length) {
     const line = lines[index]?.trim() ?? "";
+    const fenceMatch = line.match(/^(`{3,}|~{3,})/);
+
+    if (openFence) {
+      if (
+        fenceMatch &&
+        fenceMatch[1]?.[0] === openFence.char &&
+        (fenceMatch[1]?.length ?? 0) >= openFence.length
+      ) {
+        openFence = null;
+      }
+      index += 1;
+      continue;
+    }
+
+    if (fenceMatch) {
+      openFence = {
+        char: fenceMatch[1]![0]!,
+        length: fenceMatch[1]!.length,
+      };
+      index += 1;
+      continue;
+    }
 
     if (line !== "::tabs") {
       index += 1;
@@ -544,7 +567,7 @@ export function MarkdownRenderer({
     <MarkdownImageGalleryProvider images={images}>
       <div
         className={cn(
-          "markdown-body prose prose-slate dark:prose-invert max-w-none",
+          "markdown-body max-w-none",
           className,
         )}
       >
