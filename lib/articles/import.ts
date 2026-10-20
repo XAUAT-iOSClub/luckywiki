@@ -239,7 +239,7 @@ export async function importArticlesFromDirectory({
           markdown: article.markdown,
           status: resolvedStatus,
           authorId: author.id,
-          publishedAt: resolvePublishedAt(
+          publishedAt: resolveImportPublishedAt(
             resolvedStatus,
             null,
             article.publishedAtOverride,
@@ -265,7 +265,7 @@ export async function importArticlesFromDirectory({
         editor: article.editor,
         markdown: article.markdown,
         status: resolvedStatus,
-        publishedAt: resolvePublishedAt(
+        publishedAt: resolveImportPublishedAt(
           resolvedStatus,
           existing.publishedAt,
           article.publishedAtOverride,
@@ -545,7 +545,7 @@ function extractFirstHeading(markdown: string) {
   };
 }
 
-function resolvePublishedAt(
+export function resolveImportPublishedAt(
   status: ArticleStatus,
   existingPublishedAt: Date | null,
   frontmatterPublishedAt: Date | undefined,
@@ -558,7 +558,7 @@ function resolvePublishedAt(
   return frontmatterPublishedAt ?? existingPublishedAt ?? now();
 }
 
-function isArticleUpToDate(existing: ExistingImportArticle, next: UpdateImportArticleInput) {
+export function isArticleUpToDate(existing: ExistingImportArticle, next: UpdateImportArticleInput) {
   return (
     existing.title === next.title &&
     existing.description === next.description &&

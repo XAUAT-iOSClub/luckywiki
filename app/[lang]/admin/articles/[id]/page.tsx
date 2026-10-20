@@ -37,6 +37,7 @@ export default async function EditArticlePage({
     <div className="flex flex-col flex-1 min-h-0">
       <ArticleEditor
         action={updateArticleAction.bind(null, article.id, lang)}
+        exportHref={`/api/admin/articles/${article.id}/export`}
         historyHref={localizeHref(lang, `/admin/articles/${article.id}/history`)}
         initialState={{}}
         initialValues={article}

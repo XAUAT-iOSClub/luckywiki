@@ -14,6 +14,7 @@ import { setArticleStatusAction } from "@/app/actions/admin";
 import { listAdminTaxonomy } from "@/lib/admin";
 import { listAdminArticles } from "@/lib/articles";
 import { buildWikiHref } from "@/lib/wiki/path";
+import { ArticleImportDialog } from "@/components/admin/article-import-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -92,12 +93,15 @@ export default async function AdminArticlesPage({
     <Page>
       <PageHeader
         actions={
-          <Button asChild size="sm">
-            <Link href={localizeHref(lang, "/admin/articles/new")}>
-              <Plus data-icon="inline-start" />
-              {dictionary.admin.createArticle}
-            </Link>
-          </Button>
+          <div className="flex items-center gap-2">
+            <ArticleImportDialog />
+            <Button asChild size="sm">
+              <Link href={localizeHref(lang, "/admin/articles/new")}>
+                <Plus data-icon="inline-start" />
+                {dictionary.admin.createArticle}
+              </Link>
+            </Button>
+          </div>
         }
         description={dictionary.admin.filterArticlesDescription}
         title={dictionary.common.articles}

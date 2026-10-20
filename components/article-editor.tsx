@@ -13,6 +13,7 @@ import {
   Loader2,
   Eye,
   Edit3,
+  Download,
   History,
   Link2,
   Sparkles,
@@ -92,6 +93,7 @@ type ArticleEditorProps = {
   summaryAction?: ArticleSummaryAction;
   submitLabel: string;
   historyHref?: string;
+  exportHref?: string;
 };
 
 export function ArticleEditor({
@@ -101,6 +103,7 @@ export function ArticleEditor({
   summaryAction,
   submitLabel,
   historyHref,
+  exportHref,
 }: ArticleEditorProps) {
   const router = useRouter();
   const [state, formAction] = useActionState(action, initialState);
@@ -798,6 +801,22 @@ export function ArticleEditor({
                 {state.error || state.success}
               </div>
             )}
+
+            {exportHref ? (
+              <Button
+                asChild
+                variant="ghost"
+                size="sm"
+                className="h-8 px-2.5 text-[12px]"
+              >
+                <a download href={exportHref}>
+                  <Download data-icon="inline-start" />
+                  <span className="hidden sm:inline">
+                    {t.admin.articleExport.exportMarkdown}
+                  </span>
+                </a>
+              </Button>
+            ) : null}
 
             {historyHref ? (
               <Button

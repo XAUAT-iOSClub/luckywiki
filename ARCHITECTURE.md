@@ -1600,6 +1600,18 @@ pnpm articles:import -- articles --author-email=root@example.com --status=publis
 pnpm articles:import -- articles --dry-run
 ```
 
+**后台导入 / 导出**
+
+- `POST /api/admin/articles/import`（multipart，`mode=preview|apply`）：
+  - 仅接受 `.md`；单文件 ≤ 1 MB、单次 ≤ 50 个、总计 ≤ 4 MB；
+  - 可选 `prefix` 路径前缀与默认状态（frontmatter 的 `published` 优先）；
+  - `preview` 只解析并返回 create / update / unchanged / error 计划，不写库；
+  - `apply` 重新解析文件、重新读取数据库状态后逐篇写入，避免使用过期预览；
+  - 写库行为与 CLI 一致：按 `path` upsert、生成 revision 快照、同步媒体引用、写操作日志、入队嵌入同步；
+  - 完成后立即失效 `articles` / `article:*` 缓存并 revalidate 对应 Wiki 路径。
+- `GET /api/admin/articles/[id]/export`：按导入格式导出 `.md`（frontmatter + `# 标题` + 正文），文件名取路径末段（根路径为 `index.md`）。
+- 后台入口：文章列表的「导入 Markdown」按钮，以及编辑器顶部的「导出 Markdown」按钮。
+
 ### 15.3 图片导入（先于文章导入）
 
 `lib/articles/image-import.ts` + `scripts/import-article-images.ts`
