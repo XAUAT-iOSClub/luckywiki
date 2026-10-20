@@ -42,13 +42,14 @@ export function NavMain({
   const searchParams = useSearchParams();
   const currentQuery = searchParams.toString();
   const t = useT();
+  const activeItemUrl = findActiveItemUrl(items, pathname, currentQuery);
 
   return (
     <SidebarGroup>
       <SidebarGroupLabel>{label}</SidebarGroupLabel>
       <SidebarMenu>
         {items.map((item) => {
-          const isActive = matchesNavLink(pathname, currentQuery, item.url);
+          const isActive = item.url === activeItemUrl;
 
           if (!item.items) {
             return (
@@ -105,6 +106,29 @@ export function NavMain({
       </SidebarMenu>
     </SidebarGroup>
   );
+}
+
+function findActiveItemUrl(
+  items: { url: string }[],
+  pathname: string,
+  currentQuery: string
+) {
+  // A parent route such as /admin is a prefix of every child route, so pick the
+  // most specific match instead of marking both the parent and the child active.
+  let activeUrl: string | null = null;
+  let activePathLength = -1;
+
+  for (const item of items) {
+    if (!matchesNavLink(pathname, currentQuery, item.url)) continue;
+
+    const pathLength = item.url.split("?")[0].length;
+    if (pathLength > activePathLength) {
+      activeUrl = item.url;
+      activePathLength = pathLength;
+    }
+  }
+
+  return activeUrl;
 }
 
 function matchesNavLink(pathname: string, currentQuery: string, href: string) {

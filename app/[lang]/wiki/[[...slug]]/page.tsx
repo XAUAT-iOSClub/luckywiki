@@ -118,7 +118,6 @@ export default async function WikiArticlePage({
               <span aria-hidden className="text-border">/</span>
             </>
           ) : null}
-          <span className="truncate font-mono text-[11.5px]">/{article.path}</span>
         </div>
 
         <h1 className="text-balance text-[32px] font-semibold leading-[1.15] tracking-[-0.025em] text-foreground sm:text-[38px]">
