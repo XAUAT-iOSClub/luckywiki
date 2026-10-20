@@ -6,6 +6,8 @@ import {
   buildWikiTagHref,
   canonicalizePath,
   canonicalizeSlugSegments,
+  getWikiArticlePathFromPathname,
+  isReservedWikiPath,
 } from "@/lib/wiki/path";
 
 test("canonicalizes mixed-case and Chinese paths", () => {
@@ -41,4 +43,23 @@ test("rejects invalid path segments", () => {
   assert.throws(() => canonicalizePath("指南/../入门"));
   assert.throws(() => canonicalizePath("指南 /入门"));
   assert.throws(() => canonicalizePath("指南/入门?test"));
+});
+
+test("resolves article paths from pathnames and skips taxonomy routes", () => {
+  assert.equal(
+    getWikiArticlePathFromPathname("/zh/wiki/指南/Next-16"),
+    "指南/next-16",
+  );
+  assert.equal(getWikiArticlePathFromPathname("/en/wiki/home"), "home");
+  assert.equal(getWikiArticlePathFromPathname("/zh/wiki"), null);
+  assert.equal(getWikiArticlePathFromPathname("/zh/wiki/category"), null);
+  assert.equal(getWikiArticlePathFromPathname("/en/wiki/category/guide"), null);
+  assert.equal(getWikiArticlePathFromPathname("/en/wiki/tag/tutorial"), null);
+  assert.equal(getWikiArticlePathFromPathname("/en/agent"), null);
+});
+
+test("reserved wiki paths cover taxonomy trees", () => {
+  assert.equal(isReservedWikiPath("category"), true);
+  assert.equal(isReservedWikiPath("tag/guide"), true);
+  assert.equal(isReservedWikiPath("guide/tag"), false);
 });

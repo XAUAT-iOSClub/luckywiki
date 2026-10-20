@@ -642,6 +642,15 @@ Guides/Next-16/Setup.md → "guides/next-16/setup"
 
 `generateMetadata()` 未找到文章时返回“文章不存在”标题；找到时用 `buildArticleMetadata()` 生成 canonical、hreflang、OpenGraph、Twitter、关键词。描述优先取 `Article.description`（160 字截断），没有时回退到 Markdown 正文截取。
 
+#### 文章页头部操作（AUTHOR / ROOT）
+
+- `WikiShell` 顶栏右侧在 `section="articles"` 时挂载 `WikiArticleHeaderActions`（Suspense 动态洞，避免拖慢 PPR 静态壳）。
+- 服务端首次渲染通过 `proxy.ts` 注入的 `x-luckywiki-pathname` 请求头识别当前文章，并用 `getPublishedArticleByPath()` 取 `id/path/title`。
+- 由于共享 layout 在客户端导航时不会重新渲染，`WikiArticleActionsController` 会监听 `usePathname()`；路径变化时调用 Server Action `getArticleHeaderInfoAction()` 重新解析目标文章，并在解析完成前隐藏旧按钮，避免误操作上一篇。
+- 按钮：编辑（`/admin/articles/[id]`）、历史（`.../history`）、移动、删除。
+- `moveArticleAction()` 会连带移动子页面（`planArticlePathMove()`，`lib/articles/move.ts`），校验目标冲突并刷新新旧路径的缓存；`deleteArticleAction()` 删除文章（评论、修订、Agent chunks 级联）并写入操作日志。
+- 非作者/管理员、非文章路由、分类/标签路由均不渲染操作按钮。
+
 ### 8.5 分类与标签页
 
 **分类（section）= 路径第一段。**

@@ -62,6 +62,29 @@ export function getWikiPathFromPathname(pathname: string) {
   return canonicalizeSlugSegments(nonLocalizedPath.slice("/wiki/".length).split("/"));
 }
 
+/**
+ * Returns the article path for a wiki URL, or null for non-wiki routes and
+ * reserved taxonomy routes (`/wiki/category/...`, `/wiki/tag/...`).
+ */
+export function getWikiArticlePathFromPathname(pathname: string) {
+  try {
+    const path = getWikiPathFromPathname(pathname);
+
+    return path && !isReservedWikiPath(path) ? path : null;
+  } catch {
+    return null;
+  }
+}
+
+export function isReservedWikiPath(path: string) {
+  return (
+    path === "category" ||
+    path === "tag" ||
+    path.startsWith("category/") ||
+    path.startsWith("tag/")
+  );
+}
+
 function validateAndCanonicalizeSegment(segment: string) {
   const trimmed = segment.trim();
 

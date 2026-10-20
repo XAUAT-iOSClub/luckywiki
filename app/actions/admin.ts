@@ -3,6 +3,7 @@
 import { revalidatePath, updateTag } from "next/cache";
 import { z } from "zod";
 import type { Prisma } from "@/generated/prisma/client";
+import type { ArticleModel } from "@/generated/prisma/models/Article";
 import { ArticleStatus, CommentStatus, LogAction, Role } from "@/generated/prisma/enums";
 import type { Locale } from "@/lib/i18n/config";
 import { locales, localizeHref } from "@/lib/i18n/config";
@@ -14,16 +15,31 @@ import {
 import { enqueueArticleEmbeddingSync } from "@/lib/embedding-queue";
 import { getDictionary } from "@/lib/i18n/get-dictionary";
 import { prisma } from "@/lib/prisma";
+import { getPublishedArticleByPath } from "@/lib/articles";
+import type { ArticleHeaderInfo } from "@/lib/articles/header";
+import { planArticlePathMove } from "@/lib/articles/move";
 import { snapshotArticleRevision } from "@/lib/articles/revisions";
-import { buildWikiHref, canonicalizePath } from "@/lib/wiki/path";
+import {
+  buildWikiHref,
+  canonicalizePath,
+  isReservedWikiPath,
+} from "@/lib/wiki/path";
 import { revalidateLocalizedPath } from "@/lib/i18n/revalidate";
-import { canChangeUserRole } from "@/lib/auth/permissions";
-import { requireAuthorSession, requireRootSession } from "@/lib/auth/session";
+import { canChangeUserRole, canWriteArticles } from "@/lib/auth/permissions";
+import {
+  getCurrentSession,
+  requireAuthorSession,
+  requireRootSession,
+} from "@/lib/auth/session";
 
 export type FormActionState = {
   error?: string;
   success?: string;
 };
+
+export type ArticlePageActionResult =
+  | { ok: true; path?: string }
+  | { ok: false; error: string };
 
 export async function createArticleAction(
   locale: Locale,
@@ -166,6 +182,253 @@ export async function updateArticleAction(
   }
 }
 
+export async function deleteArticleAction(
+  locale: Locale,
+  articleId: string,
+): Promise<ArticlePageActionResult> {
+  const [dictionary, session] = await Promise.all([
+    getDictionary(locale),
+    requireAuthorSession(locale),
+  ]);
+
+  const existing = await prisma.article.findUnique({
+    where: { id: articleId },
+    select: {
+      id: true,
+      path: true,
+      title: true,
+    },
+  });
+
+  if (!existing) {
+    return { ok: false, error: dictionary.feedback.articleNotFound };
+  }
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      await tx.article.delete({
+        where: { id: articleId },
+      });
+
+      await createLog(
+        {
+          action: LogAction.DELETE_ARTICLE,
+          targetType: "Article",
+          targetId: articleId,
+          detail: JSON.stringify({
+            title: existing.title,
+            path: existing.path,
+          }),
+          userId: session.user.id,
+        },
+        tx,
+      );
+    });
+  } catch {
+    return { ok: false, error: dictionary.wiki.pageActions.deleteFailed };
+  }
+
+  invalidateArticleCache(existing.path, existing.id);
+  revalidateWikiPaths(existing.path);
+  revalidateLocalizedPath(`/admin/articles/${existing.id}`);
+  revalidateLocalizedPath("/admin/articles");
+  revalidateLocalizedPath("/admin");
+  revalidateLocalizedPath("/admin/taxonomy");
+  revalidateLocalizedPath("/admin/users");
+
+  return { ok: true };
+}
+
+export async function moveArticleAction(
+  locale: Locale,
+  articleId: string,
+  nextPathInput: string,
+): Promise<ArticlePageActionResult> {
+  const [dictionary, session] = await Promise.all([
+    getDictionary(locale),
+    requireAuthorSession(locale),
+  ]);
+
+  const existing = await prisma.article.findUnique({
+    where: { id: articleId },
+    select: {
+      id: true,
+      path: true,
+      title: true,
+    },
+  });
+
+  if (!existing) {
+    return { ok: false, error: dictionary.feedback.articleNotFound };
+  }
+
+  let nextPath: string;
+
+  try {
+    nextPath = canonicalizePath(nextPathInput.trim());
+  } catch {
+    return { ok: false, error: dictionary.feedback.invalidArticlePath };
+  }
+
+  if (!nextPath) {
+    return { ok: false, error: dictionary.wiki.pageActions.pathRequired };
+  }
+
+  if (nextPath === existing.path) {
+    return { ok: true, path: existing.path };
+  }
+
+  if (nextPath.startsWith(`${existing.path}/`)) {
+    return { ok: false, error: dictionary.wiki.pageActions.moveIntoItself };
+  }
+
+  const [sourceArticles, targetArticles] = await Promise.all([
+    prisma.article.findMany({
+      where: {
+        OR: [
+          { path: existing.path },
+          { path: { startsWith: `${existing.path}/` } },
+        ],
+      },
+      select: {
+        id: true,
+        path: true,
+      },
+    }),
+    prisma.article.findMany({
+      where: {
+        OR: [
+          { path: nextPath },
+          { path: { startsWith: `${nextPath}/` } },
+        ],
+      },
+      select: {
+        id: true,
+        path: true,
+      },
+    }),
+  ]);
+
+  const existingPaths = Array.from(
+    new Set(
+      [...sourceArticles, ...targetArticles].map((article) => article.path),
+    ),
+  );
+  const plan = planArticlePathMove(existingPaths, existing.path, nextPath);
+
+  if (plan.status === "conflict") {
+    return { ok: false, error: dictionary.wiki.pageActions.moveConflict };
+  }
+
+  if (plan.status === "descendant") {
+    return { ok: false, error: dictionary.wiki.pageActions.moveIntoItself };
+  }
+
+  if (plan.status === "same") {
+    return { ok: true, path: existing.path };
+  }
+
+  if (plan.status === "invalid") {
+    return { ok: false, error: dictionary.feedback.invalidArticlePath };
+  }
+
+  const sourceIdByPath = new Map(
+    sourceArticles.map((article) => [article.path, article.id]),
+  );
+  const oldPaths = plan.moves.map((move) => move.from);
+  const newPaths = plan.moves.map((move) => move.to);
+
+  let movedArticles: ArticleModel[];
+
+  try {
+    movedArticles = await prisma.$transaction(async (tx) => {
+      const updatedArticles: ArticleModel[] = [];
+
+      for (const move of plan.moves) {
+        const id = sourceIdByPath.get(move.from);
+
+        if (!id) {
+          throw new Error(`Missing source article for path "${move.from}".`);
+        }
+
+        updatedArticles.push(
+          await tx.article.update({
+            where: { id },
+            data: { path: move.to },
+          }),
+        );
+      }
+
+      await createLog(
+        {
+          action: LogAction.UPDATE_ARTICLE,
+          targetType: "Article",
+          targetId: articleId,
+          detail: JSON.stringify({
+            title: existing.title,
+            path: nextPath,
+            oldPath: existing.path,
+            movedPaths: plan.moves.length,
+          }),
+          userId: session.user.id,
+        },
+        tx,
+      );
+
+      return updatedArticles;
+    });
+  } catch (error) {
+    return {
+      ok: false,
+      error: getActionErrorMessage(
+        error,
+        dictionary.feedback.duplicatePath,
+        dictionary.wiki.pageActions.moveFailed,
+      ),
+    };
+  }
+
+  updateTag(ARTICLES_CACHE_TAG);
+
+  for (const path of new Set([...oldPaths, ...newPaths])) {
+    updateTag(articleCacheTag(path));
+  }
+
+  for (const path of oldPaths) {
+    revalidateWikiPaths(path);
+  }
+
+  for (const path of newPaths) {
+    revalidateWikiPaths(path);
+  }
+
+  revalidateLocalizedPath(`/admin/articles/${articleId}`);
+  revalidateLocalizedPath("/admin/articles");
+  revalidateLocalizedPath("/admin");
+  revalidateLocalizedPath("/admin/taxonomy");
+  revalidateLocalizedPath("/admin/users");
+
+  // A queue hiccup should not report the move as failed after the database
+  // already committed it; the next content save will re-index if needed.
+  await Promise.all(
+    movedArticles.map(async (article) => {
+      try {
+        await enqueueArticleEmbeddingSync({
+          articleId: article.id,
+          updatedAt: article.updatedAt.toISOString(),
+        });
+      } catch (error) {
+        console.error(
+          "[admin] failed to enqueue embedding sync after moving an article",
+          error,
+        );
+      }
+    }),
+  );
+
+  return { ok: true, path: nextPath };
+}
+
 export async function restoreArticleRevisionAction(
   articleId: string,
   locale: Locale,
@@ -241,6 +504,40 @@ export async function restoreArticleRevisionAction(
   } catch {
     return { error: dictionary.feedback.somethingWentWrong };
   }
+}
+
+export async function getArticleHeaderInfoAction(
+  path: string,
+): Promise<ArticleHeaderInfo | null> {
+  const session = await getCurrentSession();
+
+  if (!canWriteArticles(session?.user ?? null)) {
+    return null;
+  }
+
+  let canonicalPath: string;
+
+  try {
+    canonicalPath = canonicalizePath(path);
+  } catch {
+    return null;
+  }
+
+  if (!canonicalPath || isReservedWikiPath(canonicalPath)) {
+    return null;
+  }
+
+  const article = await getPublishedArticleByPath(canonicalPath);
+
+  if (!article) {
+    return null;
+  }
+
+  return {
+    id: article.id,
+    path: article.path,
+    title: article.title,
+  };
 }
 
 export async function listArticlePathsAction(locale: "zh" | "en") {

@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { NextRequest } from "next/server";
 import { proxy } from "@/proxy";
+import { WIKI_PATHNAME_HEADER } from "@/lib/wiki/request-headers";
 
 test("proxy redirects bare wiki routes to the default locale prefix", () => {
   const response = proxy(new NextRequest("http://localhost:3000/wiki"));
@@ -25,6 +26,17 @@ test("proxy leaves already localized routes alone", () => {
   const response = proxy(new NextRequest("http://localhost:3000/en/wiki"));
 
   assert.equal(response.headers.get("location"), null);
+});
+
+test("proxy forwards the current pathname to server components", () => {
+  const response = proxy(
+    new NextRequest("http://localhost:3000/en/wiki/guide/install"),
+  );
+
+  assert.equal(
+    response.headers.get(`x-middleware-request-${WIKI_PATHNAME_HEADER}`),
+    "/en/wiki/guide/install",
+  );
 });
 
 test("proxy redirects unauthenticated admin requests to localized sign-in", () => {

@@ -9,6 +9,7 @@ import {
 import { WikiSidebar } from "@/components/wiki-sidebar";
 import { WikiBreadcrumb } from "@/components/wiki-breadcrumb";
 import { WikiSearchCommand } from "@/components/wiki-search-command";
+import { WikiArticleHeaderActions } from "@/components/wiki-article-header-actions";
 import { listPublishedArticleTreeData } from "@/lib/articles";
 import { SiteFooter } from "@/components/site-footer";
 import { getSiteSettings } from "@/lib/site";
@@ -55,6 +56,11 @@ export async function WikiShell({
             <WikiBreadcrumb section={section} />
           </div>
           <div className="flex items-center gap-1">
+            {section === "articles" ? (
+              <Suspense key="article-header-actions" fallback={null}>
+                <WikiArticleHeaderActions />
+              </Suspense>
+            ) : null}
             <WikiSearchCommand className="md:hidden" compact />
           </div>
         </header>
