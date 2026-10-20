@@ -113,20 +113,6 @@ export default async function WikiArticlePage({
   return (
     <Page className="max-w-295 gap-8 px-5 py-8 sm:px-8 md:px-12 md:py-10">
       <header className="max-w-3xl space-y-4">
-        <div className="flex flex-wrap items-center gap-2 text-[12px] text-muted-foreground">
-          {category && article.path.includes("/") ? (
-            <>
-              <Link
-                className="transition-colors hover:text-foreground"
-                href={buildWikiCategoryHref(category, lang)}
-              >
-                {category}
-              </Link>
-              <span aria-hidden className="text-border">/</span>
-            </>
-          ) : null}
-        </div>
-
         <h1 className="text-balance text-[32px] font-semibold leading-[1.15] tracking-[-0.025em] text-foreground sm:text-[38px]">
           {article.title}
         </h1>

@@ -7,8 +7,6 @@ import { canWriteArticles } from "@/lib/auth/permissions";
 import { getCurrentSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
 
-export const runtime = "nodejs";
-
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> },

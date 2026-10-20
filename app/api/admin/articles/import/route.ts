@@ -19,8 +19,6 @@ import { revalidateLocalizedPath } from "@/lib/i18n/revalidate";
 import { locales } from "@/lib/i18n/config";
 import { buildWikiHref } from "@/lib/wiki/path";
 
-export const runtime = "nodejs";
-
 export async function POST(request: Request) {
   const session = await getCurrentSession();
 
