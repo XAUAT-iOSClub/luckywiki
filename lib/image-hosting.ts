@@ -1,8 +1,13 @@
-import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
-import { put } from "@vercel/blob";
+import {
+  DeleteObjectCommand,
+  ListObjectsV2Command,
+  PutObjectCommand,
+  S3Client,
+} from "@aws-sdk/client-s3";
+import { BlobNotFoundError, del, list, put } from "@vercel/blob";
+import sharp from "sharp";
 
 const defaultMaxImageUploadBytes = 5 * 1024 * 1024;
-const defaultAltText = "image";
 
 const allowedImageMimeTypes = new Set([
   "image/apng",
@@ -32,6 +37,12 @@ export type ImageUploadErrorCode =
   | "UPLOAD_NOT_CONFIGURED"
   | "UPLOAD_FAILED";
 
+export type ImageHostingProvider = "vercel-blob" | "s3";
+
+export function isImageHostingProvider(value: string): value is ImageHostingProvider {
+  return value === "vercel-blob" || value === "s3";
+}
+
 export type ImageHostingConfig = {
   accessKeyId: string;
   bucket: string;
@@ -42,7 +53,7 @@ export type ImageHostingConfig = {
   secretAccessKey: string;
 };
 
-type ImageHostingProviderConfig =
+export type ImageHostingProviderConfig =
   | {
       pathPrefix?: string;
       provider: "vercel-blob";
@@ -58,8 +69,18 @@ type BuildImageObjectKeyOptions = {
   pathPrefix?: string;
 };
 
-type UploadedImage = {
+export type UploadedImage = {
+  height: number | null;
   key: string;
+  provider: ImageHostingProvider;
+  url: string;
+  width: number | null;
+};
+
+export type StoredImageObject = {
+  key: string;
+  size: number;
+  uploadedAt: Date;
   url: string;
 };
 
@@ -83,6 +104,8 @@ export class ImageUploadError extends Error {
 let cachedClient: S3Client | null = null;
 let cachedClientSignature: string | null = null;
 
+export { buildImageMarkdown } from "@/lib/media/markdown";
+
 export function getMaxImageUploadBytes() {
   const rawValue = process.env.IMAGE_UPLOAD_MAX_BYTES?.trim();
 
@@ -103,6 +126,16 @@ export function normalizeImagePathPrefix(prefix: string | undefined) {
   return prefix?.trim().replace(/^\/+|\/+$/gu, "") ?? "";
 }
 
+export function isImageKeyWithinPrefix(key: string, prefix: string | undefined) {
+  const normalizedPrefix = normalizeImagePathPrefix(prefix);
+
+  if (!normalizedPrefix) {
+    return true;
+  }
+
+  return key === normalizedPrefix || key.startsWith(`${normalizedPrefix}/`);
+}
+
 export function buildImageObjectKey(
   fileName: string,
   mimeType: string,
@@ -118,15 +151,6 @@ export function buildImageObjectKey(
   const file = `${baseName}-${id}.${extension}`;
 
   return [prefix, year, month, file].filter(Boolean).join("/");
-}
-
-export function buildImageMarkdown(url: string, altText = defaultAltText) {
-  const safeAltText = altText
-    .trim()
-    .replace(/[\[\]]/gu, "")
-    .replace(/\s+/gu, " ");
-
-  return `![${safeAltText || defaultAltText}](${url})`;
 }
 
 export function resolveImagePublicUrl(config: ImageHostingConfig, key: string) {
@@ -151,10 +175,12 @@ export async function uploadImageFile(file: UploadableImageFile): Promise<Upload
   const key = buildImageObjectKey(file.name, file.type, {
     pathPrefix: config.pathPrefix,
   });
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const dimensions = await readImageDimensions(buffer);
 
   try {
     if (config.provider === "vercel-blob") {
-      const uploadBody = new Blob([await file.arrayBuffer()], {
+      const uploadBody = new Blob([buffer], {
         type: file.type,
       });
       const uploadedBlob = await put(key, uploadBody, {
@@ -166,7 +192,9 @@ export async function uploadImageFile(file: UploadableImageFile): Promise<Upload
       });
 
       return {
+        ...dimensions,
         key: uploadedBlob.pathname,
+        provider: config.provider,
         url: uploadedBlob.url,
       };
     }
@@ -174,7 +202,7 @@ export async function uploadImageFile(file: UploadableImageFile): Promise<Upload
     const client = getS3Client(config);
     await client.send(
       new PutObjectCommand({
-        Body: Buffer.from(await file.arrayBuffer()),
+        Body: buffer,
         Bucket: config.bucket,
         CacheControl: "public, max-age=31536000, immutable",
         ContentDisposition: "inline",
@@ -182,6 +210,13 @@ export async function uploadImageFile(file: UploadableImageFile): Promise<Upload
         Key: key,
       }),
     );
+
+    return {
+      ...dimensions,
+      key,
+      provider: config.provider,
+      url: resolveImagePublicUrl(config, key),
+    };
   } catch (error) {
     throw new ImageUploadError(
       "UPLOAD_FAILED",
@@ -189,11 +224,242 @@ export async function uploadImageFile(file: UploadableImageFile): Promise<Upload
       500,
     );
   }
+}
+
+/**
+ * Deletes an object from the provider that originally stored it. Assets keep
+ * their provider so switching image hosts does not strand old files.
+ */
+export async function deleteImageObject(
+  key: string,
+  provider: ImageHostingProvider,
+): Promise<void> {
+  const config = getImageHostingConfigForProvider(provider);
+
+  if (!isImageKeyWithinPrefix(key, config.pathPrefix)) {
+    throw new Error(
+      `Refusing to delete "${key}" because it is outside the configured image path prefix.`,
+    );
+  }
+
+  if (config.provider === "vercel-blob") {
+    try {
+      await del(key, { token: config.token });
+    } catch (error) {
+      if (!(error instanceof BlobNotFoundError)) {
+        throw error;
+      }
+    }
+    return;
+  }
+
+  await getS3Client(config).send(
+    new DeleteObjectCommand({
+      Bucket: config.bucket,
+      Key: key,
+    }),
+  );
+}
+
+export function getConfiguredImageHostingProvider(): ImageHostingProvider | null {
+  if (normalizeOptionalEnv("BLOB_READ_WRITE_TOKEN")) {
+    return "vercel-blob";
+  }
+
+  if (
+    normalizeOptionalEnv("IMAGE_HOSTING_ACCESS_KEY_ID") &&
+    normalizeOptionalEnv("IMAGE_HOSTING_BUCKET") &&
+    normalizeOptionalEnv("IMAGE_HOSTING_REGION") &&
+    normalizeOptionalEnv("IMAGE_HOSTING_SECRET_ACCESS_KEY")
+  ) {
+    return "s3";
+  }
+
+  return null;
+}
+
+export function getImageHostingConfigForProvider(
+  provider: ImageHostingProvider,
+): ImageHostingProviderConfig {
+  if (provider === "vercel-blob") {
+    return {
+      pathPrefix: normalizeOptionalEnv("IMAGE_HOSTING_PATH_PREFIX"),
+      provider: "vercel-blob",
+      token: getRequiredEnv("BLOB_READ_WRITE_TOKEN"),
+    };
+  }
 
   return {
-    key,
-    url: resolveImagePublicUrl(config, key),
+    accessKeyId: getRequiredEnv("IMAGE_HOSTING_ACCESS_KEY_ID"),
+    bucket: getRequiredEnv("IMAGE_HOSTING_BUCKET"),
+    endpoint: normalizeOptionalEnv("IMAGE_HOSTING_ENDPOINT"),
+    pathPrefix: normalizeOptionalEnv("IMAGE_HOSTING_PATH_PREFIX"),
+    publicUrlBase: normalizeOptionalEnv("IMAGE_HOSTING_PUBLIC_URL_BASE"),
+    provider: "s3",
+    region: getRequiredEnv("IMAGE_HOSTING_REGION"),
+    secretAccessKey: getRequiredEnv("IMAGE_HOSTING_SECRET_ACCESS_KEY"),
   };
+}
+
+/**
+ * Turns a public image URL back into the provider-side object key. Used to
+ * import images that were uploaded before the media library existed.
+ */
+export function resolveImageStorageKey(url: string): string | null {
+  const provider = getConfiguredImageHostingProvider();
+
+  if (!provider) {
+    return null;
+  }
+
+  return resolveImageStorageKeyForConfig(url, getImageHostingConfigForProvider(provider));
+}
+
+export function resolveImageStorageKeyForConfig(
+  url: string,
+  config: ImageHostingProviderConfig,
+): string | null {
+  let parsedUrl: URL;
+
+  try {
+    parsedUrl = new URL(url);
+  } catch {
+    return null;
+  }
+
+  if (parsedUrl.protocol !== "http:" && parsedUrl.protocol !== "https:") {
+    return null;
+  }
+
+  let key: string | null = null;
+
+  if (config.provider === "vercel-blob") {
+    if (parsedUrl.hostname.endsWith(".public.blob.vercel-storage.com")) {
+      key = decodePathname(parsedUrl.pathname).replace(/^\/+/u, "");
+    }
+  } else {
+    const publicUrlBase = config.publicUrlBase?.replace(/\/+$/u, "");
+
+    if (publicUrlBase && url.startsWith(`${publicUrlBase}/`)) {
+      const basePath = new URL(publicUrlBase).pathname.replace(/\/+$/u, "");
+      const prefix = normalizeImagePathPrefix(config.pathPrefix);
+      const pathname = decodePathname(parsedUrl.pathname);
+
+      key = basePath && pathname.startsWith(`${basePath}/`)
+        ? pathname.slice(basePath.length + 1)
+        : pathname.replace(/^\/+/u, "");
+
+      // Some deployments point IMAGE_HOSTING_PUBLIC_URL_BASE at a CDN path
+      // that already includes the object prefix, while others point at the
+      // bucket root. Normalize both shapes to the provider-side key.
+      if (prefix && key && !isImageKeyWithinPrefix(key, prefix) && basePath.endsWith(`/${prefix}`)) {
+        key = `${prefix}/${key}`;
+      }
+    } else if (
+      parsedUrl.hostname === `${config.bucket}.s3.${config.region}.amazonaws.com` ||
+      parsedUrl.hostname === `${config.bucket}.s3.amazonaws.com`
+    ) {
+      key = decodePathname(parsedUrl.pathname).replace(/^\/+/u, "");
+    } else if (config.endpoint && url.startsWith(config.endpoint.replace(/\/+$/u, ""))) {
+      const endpointPath = new URL(config.endpoint).pathname.replace(/^\/+|\/+$/gu, "");
+      const path = decodePathname(parsedUrl.pathname).replace(/^\/+/u, "");
+      const withoutEndpointPath = endpointPath && path.startsWith(`${endpointPath}/`)
+        ? path.slice(endpointPath.length + 1)
+        : path;
+
+      if (withoutEndpointPath.startsWith(`${config.bucket}/`)) {
+        key = withoutEndpointPath.slice(config.bucket.length + 1);
+      }
+    }
+  }
+
+  if (!key || !isImageKeyWithinPrefix(key, config.pathPrefix)) {
+    return null;
+  }
+
+  return key;
+}
+
+export async function listStoredImageObjects(): Promise<StoredImageObject[]> {
+  const provider = getConfiguredImageHostingProvider();
+
+  if (!provider) {
+    throw new ImageUploadError(
+      "UPLOAD_NOT_CONFIGURED",
+      "Image hosting is not configured.",
+      500,
+    );
+  }
+
+  const config = getImageHostingConfigForProvider(provider);
+
+  const prefix = normalizeImagePathPrefix(config.pathPrefix);
+
+  if (!prefix) {
+    throw new Error(
+      "Set IMAGE_HOSTING_PATH_PREFIX before scanning storage so unrelated blobs cannot be deleted.",
+    );
+  }
+
+  const listPrefix = `${prefix}/`;
+
+  if (config.provider === "vercel-blob") {
+    const objects: StoredImageObject[] = [];
+    let cursor: string | undefined;
+
+    do {
+      const page = await list({
+        cursor,
+        limit: 1000,
+        prefix: listPrefix,
+        token: config.token,
+      });
+
+      for (const blob of page.blobs) {
+        objects.push({
+          key: blob.pathname,
+          size: blob.size,
+          uploadedAt: blob.uploadedAt,
+          url: blob.url,
+        });
+      }
+
+      cursor = page.hasMore ? page.cursor : undefined;
+    } while (cursor);
+
+    return objects;
+  }
+
+  const client = getS3Client(config);
+  const objects: StoredImageObject[] = [];
+  let continuationToken: string | undefined;
+
+  do {
+    const page = await client.send(
+      new ListObjectsV2Command({
+        Bucket: config.bucket,
+        ContinuationToken: continuationToken,
+        Prefix: listPrefix,
+      }),
+    );
+
+    for (const object of page.Contents ?? []) {
+      if (!object.Key) {
+        continue;
+      }
+
+      objects.push({
+        key: object.Key,
+        size: object.Size ?? 0,
+        uploadedAt: object.LastModified ?? new Date(0),
+        url: resolveImagePublicUrl(config, object.Key),
+      });
+    }
+
+    continuationToken = page.IsTruncated ? page.NextContinuationToken : undefined;
+  } while (continuationToken);
+
+  return objects;
 }
 
 function validateImageFile(file: UploadableImageFile) {
@@ -212,6 +478,22 @@ function validateImageFile(file: UploadableImageFile) {
       `Image exceeds the ${maxBytes} byte upload limit.`,
       413,
     );
+  }
+}
+
+async function readImageDimensions(buffer: Buffer) {
+  try {
+    const metadata = await sharp(buffer).metadata();
+
+    return {
+      height: metadata.height ?? null,
+      width: metadata.width ?? null,
+    };
+  } catch {
+    return {
+      height: null,
+      width: null,
+    };
   }
 }
 
@@ -255,6 +537,14 @@ function getRequiredEnv(name: string) {
 function normalizeOptionalEnv(name: string) {
   const value = process.env[name]?.trim();
   return value ? value : undefined;
+}
+
+function decodePathname(pathname: string) {
+  try {
+    return decodeURIComponent(pathname);
+  } catch {
+    return pathname;
+  }
 }
 
 function getS3Client(config: ImageHostingConfig) {

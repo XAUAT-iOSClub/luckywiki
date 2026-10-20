@@ -4,6 +4,7 @@ import * as React from "react";
 import {
   FolderTree,
   FileText,
+  Images,
   KeyRound,
   LayoutDashboard,
   MessageSquare,
@@ -70,6 +71,11 @@ export function AppSidebar({
           ],
         },
         {
+          title: t.common.mediaLibrary,
+          url: localizeHref(locale, "/admin/media"),
+          icon: Images,
+        },
+        {
           title: t.common.comments,
           url: localizeHref(locale, "/admin/comments"),
           icon: MessageSquare,
@@ -124,6 +130,11 @@ export function AppSidebar({
               url: localizeHref(locale, "/admin/articles?status=PUBLISHED"),
             },
           ],
+        },
+        {
+          title: t.common.mediaLibrary,
+          url: localizeHref(locale, "/admin/media"),
+          icon: Images,
         },
         {
           title: "MCP Keys",

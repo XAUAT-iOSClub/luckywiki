@@ -19,6 +19,7 @@ import { getPublishedArticleByPath } from "@/lib/articles";
 import type { ArticleHeaderInfo } from "@/lib/articles/header";
 import { planArticlePathMove } from "@/lib/articles/move";
 import { snapshotArticleRevision } from "@/lib/articles/revisions";
+import { syncArticleMediaReferences } from "@/lib/media/references";
 import {
   buildWikiHref,
   canonicalizePath,
@@ -68,6 +69,7 @@ export async function createArticleAction(
       });
 
       await snapshotArticleRevision(tx, created, session.user.id, { force: true });
+      await syncArticleMediaReferences(tx, created.id, created.markdown);
       await createLog(
         {
           action: LogAction.CREATE_ARTICLE,
@@ -142,6 +144,7 @@ export async function updateArticleAction(
       });
 
       await snapshotArticleRevision(tx, updated, session.user.id);
+      await syncArticleMediaReferences(tx, updated.id, updated.markdown);
       await createLog(
         {
           action: LogAction.UPDATE_ARTICLE,
@@ -469,6 +472,7 @@ export async function restoreArticleRevisionAction(
       // A rollback is itself a save: it becomes a new revision so the content
       // that was just replaced remains recoverable.
       await snapshotArticleRevision(tx, updated, session.user.id);
+      await syncArticleMediaReferences(tx, updated.id, updated.markdown);
       await createLog(
         {
           action: LogAction.RESTORE_ARTICLE,

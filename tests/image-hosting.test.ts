@@ -3,8 +3,10 @@ import assert from "node:assert/strict";
 import {
   buildImageMarkdown,
   buildImageObjectKey,
+  isImageKeyWithinPrefix,
   normalizeImagePathPrefix,
   resolveImagePublicUrl,
+  resolveImageStorageKeyForConfig,
 } from "@/lib/image-hosting";
 
 test("normalizes image path prefixes", () => {
@@ -43,5 +45,89 @@ test("resolves public image urls", () => {
       "2026/05/demo.png",
     ),
     "https://cdn.example.com/wiki-assets/2026/05/demo.png",
+  );
+});
+
+test("checks whether a key is inside the configured prefix", () => {
+  assert.equal(isImageKeyWithinPrefix("wiki-assets/2026/05/demo.png", "wiki-assets"), true);
+  assert.equal(isImageKeyWithinPrefix("wiki-assets", "wiki-assets"), true);
+  assert.equal(isImageKeyWithinPrefix("other/2026/05/demo.png", "wiki-assets"), false);
+  assert.equal(isImageKeyWithinPrefix("wiki-assets-other/demo.png", "wiki-assets"), false);
+  assert.equal(isImageKeyWithinPrefix("anything/demo.png", ""), true);
+});
+
+test("resolves storage keys from vercel blob urls", () => {
+  assert.equal(
+    resolveImageStorageKeyForConfig(
+      "https://demo.public.blob.vercel-storage.com/wiki-assets/2026/05/demo.png",
+      {
+        pathPrefix: "wiki-assets",
+        provider: "vercel-blob",
+        token: "token",
+      },
+    ),
+    "wiki-assets/2026/05/demo.png",
+  );
+
+  assert.equal(
+    resolveImageStorageKeyForConfig(
+      "https://demo.public.blob.vercel-storage.com/other/demo.png",
+      {
+        pathPrefix: "wiki-assets",
+        provider: "vercel-blob",
+        token: "token",
+      },
+    ),
+    null,
+  );
+});
+
+test("resolves storage keys from S3 and CDN urls", () => {
+  const baseConfig = {
+    accessKeyId: "key",
+    bucket: "demo-bucket",
+    pathPrefix: "wiki-assets",
+    publicUrlBase: "https://cdn.example.com/wiki-assets",
+    region: "auto",
+    secretAccessKey: "secret",
+  } as const;
+
+  assert.equal(
+    resolveImageStorageKeyForConfig(
+      "https://cdn.example.com/wiki-assets/wiki-assets/2026/05/demo.png",
+      { ...baseConfig, provider: "s3" },
+    ),
+    "wiki-assets/2026/05/demo.png",
+  );
+
+  assert.equal(
+    resolveImageStorageKeyForConfig(
+      "https://cdn.example.com/wiki-assets/2026/05/demo.png",
+      { ...baseConfig, provider: "s3" },
+    ),
+    "wiki-assets/2026/05/demo.png",
+  );
+
+  assert.equal(
+    resolveImageStorageKeyForConfig(
+      "https://demo-bucket.s3.auto.amazonaws.com/wiki-assets/2026/05/demo.png",
+      {
+        accessKeyId: "key",
+        bucket: "demo-bucket",
+        pathPrefix: "wiki-assets",
+        region: "auto",
+        secretAccessKey: "secret",
+        provider: "s3",
+      },
+    ),
+    "wiki-assets/2026/05/demo.png",
+  );
+
+  assert.equal(
+    resolveImageStorageKeyForConfig(
+      "https://example.com/unrelated.png",
+      { ...baseConfig, provider: "s3" },
+    ),
+    null,
   );
 });

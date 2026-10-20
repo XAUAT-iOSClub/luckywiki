@@ -15,6 +15,8 @@
     "articles:import": "tsx scripts/import-articles.ts",
     "articles:transform-links": "tsx scripts/transform-internal-links.ts articles",
     "agent:index": "tsx scripts/reindex-agent.ts",
+    "media:sync": "tsx scripts/media-sync.ts",
+    "media:cleanup": "tsx scripts/media-cleanup.ts",
     "db:seed": "tsx prisma/seed.ts",
     "postinstall": "prisma generate"
   },

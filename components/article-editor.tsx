@@ -36,6 +36,7 @@ import { ArticleStatus } from "@/generated/prisma/enums";
 import { MarkdownRenderer } from "@/components/markdown-renderer";
 import { HtmlPreview } from "@/components/html-preview";
 import { PathPicker } from "@/components/path-picker";
+import { MediaPicker } from "@/components/admin/media-picker";
 import { SubmitButton } from "@/components/submit-button";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -73,6 +74,7 @@ import {
   type ArticleSummaryAction,
 } from "@/lib/articles/summary-contract";
 import { useT } from "@/lib/i18n/provider";
+import { buildImageHtml, buildImageMarkdown } from "@/lib/media/markdown";
 import { cn } from "@/lib/utils";
 
 type ArticleEditorProps = {
@@ -723,6 +725,20 @@ export function ArticleEditor({
               )}
               {isUploadingImage ? "..." : t.admin.articleEditor.insertImage}
             </Button>
+            <MediaPicker
+              disabled={isUploadingImage}
+              onSelect={(asset) => {
+                const altText =
+                  asset.altText || asset.fileName.replace(/\.[^.]+$/u, "");
+
+                insertMarkdownAtCursor(
+                  editorName === "html"
+                    ? buildImageHtml(asset.url, altText)
+                    : buildImageMarkdown(asset.url, altText),
+                );
+              }}
+              triggerClassName="hidden h-7 rounded-md px-2.5 text-[11px] font-medium tracking-normal text-muted-foreground hover:bg-muted hover:text-foreground md:flex"
+            />
           </div>
 
           {/* Center: Mode Switcher */}

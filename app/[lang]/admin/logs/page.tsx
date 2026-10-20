@@ -331,11 +331,15 @@ function getActionBadgeVariant(action: LogAction) {
     case LogAction.APPROVE_COMMENT:
       return "success" as const;
     case LogAction.DELETE_ARTICLE:
+    case LogAction.DELETE_MEDIA:
     case LogAction.REJECT_COMMENT:
       return "destructive" as const;
     case LogAction.UPDATE_ARTICLE:
     case LogAction.SET_ARTICLE_STATUS:
     case LogAction.SET_USER_ROLE:
+    case LogAction.CLEANUP_MEDIA:
+      return "secondary" as const;
+    default:
       return "secondary" as const;
   }
 }

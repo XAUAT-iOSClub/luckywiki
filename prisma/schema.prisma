@@ -33,6 +33,8 @@ enum LogAction {
   REJECT_COMMENT
   SET_ARTICLE_STATUS
   SET_USER_ROLE
+  DELETE_MEDIA
+  CLEANUP_MEDIA
 }
 
 model User {
@@ -53,6 +55,7 @@ model User {
   approvedComments Comment[] @relation("CommentApprover")
   logs             Log[]
   mcpApiKeys       McpApiKey[]
+  mediaAssets      MediaAsset[]
 
   @@map("users")
 }
@@ -122,6 +125,7 @@ model Article {
   revisions   ArticleRevision[]
   comments    Comment[]
   agentChunks AgentChunk[]
+  mediaReferences MediaReference[]
 
   @@index([status])
   @@index([authorId])
@@ -241,4 +245,51 @@ model McpCallLog {
   @@index([createdAt])
   @@index([toolName])
   @@map("mcp_call_logs")
+}
+
+// Media library: every uploaded image gets a row here so it can be browsed,
+// searched, reference-counted, and safely removed from blob storage.
+model MediaAsset {
+  id           String    @id @default(cuid())
+  storageKey   String    @unique @map("storage_key")
+  url          String    @unique
+  provider     String // "vercel-blob" | "s3"
+  fileName     String    @map("file_name")
+  mimeType     String    @map("mime_type")
+  size         Int
+  width        Int?
+  height       Int?
+  altText      String?   @map("alt_text")
+  uploadedById String?   @map("uploaded_by_id")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  // Refreshed whenever an article body still uses this asset. Orphan cleanup
+  // only touches assets whose last use is older than the grace period.
+  lastUsedAt   DateTime  @default(now()) @map("last_used_at")
+  // Cleanup lock: set atomically before deleting the object so an article save
+  // cannot re-reference an asset that is already being removed.
+  deletedAt    DateTime? @map("deleted_at")
+  uploadedBy   User?     @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
+  references   MediaReference[]
+
+  @@index([createdAt])
+  @@index([lastUsedAt])
+  @@index([uploadedById])
+  @@map("media_assets")
+}
+
+// A distinct current article that references the asset. Revision history is
+// intentionally not tracked: old snapshots must not keep removed images alive
+// forever. Restoring a revision re-syncs these rows.
+model MediaReference {
+  id        String     @id @default(cuid())
+  assetId   String     @map("asset_id")
+  articleId String     @map("article_id")
+  createdAt DateTime   @default(now()) @map("created_at")
+  asset     MediaAsset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  article   Article    @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  @@unique([assetId, articleId])
+  @@index([articleId])
+  @@map("media_references")
 }

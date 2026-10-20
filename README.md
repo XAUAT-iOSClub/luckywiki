@@ -121,10 +121,72 @@ IMAGE_UPLOAD_MAX_BYTES=5242880
 
 Notes:
 
-- Uploads are restricted to root admins in the LuckyWiki admin area.
+- Uploads require an author or root admin session; every upload is recorded in the media library.
 - Vercel Blob uses `BLOB_READ_WRITE_TOKEN` and does not need the S3-style `IMAGE_HOSTING_*` credentials.
 - S3-compatible buckets or CDN origins must be publicly readable, otherwise uploaded Markdown image URLs will not render.
 - If your storage endpoint is private or internal, set `IMAGE_HOSTING_PUBLIC_URL_BASE` to the public CDN/domain that serves the uploaded files.
+
+## Media Library
+
+Every image uploaded through the admin editor is recorded in the media library
+(`/admin/media`), where authors can browse, search, inspect reference counts,
+copy Markdown/URLs, and delete assets.
+
+Lifecycle:
+
+- Uploading writes a `media_assets` row *and* the blob. If the row cannot be
+  written, the uploaded object is removed again.
+- Saving an article parses its Markdown/HTML body and reconciles
+  `media_references`, so the reference count always reflects the current
+  content. Revision history is intentionally excluded from reference counts;
+  restoring a revision re-syncs the references.
+- Deleting an article cascades its references. Once an asset has no references
+  and has not been used for the grace period, orphan cleanup can remove it
+  from storage.
+- Authors can delete their own unused uploads. Root admins can force-delete an
+  asset that is still in use (the UI warns that article images will break).
+
+Configuration:
+
+```bash
+# Unused assets older than this many days are eligible for cleanup.
+MEDIA_ORPHAN_GRACE_DAYS=7
+
+# Required for the Vercel Cron cleanup route.
+CRON_SECRET=change-me
+```
+
+`vercel.json` registers a daily cron job (`0 3 * * *` UTC) that calls
+`/api/cron/media-cleanup` with `Authorization: Bearer $CRON_SECRET`. The route
+fails closed when `CRON_SECRET` is missing. Root admins can also run a dry-run
+and cleanup from the media library page.
+
+Backfill existing images and rebuild references:
+
+```bash
+# Register image URLs already referenced by articles, then rebuild references.
+npm run media:sync -- --import-existing
+
+# Preview first if you prefer.
+npm run media:sync -- --import-existing --dry-run
+
+# Retry size/type metadata for imported files whose HEAD request failed.
+npm run media:sync -- --refresh-metadata
+```
+
+Cleanup commands:
+
+```bash
+# Preview orphan assets that exceed the grace period.
+npm run media:cleanup -- --dry-run
+
+# Delete them (optionally override the grace period).
+npm run media:cleanup -- --grace-days=0
+
+# Audit storage for untracked, unreferenced legacy objects. Requires a
+# non-empty IMAGE_HOSTING_PATH_PREFIX so unrelated files are protected.
+npm run media:cleanup -- --scan-storage --dry-run
+```
 
 ## Article Image Import
 
@@ -136,6 +198,13 @@ npm run articles:import -- articles
 ```
 
 Use `--dry-run` on either command to preview without writing files.
+
+After importing articles, register the uploaded images and rebuild media
+references:
+
+```bash
+npm run media:sync -- --import-existing
+```
 
 ## Wiki Agent
 
