@@ -27,6 +27,25 @@ export function proxy(request: NextRequest) {
     return NextResponse.redirect(redirectUrl);
   }
 
+  const normalizedPathname =
+    pathname.length > 1 && pathname.endsWith("/")
+      ? pathname.slice(0, -1)
+      : pathname;
+
+  // Redirect the locale root and the wiki root at the HTTP layer. Redirecting
+  // from inside the wiki catch-all page would become a
+  // `<meta http-equiv="refresh">` in its partially prerendered shell, which is
+  // shared by every article URL and makes them reload in a loop.
+  if (
+    normalizedPathname === `/${pathnameLocale}` ||
+    normalizedPathname === `/${pathnameLocale}/wiki`
+  ) {
+    const redirectUrl = request.nextUrl.clone();
+    redirectUrl.pathname = localizeHref(pathnameLocale, "/wiki/home");
+
+    return NextResponse.redirect(redirectUrl, 308);
+  }
+
   if (!pathname.startsWith(`/${pathnameLocale}/admin`)) {
     const response = nextWithPathnameHeader(request, pathname);
     response.cookies.set(localeCookieName, pathnameLocale, {

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import Link from "next/link";
 import { Calendar } from "lucide-react";
 import { MarkdownRenderer } from "@/components/markdown-renderer";
@@ -12,9 +12,8 @@ import { Page } from "@/components/ui/page-ui";
 import { getPublishedArticleByPath } from "@/lib/articles";
 import { getDictionary } from "@/lib/i18n/get-dictionary";
 import { formatDate } from "@/lib/i18n/format";
-import { hasLocale, localizeHref } from "@/lib/i18n/config";
+import { hasLocale } from "@/lib/i18n/config";
 import {
-  buildWikiCategoryHref,
   buildWikiHref,
   buildWikiTagHref,
   canonicalizeSlugSegments,
@@ -38,14 +37,14 @@ export async function generateMetadata({
     notFound();
   }
 
-  const path = safeCanonicalize(slug);
+  const canonicalPath = safeCanonicalize(slug);
 
-  if (path === null) {
+  if (canonicalPath === null) {
     const dictionary = await getDictionary(lang);
     return { title: dictionary.metadata.wiki };
   }
 
-  const article = await getPublishedArticleByPath(path);
+  const article = await getPublishedArticleByPath(canonicalPath || "home");
 
   if (!article) {
     const dictionary = await getDictionary(lang);
@@ -80,11 +79,18 @@ export default async function WikiArticlePage({
     notFound();
   }
 
-  const path = safeCanonicalize(slug);
+  const canonicalPath = safeCanonicalize(slug);
 
-  if (path === null || path === "") {
-    redirect(localizeHref(lang, "/wiki/home"));
+  if (canonicalPath === null) {
+    notFound();
   }
+
+  // `/wiki` is redirected to `/wiki/home` by the proxy. Falling back to the
+  // home article here keeps this route free of render-time redirects: in a
+  // partially prerendered catch-all route, such a redirect becomes a
+  // `<meta http-equiv="refresh">` in the shared shell, which makes every
+  // article URL reload itself forever.
+  const path = canonicalPath || "home";
 
   const [article, dictionary] = await Promise.all([
     getPublishedArticleByPath(path),
@@ -96,7 +102,6 @@ export default async function WikiArticlePage({
   }
 
   const articleHref = buildWikiHref(article.path, lang);
-  const category = article.path.split("/")[0] ?? "";
   const tocMarkdown = article.editor === "html" ? "" : article.markdown;
   const hasInitialToc =
     article.editor === "html"

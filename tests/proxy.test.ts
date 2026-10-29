@@ -22,8 +22,24 @@ test("proxy respects accept-language when choosing a locale", () => {
   assert.equal(response.headers.get("location"), "http://localhost:3000/en/wiki");
 });
 
-test("proxy leaves already localized routes alone", () => {
-  const response = proxy(new NextRequest("http://localhost:3000/en/wiki"));
+test("proxy redirects localized roots to the wiki home article", () => {
+  const wikiRoot = proxy(new NextRequest("http://localhost:3000/en/wiki"));
+  assert.equal(wikiRoot.status, 308);
+  assert.equal(
+    wikiRoot.headers.get("location"),
+    "http://localhost:3000/en/wiki/home",
+  );
+
+  const localeRoot = proxy(new NextRequest("http://localhost:3000/zh"));
+  assert.equal(localeRoot.status, 308);
+  assert.equal(
+    localeRoot.headers.get("location"),
+    "http://localhost:3000/zh/wiki/home",
+  );
+});
+
+test("proxy leaves other localized routes alone", () => {
+  const response = proxy(new NextRequest("http://localhost:3000/en/wiki/guide"));
 
   assert.equal(response.headers.get("location"), null);
 });
