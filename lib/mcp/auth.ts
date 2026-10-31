@@ -7,6 +7,8 @@ export type McpIdentity = {
   keyId: string;
   userId: string;
   userRole: string;
+  userName: string;
+  userEmail: string;
   rateLimit: number | null;
 } | {
   type: "global-key"; // 环境变量全局 key
@@ -53,6 +55,8 @@ export async function validateMcpApiKey(request: NextRequest): Promise<McpIdenti
       keyId: dbKey.keyId,
       userId: dbKey.userId,
       userRole: dbKey.userRole,
+      userName: dbKey.userName,
+      userEmail: dbKey.userEmail,
       rateLimit: dbKey.rateLimit,
     };
   }

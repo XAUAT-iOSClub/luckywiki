@@ -13,6 +13,10 @@ import {
   ARTICLES_CACHE_TAG,
 } from "@/lib/cache-tags";
 import { enqueueArticleEmbeddingSync } from "@/lib/embedding-queue";
+import {
+  dispatchWebhookEventAfterResponse,
+  WEBHOOK_EVENTS,
+} from "@/lib/webhook/delivery";
 import { getDictionary } from "@/lib/i18n/get-dictionary";
 import { prisma } from "@/lib/prisma";
 import { getPublishedArticleByPath } from "@/lib/articles";
@@ -37,6 +41,15 @@ export type FormActionState = {
   error?: string;
   success?: string;
 };
+
+/** 把当前会话用户转成 webhook payload 里的操作账号 */
+function webhookActor(session: { user: { id: string; name: string; email: string } }) {
+  return {
+    id: session.user.id,
+    name: session.user.name,
+    email: session.user.email,
+  };
+}
 
 export type ArticlePageActionResult =
   | { ok: true; path?: string }
@@ -93,6 +106,24 @@ export async function createArticleAction(
       updatedAt: article.updatedAt.toISOString(),
     });
 
+    // 任何新建都发 article.created；直接以已发布创建时追加 article.published
+    dispatchWebhookEventAfterResponse(
+      WEBHOOK_EVENTS.ARTICLE_CREATED,
+      {
+        id: article.id, path: article.path, title: article.title, status: article.status,
+      },
+      webhookActor(session),
+    );
+    if (article.status === ArticleStatus.PUBLISHED) {
+      dispatchWebhookEventAfterResponse(
+        WEBHOOK_EVENTS.ARTICLE_PUBLISHED,
+        {
+          id: article.id, path: article.path, title: article.title, status: article.status,
+        },
+        webhookActor(session),
+      );
+    }
+
     invalidateArticleCache(article.path, article.id);
     revalidateWikiPaths(article.path);
     revalidateLocalizedPath("/admin/articles");
@@ -100,7 +131,14 @@ export async function createArticleAction(
     revalidateLocalizedPath("/admin/taxonomy");
     revalidateLocalizedPath("/admin/users");
 
-    return { success: localizeHref(locale, `/admin/articles/${article.id}`) };
+    // 创建完成后直接跳到对应状态列表（草稿→草稿列表，已发布→已发布列表）
+    const statusQuery =
+      article.status === ArticleStatus.PUBLISHED
+        ? "?status=PUBLISHED"
+        : article.status === ArticleStatus.DRAFT
+          ? "?status=DRAFT"
+          : "";
+    return { success: `${localizeHref(locale, "/admin/articles")}${statusQuery}` };
   } catch (error) {
     return { error: getActionErrorMessage(error, dictionary.feedback.duplicatePath, dictionary.feedback.somethingWentWrong) };
   }
@@ -169,6 +207,24 @@ export async function updateArticleAction(
       updatedAt: article.updatedAt.toISOString(),
     });
 
+    dispatchWebhookEventAfterResponse(
+      WEBHOOK_EVENTS.ARTICLE_UPDATED,
+      {
+        id: article.id, path: article.path, title: article.title, status: article.status,
+      },
+      webhookActor(session),
+    );
+    // 编辑器保存时把草稿改为已发布，等同一次发布，需补发 article.published
+    if (existing.status !== ArticleStatus.PUBLISHED && article.status === ArticleStatus.PUBLISHED) {
+      dispatchWebhookEventAfterResponse(
+        WEBHOOK_EVENTS.ARTICLE_PUBLISHED,
+        {
+          id: article.id, path: article.path, title: article.title, status: article.status,
+        },
+        webhookActor(session),
+      );
+    }
+
     invalidateArticleCache(existing.path, existing.id);
     invalidateArticleCache(article.path, article.id);
     revalidateWikiPaths(existing.path);
@@ -179,13 +235,21 @@ export async function updateArticleAction(
     revalidateLocalizedPath("/admin/taxonomy");
     revalidateLocalizedPath("/admin/users");
 
-    return { success: dictionary.feedback.articleSaved };
+    // 更新完成后也跳到对应状态列表，保持与创建行为一致
+    const statusQuery =
+      article.status === ArticleStatus.PUBLISHED
+        ? "?status=PUBLISHED"
+        : article.status === ArticleStatus.DRAFT
+          ? "?status=DRAFT"
+          : "";
+    return { success: `${localizeHref(locale, "/admin/articles")}${statusQuery}` };
   } catch (error) {
     return { error: getActionErrorMessage(error, dictionary.feedback.duplicatePath, dictionary.feedback.somethingWentWrong) };
   }
 }
 
-export async function deleteArticleAction(
+/** 归档（软删除）：把文章状态改为 ARCHIVED，前台不展示，后台可恢复 */
+export async function archiveArticleAction(
   locale: Locale,
   articleId: string,
 ): Promise<ArticlePageActionResult> {
@@ -200,6 +264,166 @@ export async function deleteArticleAction(
       id: true,
       path: true,
       title: true,
+      status: true,
+    },
+  });
+
+  if (!existing) {
+    return { ok: false, error: dictionary.feedback.articleNotFound };
+  }
+
+  if (existing.status === ArticleStatus.ARCHIVED) {
+    return { ok: true }; // 已归档，幂等
+  }
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      await tx.article.update({
+        where: { id: articleId },
+        data: { status: ArticleStatus.ARCHIVED },
+      });
+
+      await createLog(
+        {
+          action: LogAction.ARCHIVE_ARTICLE,
+          targetType: "Article",
+          targetId: articleId,
+          detail: JSON.stringify({
+            title: existing.title,
+            path: existing.path,
+          }),
+          userId: session.user.id,
+        },
+        tx,
+      );
+    });
+  } catch {
+    return { ok: false, error: dictionary.wiki.pageActions.archiveFailed };
+  }
+
+  // 归档后需要同步检索索引，否则 AI 搜索仍会命中已归档内容
+  await enqueueArticleEmbeddingSync({
+    articleId: existing.id,
+    updatedAt: new Date().toISOString(),
+  });
+
+  invalidateArticleCache(existing.path, existing.id);
+  revalidateWikiPaths(existing.path);
+  revalidateLocalizedPath(`/admin/articles/${existing.id}`);
+  revalidateLocalizedPath("/admin/articles");
+  revalidateLocalizedPath("/admin");
+  revalidateLocalizedPath("/admin/taxonomy");
+
+  dispatchWebhookEventAfterResponse(
+    WEBHOOK_EVENTS.ARTICLE_ARCHIVED,
+    {
+      id: existing.id, path: existing.path, title: existing.title, status: ArticleStatus.ARCHIVED,
+    },
+    webhookActor(session),
+  );
+
+  return { ok: true };
+}
+
+/** 从归档恢复：恢复到草稿箱，由作者确认后再发布 */
+export async function restoreArticleAction(
+  locale: Locale,
+  articleId: string,
+): Promise<ArticlePageActionResult> {
+  const [dictionary, session] = await Promise.all([
+    getDictionary(locale),
+    requireAuthorSession(locale),
+  ]);
+
+  const existing = await prisma.article.findUnique({
+    where: { id: articleId },
+    select: {
+      id: true,
+      path: true,
+      title: true,
+      status: true,
+    },
+  });
+
+  if (!existing) {
+    return { ok: false, error: dictionary.feedback.articleNotFound };
+  }
+
+  if (existing.status !== ArticleStatus.ARCHIVED) {
+    return { ok: true }; // 未归档，无需恢复
+  }
+
+  try {
+    const article = await prisma.$transaction(async (tx) => {
+      const updated = await tx.article.update({
+        where: { id: articleId },
+        data: {
+          status: ArticleStatus.DRAFT,
+          publishedAt: null,
+        },
+      });
+
+      await createLog(
+        {
+          action: LogAction.RESTORE_ARTICLE,
+          targetType: "Article",
+          targetId: articleId,
+          detail: JSON.stringify({
+            title: existing.title,
+            path: existing.path,
+          }),
+          userId: session.user.id,
+        },
+        tx,
+      );
+
+      return updated;
+    });
+
+    await enqueueArticleEmbeddingSync({
+      articleId: article.id,
+      updatedAt: article.updatedAt.toISOString(),
+    });
+  } catch {
+    return { ok: false, error: dictionary.feedback.somethingWentWrong };
+  }
+
+  invalidateArticleCache(existing.path, existing.id);
+  revalidateWikiPaths(existing.path);
+  revalidateLocalizedPath(`/admin/articles/${existing.id}`);
+  revalidateLocalizedPath("/admin/articles");
+  revalidateLocalizedPath("/admin");
+  // 恢复到草稿箱，分类统计不受影响
+  revalidateLocalizedPath("/admin/taxonomy");
+
+  dispatchWebhookEventAfterResponse(
+    WEBHOOK_EVENTS.ARTICLE_RESTORED,
+    {
+      id: existing.id, path: existing.path, title: existing.title, status: ArticleStatus.DRAFT,
+    },
+    webhookActor(session),
+  );
+
+  return { ok: true };
+}
+
+/** 硬删除：物理删除文章及所有关联数据（仅 ROOT） */
+export async function hardDeleteArticleAction(
+  locale: Locale,
+  articleId: string,
+): Promise<ArticlePageActionResult> {
+  const [dictionary, session] = await Promise.all([
+    getDictionary(locale),
+    requireRootSession(locale),
+  ]);
+
+  const existing = await prisma.article.findUnique({
+    where: { id: articleId },
+    select: {
+      id: true,
+      path: true,
+      title: true,
+      status: true,
     },
   });
 
@@ -215,7 +439,7 @@ export async function deleteArticleAction(
 
       await createLog(
         {
-          action: LogAction.DELETE_ARTICLE,
+          action: LogAction.HARD_DELETE_ARTICLE,
           targetType: "Article",
           targetId: articleId,
           detail: JSON.stringify({
@@ -228,7 +452,7 @@ export async function deleteArticleAction(
       );
     });
   } catch {
-    return { ok: false, error: dictionary.wiki.pageActions.deleteFailed };
+    return { ok: false, error: dictionary.wiki.pageActions.hardDeleteFailed };
   }
 
   invalidateArticleCache(existing.path, existing.id);
@@ -237,9 +461,41 @@ export async function deleteArticleAction(
   revalidateLocalizedPath("/admin/articles");
   revalidateLocalizedPath("/admin");
   revalidateLocalizedPath("/admin/taxonomy");
-  revalidateLocalizedPath("/admin/users");
+
+  // 删除前最后一次已知状态，便于接收方区分归档删除与其他来源的删除
+  dispatchWebhookEventAfterResponse(
+    WEBHOOK_EVENTS.ARTICLE_DELETED,
+    {
+      id: existing.id, path: existing.path, title: existing.title, status: existing.status,
+    },
+    webhookActor(session),
+  );
 
   return { ok: true };
+}
+
+/** 表单提交包装：后台列表用 <form action> 触发，返回 void */
+export async function archiveArticleFormAction(
+  locale: Locale,
+  articleId: string,
+): Promise<void> {
+  await archiveArticleAction(locale, articleId);
+}
+
+/** 表单提交包装：后台列表用 <form action> 触发，返回 void */
+export async function restoreArticleFormAction(
+  locale: Locale,
+  articleId: string,
+): Promise<void> {
+  await restoreArticleAction(locale, articleId);
+}
+
+/** 表单提交包装：后台列表用 <form action> 触发，返回 void */
+export async function hardDeleteArticleFormAction(
+  locale: Locale,
+  articleId: string,
+): Promise<void> {
+  await hardDeleteArticleAction(locale, articleId);
 }
 
 export async function moveArticleAction(
@@ -429,6 +685,20 @@ export async function moveArticleAction(
     }),
   );
 
+  // 迁移会改变 URL，逐个派发 article.updated，避免下游保留旧路径
+  for (const movedArticle of movedArticles) {
+    dispatchWebhookEventAfterResponse(
+      WEBHOOK_EVENTS.ARTICLE_UPDATED,
+      {
+        id: movedArticle.id,
+        path: movedArticle.path,
+        title: movedArticle.title,
+        status: movedArticle.status,
+      },
+      webhookActor(session),
+    );
+  }
+
   return { ok: true, path: nextPath };
 }
 
@@ -496,6 +766,15 @@ export async function restoreArticleRevisionAction(
       articleId: article.id,
       updatedAt: article.updatedAt.toISOString(),
     });
+
+    // 回滚历史版本等同于一次内容更新
+    dispatchWebhookEventAfterResponse(
+      WEBHOOK_EVENTS.ARTICLE_UPDATED,
+      {
+        id: article.id, path: article.path, title: article.title, status: article.status,
+      },
+      webhookActor(session),
+    );
 
     invalidateArticleCache(article.path, article.id);
     revalidateWikiPaths(article.path);
@@ -688,6 +967,17 @@ export async function setArticleStatusAction(
     }),
     userId: session.user.id,
   });
+
+  // 发布状态变化也要通知 webhook 订阅方，与 REST/编辑器路径行为一致
+  if (existing.status !== status) {
+    dispatchWebhookEventAfterResponse(
+      status === ArticleStatus.PUBLISHED
+        ? WEBHOOK_EVENTS.ARTICLE_PUBLISHED
+        : WEBHOOK_EVENTS.ARTICLE_UPDATED,
+      { id: article.id, path: article.path, title: article.title, status: article.status },
+      webhookActor(session),
+    );
+  }
 
   invalidateArticleCache(existing.path, existing.id);
   invalidateArticleCache(article.path, article.id);

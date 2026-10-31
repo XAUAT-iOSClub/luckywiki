@@ -10,7 +10,12 @@ import {
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { ArticleStatus } from "@/generated/prisma/enums";
-import { setArticleStatusAction } from "@/app/actions/admin";
+import {
+  archiveArticleFormAction,
+  hardDeleteArticleFormAction,
+  restoreArticleFormAction,
+  setArticleStatusAction,
+} from "@/app/actions/admin";
 import { listAdminTaxonomy } from "@/lib/admin";
 import { listAdminArticles } from "@/lib/articles";
 import { buildWikiHref } from "@/lib/wiki/path";
@@ -37,6 +42,8 @@ import {
 import { formatDateTime, formatNumber, formatTemplate } from "@/lib/i18n/format";
 import { getDictionary } from "@/lib/i18n/get-dictionary";
 import { hasLocale, localizeHref, type Locale } from "@/lib/i18n/config";
+import { getCurrentSession } from "@/lib/auth/session";
+import { Role } from "@/generated/prisma/enums";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 type Params = Promise<{ lang: string }>;
@@ -59,7 +66,10 @@ export default async function AdminArticlesPage({
     { label: dictionary.common.allStatuses, value: "" },
     { label: dictionary.common.draft, value: ArticleStatus.DRAFT },
     { label: dictionary.common.published, value: ArticleStatus.PUBLISHED },
+    { label: dictionary.common.archived, value: ArticleStatus.ARCHIVED },
   ];
+  const session = await getCurrentSession();
+  const isRoot = session?.user.role === Role.ROOT;
   const paramsObject = await searchParams;
   const currentPage = Math.max(Number(getSingleParam(paramsObject, "page")) || 1, 1);
   const query = getSingleParam(paramsObject, "q")?.trim() ?? "";
@@ -121,6 +131,7 @@ export default async function AdminArticlesPage({
           <div className="relative min-w-0 flex-1 lg:max-w-xs">
             <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
             <Input
+              key={`q:${query}`}
               aria-label={dictionary.common.search}
               className="h-8 pl-8"
               defaultValue={query}
@@ -130,6 +141,7 @@ export default async function AdminArticlesPage({
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <select
+              key={`status:${status ?? ""}`}
               aria-label={dictionary.common.status}
               className="select-native w-auto"
               defaultValue={status ?? ""}
@@ -142,6 +154,7 @@ export default async function AdminArticlesPage({
               ))}
             </select>
             <select
+              key={`tag:${tag}`}
               aria-label={dictionary.common.tag}
               className="select-native w-auto"
               defaultValue={tag}
@@ -155,6 +168,7 @@ export default async function AdminArticlesPage({
               ))}
             </select>
             <select
+              key={`section:${section}`}
               aria-label={dictionary.common.section}
               className="select-native w-auto"
               defaultValue={section}
@@ -231,13 +245,16 @@ export default async function AdminArticlesPage({
                 article.status === ArticleStatus.PUBLISHED
                   ? ArticleStatus.DRAFT
                   : ArticleStatus.PUBLISHED;
+              const isArchived = article.status === ArticleStatus.ARCHIVED;
 
               return (
                 <ListRow key={article.id}>
                   <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 md:grid-cols-[minmax(0,1fr)_96px_auto]">
                     <div className="col-span-2 min-w-0 md:col-span-1">
                       <Link
-                        className="block truncate text-[13.5px] font-medium text-foreground transition-colors hover:text-primary"
+                        className={`block truncate text-[13.5px] font-medium transition-colors hover:text-primary ${
+                          isArchived ? "text-muted-foreground italic" : "text-foreground"
+                        }`}
                         href={localizeHref(lang, `/admin/articles/${article.id}`)}
                       >
                         {article.title}
@@ -273,32 +290,95 @@ export default async function AdminArticlesPage({
                       tone={
                         article.status === ArticleStatus.PUBLISHED
                           ? "success"
-                          : "muted"
+                          : article.status === ArticleStatus.ARCHIVED
+                            ? "warning"
+                            : "muted"
                       }
                     >
                       {getStatusLabel(article.status, dictionary)}
                     </StatusDot>
 
                     <div className="flex items-center justify-end gap-0.5">
-                      <form
-                        action={setArticleStatusAction.bind(
-                          null,
-                          lang,
-                          article.id,
-                          targetStatus,
-                        )}
-                      >
-                        <Button
-                          className="text-[11.5px] text-muted-foreground hover:text-foreground"
-                          size="sm"
-                          type="submit"
-                          variant="ghost"
-                        >
-                          {article.status === ArticleStatus.PUBLISHED
-                            ? dictionary.admin.moveToDraft
-                            : dictionary.admin.publishNow}
-                        </Button>
-                      </form>
+                      {/* PUBLISHED/DRAFT: toggle publish state + archive */}
+                      {!isArchived ? (
+                        <>
+                          <form
+                            action={setArticleStatusAction.bind(
+                              null,
+                              lang,
+                              article.id,
+                              targetStatus,
+                            )}
+                          >
+                            <Button
+                              className="text-[11.5px] text-muted-foreground hover:text-foreground"
+                              size="sm"
+                              type="submit"
+                              variant="ghost"
+                            >
+                              {article.status === ArticleStatus.PUBLISHED
+                                ? dictionary.admin.moveToDraft
+                                : dictionary.admin.publishNow}
+                            </Button>
+                          </form>
+                          <form
+                            action={archiveArticleFormAction.bind(
+                              null,
+                              lang,
+                              article.id,
+                            )}
+                          >
+                            <Button
+                              className="text-[11.5px] text-muted-foreground hover:text-amber-600"
+                              size="sm"
+                              type="submit"
+                              variant="ghost"
+                              title={dictionary.wiki.pageActions.archive}
+                            >
+                              {dictionary.wiki.pageActions.archive}
+                            </Button>
+                          </form>
+                        </>
+                      ) : (
+                        <>
+                          {/* ARCHIVED: restore + hard delete (ROOT only) */}
+                          <form
+                            action={restoreArticleFormAction.bind(
+                              null,
+                              lang,
+                              article.id,
+                            )}
+                          >
+                            <Button
+                              className="text-[11.5px] text-muted-foreground hover:text-foreground"
+                              size="sm"
+                              type="submit"
+                              variant="ghost"
+                            >
+                              {dictionary.wiki.pageActions.restore}
+                            </Button>
+                          </form>
+                          {isRoot ? (
+                            <form
+                              action={hardDeleteArticleFormAction.bind(
+                                null,
+                                lang,
+                                article.id,
+                              )}
+                            >
+                              <Button
+                                className="text-[11.5px] text-muted-foreground hover:text-destructive"
+                                size="sm"
+                                type="submit"
+                                variant="ghost"
+                                title={dictionary.wiki.pageActions.hardDelete}
+                              >
+                                {dictionary.wiki.pageActions.hardDelete}
+                              </Button>
+                            </form>
+                          ) : null}
+                        </>
+                      )}
                       <Button asChild size="icon-xs" variant="ghost">
                         <Link
                           aria-label={dictionary.admin.revisionHistory.history}
@@ -436,7 +516,12 @@ function getStatusLabel(
   status: ArticleStatus,
   dictionary: Awaited<ReturnType<typeof getDictionary>>,
 ) {
-  return status === ArticleStatus.PUBLISHED
-    ? dictionary.common.published
-    : dictionary.common.draft;
+  switch (status) {
+    case ArticleStatus.PUBLISHED:
+      return dictionary.common.published;
+    case ArticleStatus.DRAFT:
+      return dictionary.common.draft;
+    case ArticleStatus.ARCHIVED:
+      return dictionary.common.archived;
+  }
 }

@@ -11,6 +11,7 @@ import {
   ScrollText,
   Users,
   View,
+  Webhook,
 } from "lucide-react";
 import { Role } from "@/generated/prisma/enums";
 
@@ -68,6 +69,10 @@ export function AppSidebar({
               title: t.common.published,
               url: localizeHref(locale, "/admin/articles?status=PUBLISHED"),
             },
+            {
+              title: t.common.archived,
+              url: localizeHref(locale, "/admin/articles?status=ARCHIVED"),
+            },
           ],
         },
         {
@@ -110,6 +115,11 @@ export function AppSidebar({
           url: localizeHref(locale, "/admin/mcp-keys"),
           icon: KeyRound,
         },
+        {
+          title: "Webhooks",
+          url: localizeHref(locale, "/admin/webhooks"),
+          icon: Webhook,
+        },
       ]
     : [
         {
@@ -128,6 +138,10 @@ export function AppSidebar({
             {
               title: t.common.published,
               url: localizeHref(locale, "/admin/articles?status=PUBLISHED"),
+            },
+            {
+              title: t.common.archived,
+              url: localizeHref(locale, "/admin/articles?status=ARCHIVED"),
             },
           ],
         },
