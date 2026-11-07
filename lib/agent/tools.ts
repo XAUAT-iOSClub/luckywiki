@@ -378,7 +378,13 @@ export async function listWikiCategories(
 
   return {
     categories: Array.from(categories.values())
-      .sort((left, right) => right.count - left.count || left.name.localeCompare(right.name))
+      // 用码点序而不是 localeCompare：后者会跟随运行环境的 locale，中文环境下
+      // 按拼音排序，导致同一批数据在不同机器上顺序不一致。
+      .sort(
+        (left, right) =>
+          right.count - left.count ||
+          (left.name < right.name ? -1 : left.name > right.name ? 1 : 0),
+      )
       .slice(0, limit),
   };
 }

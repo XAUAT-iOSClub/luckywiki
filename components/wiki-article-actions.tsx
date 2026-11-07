@@ -11,7 +11,7 @@ import {
   Trash2,
 } from "lucide-react";
 import {
-  deleteArticleAction,
+  archiveArticleAction,
   getArticleHeaderInfoAction,
   moveArticleAction,
 } from "@/app/actions/admin";
@@ -176,7 +176,7 @@ export function WikiArticleActions({ article }: { article: ArticleHeaderInfo }) 
     setError(null);
     startTransition(async () => {
       try {
-        const result = await deleteArticleAction(locale, article.id);
+        const result = await archiveArticleAction(locale, article.id);
 
         if (!result.ok) {
           setError(result.error);
@@ -187,7 +187,7 @@ export function WikiArticleActions({ article }: { article: ArticleHeaderInfo }) 
         router.push(localizeHref(locale, "/wiki"));
         router.refresh();
       } catch {
-        setError(t.wiki.pageActions.deleteFailed);
+        setError(t.wiki.pageActions.archiveFailed);
       }
     });
   }
@@ -241,16 +241,16 @@ export function WikiArticleActions({ article }: { article: ArticleHeaderInfo }) 
         </Button>
 
         <Button
-          aria-label={t.wiki.pageActions.delete}
-          className="px-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive lg:px-2.5"
+          aria-label={t.wiki.pageActions.archive}
+          className="px-1.5 text-muted-foreground hover:bg-amber-500/10 hover:text-amber-600 lg:px-2.5"
           onClick={() => handleDeleteOpenChange(true)}
           size="sm"
-          title={t.wiki.pageActions.delete}
+          title={t.wiki.pageActions.archive}
           type="button"
           variant="ghost"
         >
           <Trash2 />
-          <span className="hidden lg:inline">{t.wiki.pageActions.delete}</span>
+          <span className="hidden lg:inline">{t.wiki.pageActions.archive}</span>
         </Button>
       </div>
 
@@ -316,9 +316,9 @@ export function WikiArticleActions({ article }: { article: ArticleHeaderInfo }) 
       <Dialog onOpenChange={handleDeleteOpenChange} open={isDeleteOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{t.wiki.pageActions.deleteTitle}</DialogTitle>
+            <DialogTitle>{t.wiki.pageActions.archiveTitle}</DialogTitle>
             <DialogDescription>
-              {formatTemplate(t.wiki.pageActions.deleteDescription, {
+              {formatTemplate(t.wiki.pageActions.archiveDescription, {
                 title: article.title,
               })}
             </DialogDescription>
@@ -343,12 +343,12 @@ export function WikiArticleActions({ article }: { article: ArticleHeaderInfo }) 
               disabled={isPending}
               onClick={handleDelete}
               type="button"
-              variant="destructive"
+              variant="secondary"
             >
               {isPending ? <Loader2 className="animate-spin" /> : <Trash2 />}
               {isPending
-                ? t.wiki.pageActions.deleting
-                : t.wiki.pageActions.deleteConfirm}
+                ? t.wiki.pageActions.archiving
+                : t.wiki.pageActions.archiveConfirm}
             </Button>
           </DialogFooter>
         </DialogContent>

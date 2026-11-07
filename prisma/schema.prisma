@@ -16,6 +16,7 @@ enum Role {
 enum ArticleStatus {
   DRAFT
   PUBLISHED
+  ARCHIVED
 }
 
 enum CommentStatus {
@@ -28,7 +29,9 @@ enum LogAction {
   CREATE_ARTICLE
   UPDATE_ARTICLE
   DELETE_ARTICLE
+  ARCHIVE_ARTICLE
   RESTORE_ARTICLE
+  HARD_DELETE_ARTICLE
   APPROVE_COMMENT
   REJECT_COMMENT
   SET_ARTICLE_STATUS
@@ -56,6 +59,7 @@ model User {
   logs             Log[]
   mcpApiKeys       McpApiKey[]
   mediaAssets      MediaAsset[]
+  webhookConfigs   WebhookConfig[]
 
   @@map("users")
 }
@@ -292,4 +296,44 @@ model MediaReference {
   @@unique([assetId, articleId])
   @@index([articleId])
   @@map("media_references")
+}
+
+// Webhook 出站通知：管理员可配置 URL，当文章发生关键事件时推送
+model WebhookConfig {
+  id          String   @id @default(cuid())
+  name        String   // 管理员给 webhook 起的名字
+  url         String   // 接收事件的 URL
+  events      String[] // 订阅的事件类型：article.published / article.updated / article.archived / article.restored / article.deleted
+  secret      String   // HMAC 签名密钥（用于验证请求来源）
+  active      Boolean  @default(true)
+  userId      String   @map("user_id")
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lastUsedAt  DateTime? @map("last_used_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  deliveryLogs WebhookDeliveryLog[]
+
+  @@index([userId])
+  @@index([active])
+  @@map("webhook_configs")
+}
+
+// Webhook 投递日志（便于审计和排查问题）
+model WebhookDeliveryLog {
+  id         String   @id @default(cuid())
+  webhookId  String   @map("webhook_id")
+  event      String   // 事件类型
+  payload    String   // JSON payload
+  status     String   // success / error
+  statusCode Int?     @map("status_code")
+  error      String?
+  durationMs Int      @map("duration_ms")
+  retries    Int      @default(0)
+  createdAt  DateTime @default(now()) @map("created_at")
+  webhook    WebhookConfig @relation(fields: [webhookId], references: [id], onDelete: Cascade)
+
+  @@index([webhookId])
+  @@index([event])
+  @@index([createdAt])
+  @@map("webhook_delivery_logs")
 }

@@ -20,6 +20,8 @@ export type ValidatedApiKey = {
   keyId: string;
   userId: string;
   userRole: string;
+  userName: string;
+  userEmail: string;
   rateLimit: number | null;
 };
 
@@ -93,7 +95,7 @@ export async function validateApiKey(key: string): Promise<ValidatedApiKey | nul
   const record = await prisma.mcpApiKey.findUnique({
     where: { keyHash: hash },
     include: {
-      user: { select: { id: true, role: true } },
+      user: { select: { id: true, role: true, name: true, email: true } },
     },
   });
 
@@ -107,6 +109,8 @@ export async function validateApiKey(key: string): Promise<ValidatedApiKey | nul
     keyId: record.id,
     userId: record.userId,
     userRole: record.user.role,
+    userName: record.user.name,
+    userEmail: record.user.email,
     rateLimit: record.rateLimit,
   };
 }
