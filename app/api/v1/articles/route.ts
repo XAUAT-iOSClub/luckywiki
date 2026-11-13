@@ -13,6 +13,7 @@ import {
 import { snapshotArticleRevision } from "@/lib/articles/revisions";
 import { syncArticleMediaReferences } from "@/lib/media/references";
 import { enqueueArticleEmbeddingSync } from "@/lib/embedding-queue";
+import { releasePathRedirects } from "@/lib/articles/redirects";
 import {
   invalidateArticleCache,
   revalidateAdminArticlePaths,
@@ -182,6 +183,7 @@ export async function POST(request: NextRequest) {
       });
 
       await snapshotArticleRevision(tx, created, identity.userId, { force: true });
+      await releasePathRedirects(tx, [created.path]);
       await syncArticleMediaReferences(tx, created.id, created.markdown);
       await tx.log.create({
         data: {

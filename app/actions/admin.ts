@@ -3,7 +3,6 @@
 import { revalidatePath, updateTag } from "next/cache";
 import { z } from "zod";
 import type { Prisma } from "@/generated/prisma/client";
-import type { ArticleModel } from "@/generated/prisma/models/Article";
 import { ArticleStatus, CommentStatus, LogAction, Role } from "@/generated/prisma/enums";
 import type { Locale } from "@/lib/i18n/config";
 import { locales, localizeHref } from "@/lib/i18n/config";
@@ -21,7 +20,17 @@ import { getDictionary } from "@/lib/i18n/get-dictionary";
 import { prisma } from "@/lib/prisma";
 import { getPublishedArticleByPath } from "@/lib/articles";
 import type { ArticleHeaderInfo } from "@/lib/articles/header";
-import { planArticlePathMove } from "@/lib/articles/move";
+import {
+  applyPathChange,
+  getPathChangeCacheInput,
+  previewPathChange,
+  publishPathChangeSideEffects,
+  type PathChangePreview,
+  type PathChangeStatus,
+} from "@/lib/articles/path-change";
+import { invalidatePathChangeCaches } from "@/lib/articles/cache";
+import { clearWikiPathResolutionCache } from "@/lib/articles/redirect-decision";
+import { releasePathRedirects } from "@/lib/articles/redirects";
 import { snapshotArticleRevision } from "@/lib/articles/revisions";
 import { syncArticleMediaReferences } from "@/lib/media/references";
 import {
@@ -52,8 +61,18 @@ function webhookActor(session: { user: { id: string; name: string; email: string
 }
 
 export type ArticlePageActionResult =
-  | { ok: true; path?: string }
+  | {
+      ok: true;
+      path?: string;
+      movedCount?: number;
+      redirectsCreated?: number;
+      linkRewriteCount?: number;
+    }
   | { ok: false; error: string };
+
+export type PathChangePreviewActionResult =
+  | { ok: true; preview: PathChangePreview }
+  | { ok: false; error: string; preview: PathChangePreview };
 
 export async function createArticleAction(
   locale: Locale,
@@ -81,6 +100,8 @@ export async function createArticleAction(
         },
       });
 
+      // Reusing a path always wins over its old redirect.
+      await releasePathRedirects(tx, [created.path]);
       await snapshotArticleRevision(tx, created, session.user.id, { force: true });
       await syncArticleMediaReferences(tx, created.id, created.markdown);
       await createLog(
@@ -169,6 +190,61 @@ export async function updateArticleAction(
   }
 
   try {
+    // Path changes are a move, not a plain field update: they must cascade to
+    // child pages, write redirects and (optionally) rewrite internal links.
+    if (parsed.data.path !== existing.path) {
+      const { path: nextPath, ...articleData } = parsed.data;
+      const result = await applyPathChange({
+        target: { kind: "article", articleId },
+        nextPathInput: nextPath,
+        actorId: session.user.id,
+        source: "editor",
+        rewriteLinks: formData.get("rewriteLinks") !== "0",
+        primaryData: {
+          ...articleData,
+          publishedAt:
+            parsed.data.status === ArticleStatus.PUBLISHED
+              ? existing.publishedAt ?? new Date()
+              : null,
+        },
+      });
+
+      if (result.status !== "ok") {
+        return { error: getPathChangeErrorMessage(result.status, dictionary) };
+      }
+
+      await publishPathChangeSideEffects(result, webhookActor(session));
+
+      // 与普通保存一致：草稿改为已发布时补发 article.published
+      if (
+        result.primaryArticle &&
+        existing.status !== ArticleStatus.PUBLISHED &&
+        result.primaryArticle.status === ArticleStatus.PUBLISHED
+      ) {
+        dispatchWebhookEventAfterResponse(
+          WEBHOOK_EVENTS.ARTICLE_PUBLISHED,
+          {
+            id: result.primaryArticle.id,
+            path: result.primaryArticle.path,
+            title: result.primaryArticle.title,
+            status: result.primaryArticle.status,
+          },
+          webhookActor(session),
+        );
+      }
+
+      invalidatePathChangeCaches(
+        {
+          ...getPathChangeCacheInput(result),
+          rewrittenPaths: result.rewrittenArticles.map((article) => article.path),
+          rewrittenArticleIds: result.rewrittenArticles.map((article) => article.id),
+        },
+        { mode: "action" },
+      );
+
+      return { success: getArticleListHref(locale, parsed.data.status) };
+    }
+
     const article = await prisma.$transaction(async (tx) => {
       const updated = await tx.article.update({
         where: { id: articleId },
@@ -181,6 +257,8 @@ export async function updateArticleAction(
         },
       });
 
+      // Path has not changed, but a redirect must never shadow this page.
+      await releasePathRedirects(tx, [updated.path]);
       await snapshotArticleRevision(tx, updated, session.user.id);
       await syncArticleMediaReferences(tx, updated.id, updated.markdown);
       await createLog(
@@ -192,7 +270,6 @@ export async function updateArticleAction(
             title: updated.title,
             path: updated.path,
             status: updated.status,
-            ...(existing.path !== updated.path ? { oldPath: existing.path } : {}),
           }),
           userId: session.user.id,
         },
@@ -225,9 +302,7 @@ export async function updateArticleAction(
       );
     }
 
-    invalidateArticleCache(existing.path, existing.id);
     invalidateArticleCache(article.path, article.id);
-    revalidateWikiPaths(existing.path);
     revalidateWikiPaths(article.path);
     revalidateLocalizedPath("/admin/articles");
     revalidateLocalizedPath(`/admin/articles/${article.id}/history`);
@@ -236,13 +311,7 @@ export async function updateArticleAction(
     revalidateLocalizedPath("/admin/users");
 
     // 更新完成后也跳到对应状态列表，保持与创建行为一致
-    const statusQuery =
-      article.status === ArticleStatus.PUBLISHED
-        ? "?status=PUBLISHED"
-        : article.status === ArticleStatus.DRAFT
-          ? "?status=DRAFT"
-          : "";
-    return { success: `${localizeHref(locale, "/admin/articles")}${statusQuery}` };
+    return { success: getArticleListHref(locale, article.status) };
   } catch (error) {
     return { error: getActionErrorMessage(error, dictionary.feedback.duplicatePath, dictionary.feedback.somethingWentWrong) };
   }
@@ -306,6 +375,10 @@ export async function archiveArticleAction(
     articleId: existing.id,
     updatedAt: new Date().toISOString(),
   });
+
+  // Old paths may have been cached as "no redirect"; drop that for this process
+  // so archived pages answer 410 immediately.
+  clearWikiPathResolutionCache();
 
   invalidateArticleCache(existing.path, existing.id);
   revalidateWikiPaths(existing.path);
@@ -395,6 +468,7 @@ export async function restoreArticleAction(
   revalidateLocalizedPath("/admin");
   // 恢复到草稿箱，分类统计不受影响
   revalidateLocalizedPath("/admin/taxonomy");
+  clearWikiPathResolutionCache();
 
   dispatchWebhookEventAfterResponse(
     WEBHOOK_EVENTS.ARTICLE_RESTORED,
@@ -502,6 +576,7 @@ export async function moveArticleAction(
   locale: Locale,
   articleId: string,
   nextPathInput: string,
+  options?: { rewriteLinks?: boolean },
 ): Promise<ArticlePageActionResult> {
   const [dictionary, session] = await Promise.all([
     getDictionary(locale),
@@ -529,113 +604,44 @@ export async function moveArticleAction(
     return { ok: false, error: dictionary.feedback.invalidArticlePath };
   }
 
-  if (!nextPath) {
-    return { ok: false, error: dictionary.wiki.pageActions.pathRequired };
-  }
-
   if (nextPath === existing.path) {
     return { ok: true, path: existing.path };
   }
 
-  if (nextPath.startsWith(`${existing.path}/`)) {
-    return { ok: false, error: dictionary.wiki.pageActions.moveIntoItself };
-  }
-
-  const [sourceArticles, targetArticles] = await Promise.all([
-    prisma.article.findMany({
-      where: {
-        OR: [
-          { path: existing.path },
-          { path: { startsWith: `${existing.path}/` } },
-        ],
-      },
-      select: {
-        id: true,
-        path: true,
-      },
-    }),
-    prisma.article.findMany({
-      where: {
-        OR: [
-          { path: nextPath },
-          { path: { startsWith: `${nextPath}/` } },
-        ],
-      },
-      select: {
-        id: true,
-        path: true,
-      },
-    }),
-  ]);
-
-  const existingPaths = Array.from(
-    new Set(
-      [...sourceArticles, ...targetArticles].map((article) => article.path),
-    ),
-  );
-  const plan = planArticlePathMove(existingPaths, existing.path, nextPath);
-
-  if (plan.status === "conflict") {
-    return { ok: false, error: dictionary.wiki.pageActions.moveConflict };
-  }
-
-  if (plan.status === "descendant") {
-    return { ok: false, error: dictionary.wiki.pageActions.moveIntoItself };
-  }
-
-  if (plan.status === "same") {
-    return { ok: true, path: existing.path };
-  }
-
-  if (plan.status === "invalid") {
-    return { ok: false, error: dictionary.feedback.invalidArticlePath };
-  }
-
-  const sourceIdByPath = new Map(
-    sourceArticles.map((article) => [article.path, article.id]),
-  );
-  const oldPaths = plan.moves.map((move) => move.from);
-  const newPaths = plan.moves.map((move) => move.to);
-
-  let movedArticles: ArticleModel[];
-
   try {
-    movedArticles = await prisma.$transaction(async (tx) => {
-      const updatedArticles: ArticleModel[] = [];
-
-      for (const move of plan.moves) {
-        const id = sourceIdByPath.get(move.from);
-
-        if (!id) {
-          throw new Error(`Missing source article for path "${move.from}".`);
-        }
-
-        updatedArticles.push(
-          await tx.article.update({
-            where: { id },
-            data: { path: move.to },
-          }),
-        );
-      }
-
-      await createLog(
-        {
-          action: LogAction.UPDATE_ARTICLE,
-          targetType: "Article",
-          targetId: articleId,
-          detail: JSON.stringify({
-            title: existing.title,
-            path: nextPath,
-            oldPath: existing.path,
-            movedPaths: plan.moves.length,
-          }),
-          userId: session.user.id,
-        },
-        tx,
-      );
-
-      return updatedArticles;
+    const result = await applyPathChange({
+      target: { kind: "article", articleId },
+      nextPathInput,
+      actorId: session.user.id,
+      source: "article-page",
+      rewriteLinks: options?.rewriteLinks,
     });
+
+    if (result.status === "same") {
+      return { ok: true, path: result.currentPath };
+    }
+
+    if (result.status !== "ok") {
+      return { ok: false, error: getPathChangeErrorMessage(result.status, dictionary) };
+    }
+
+    await publishPathChangeSideEffects(result, webhookActor(session));
+    invalidatePathChangeCaches(
+      {
+        ...getPathChangeCacheInput(result),
+        rewrittenPaths: result.rewrittenArticles.map((article) => article.path),
+        rewrittenArticleIds: result.rewrittenArticles.map((article) => article.id),
+      },
+      { mode: "action" },
+    );
+
+    return {
+      ok: true,
+      path: result.nextPath,
+      movedCount: result.moves.length,
+      redirectsCreated: result.redirectsCreated,
+      linkRewriteCount: result.linkRewriteCount,
+    };
   } catch (error) {
     return {
       ok: false,
@@ -646,60 +652,113 @@ export async function moveArticleAction(
       ),
     };
   }
+}
 
-  updateTag(ARTICLES_CACHE_TAG);
+/** 预览单篇文章改路径的影响面（编辑器与移动对话框共用）。 */
+export async function previewArticlePathChangeAction(
+  articleId: string,
+  locale: Locale,
+  nextPathInput: string,
+): Promise<PathChangePreviewActionResult> {
+  const [dictionary] = await Promise.all([
+    getDictionary(locale),
+    requireAuthorSession(locale),
+  ]);
 
-  for (const path of new Set([...oldPaths, ...newPaths])) {
-    updateTag(articleCacheTag(path));
+  const existing = await prisma.article.findUnique({
+    where: { id: articleId },
+    select: { id: true },
+  });
+
+  if (!existing) {
+    return {
+      ok: false,
+      error: dictionary.feedback.articleNotFound,
+      preview: buildEmptyPreview(nextPathInput),
+    };
   }
 
-  for (const path of oldPaths) {
-    revalidateWikiPaths(path);
-  }
-
-  for (const path of newPaths) {
-    revalidateWikiPaths(path);
-  }
-
-  revalidateLocalizedPath(`/admin/articles/${articleId}`);
-  revalidateLocalizedPath("/admin/articles");
-  revalidateLocalizedPath("/admin");
-  revalidateLocalizedPath("/admin/taxonomy");
-  revalidateLocalizedPath("/admin/users");
-
-  // A queue hiccup should not report the move as failed after the database
-  // already committed it; the next content save will re-index if needed.
-  await Promise.all(
-    movedArticles.map(async (article) => {
-      try {
-        await enqueueArticleEmbeddingSync({
-          articleId: article.id,
-          updatedAt: article.updatedAt.toISOString(),
-        });
-      } catch (error) {
-        console.error(
-          "[admin] failed to enqueue embedding sync after moving an article",
-          error,
-        );
-      }
-    }),
+  return buildPathChangePreviewResult(
+    { kind: "article", articleId },
+    nextPathInput,
+    dictionary,
   );
+}
 
-  // 迁移会改变 URL，逐个派发 article.updated，避免下游保留旧路径
-  for (const movedArticle of movedArticles) {
-    dispatchWebhookEventAfterResponse(
-      WEBHOOK_EVENTS.ARTICLE_UPDATED,
+/** 预览文件夹重命名 / 移动的影响面（仅 ROOT）。 */
+export async function previewFolderPathChangeAction(
+  locale: Locale,
+  folderPath: string,
+  nextPathInput: string,
+): Promise<PathChangePreviewActionResult> {
+  const [dictionary] = await Promise.all([
+    getDictionary(locale),
+    requireRootSession(locale),
+  ]);
+
+  return buildPathChangePreviewResult(
+    { kind: "folder", path: folderPath },
+    nextPathInput,
+    dictionary,
+  );
+}
+
+/** 文件夹重命名 / 移动：整棵前缀子树一次搬走（仅 ROOT）。 */
+export async function renameFolderAction(
+  locale: Locale,
+  folderPath: string,
+  nextPathInput: string,
+  options?: { rewriteLinks?: boolean },
+): Promise<ArticlePageActionResult> {
+  const [dictionary, session] = await Promise.all([
+    getDictionary(locale),
+    requireRootSession(locale),
+  ]);
+
+  try {
+    const result = await applyPathChange({
+      target: { kind: "folder", path: folderPath },
+      nextPathInput,
+      actorId: session.user.id,
+      source: "folder-rename",
+      rewriteLinks: options?.rewriteLinks,
+    });
+
+    if (result.status === "same") {
+      return { ok: true, path: result.currentPath };
+    }
+
+    if (result.status !== "ok") {
+      return { ok: false, error: getPathChangeErrorMessage(result.status, dictionary) };
+    }
+
+    await publishPathChangeSideEffects(result, webhookActor(session));
+    invalidatePathChangeCaches(
       {
-        id: movedArticle.id,
-        path: movedArticle.path,
-        title: movedArticle.title,
-        status: movedArticle.status,
+        ...getPathChangeCacheInput(result),
+        rewrittenPaths: result.rewrittenArticles.map((article) => article.path),
+        rewrittenArticleIds: result.rewrittenArticles.map((article) => article.id),
       },
-      webhookActor(session),
+      { mode: "action" },
     );
-  }
 
-  return { ok: true, path: nextPath };
+    return {
+      ok: true,
+      path: result.nextPath,
+      movedCount: result.moves.length,
+      redirectsCreated: result.redirectsCreated,
+      linkRewriteCount: result.linkRewriteCount,
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      error: getActionErrorMessage(
+        error,
+        dictionary.feedback.duplicatePath,
+        dictionary.admin.pathChange.renameFailed,
+      ),
+    };
+  }
 }
 
 export async function restoreArticleRevisionAction(
@@ -988,6 +1047,7 @@ export async function setArticleStatusAction(
   revalidateLocalizedPath("/admin");
   revalidateLocalizedPath("/admin/articles");
   revalidateLocalizedPath("/admin/taxonomy");
+  clearWikiPathResolutionCache();
 }
 
 export async function setUserRoleAction(
@@ -1102,6 +1162,81 @@ function getActionErrorMessage(
   }
 
   return fallbackMessage;
+}
+
+function getArticleListHref(locale: Locale, status: ArticleStatus) {
+  const statusQuery =
+    status === ArticleStatus.PUBLISHED
+      ? "?status=PUBLISHED"
+      : status === ArticleStatus.DRAFT
+        ? "?status=DRAFT"
+        : "";
+
+  return `${localizeHref(locale, "/admin/articles")}${statusQuery}`;
+}
+
+function getPathChangeErrorMessage(
+  status: Exclude<PathChangeStatus, "ok"> | PathChangeStatus,
+  dictionary: Awaited<ReturnType<typeof getDictionary>>,
+) {
+  switch (status) {
+    case "empty":
+      return dictionary.wiki.pageActions.pathRequired;
+    case "invalid":
+      return dictionary.feedback.invalidArticlePath;
+    case "not-found":
+      return dictionary.feedback.articleNotFound;
+    case "descendant":
+      return dictionary.wiki.pageActions.moveIntoItself;
+    case "conflict":
+      return dictionary.wiki.pageActions.moveConflict;
+    case "reserved":
+      return dictionary.admin.pathChange.reservedPath;
+    case "protected-home":
+      return dictionary.admin.pathChange.protectedHome;
+    case "protected-root":
+      return dictionary.admin.pathChange.protectedRoot;
+    case "too-many":
+      return dictionary.admin.pathChange.tooMany;
+    default:
+      return dictionary.feedback.somethingWentWrong;
+  }
+}
+
+function buildEmptyPreview(nextPathInput: string): PathChangePreview {
+  return {
+    status: "invalid",
+    currentPath: "",
+    nextPath: nextPathInput.trim(),
+    movedCount: 0,
+    publishedCount: 0,
+    draftCount: 0,
+    archivedCount: 0,
+    redirectCount: 0,
+    linkArticleCount: 0,
+    linkCount: 0,
+    conflictPath: null,
+  };
+}
+
+async function buildPathChangePreviewResult(
+  target:
+    | { kind: "article"; articleId: string }
+    | { kind: "folder"; path: string },
+  nextPathInput: string,
+  dictionary: Awaited<ReturnType<typeof getDictionary>>,
+): Promise<PathChangePreviewActionResult> {
+  const preview = await previewPathChange(target, nextPathInput);
+
+  if (preview.status === "ok") {
+    return { ok: true, preview };
+  }
+
+  return {
+    ok: false,
+    error: getPathChangeErrorMessage(preview.status, dictionary),
+    preview,
+  };
 }
 
 async function createLog(

@@ -347,6 +347,24 @@ deploy time. Audit logs continue to store only article metadata
 (title/path/status), never the body. Revisions grow with edits, so prune old
 rows periodically if storage becomes a concern.
 
+## Path Changes and Redirects
+
+Changing an article's `path` moves the page **and its whole path prefix
+subtree** (drafts included). Every moved path is recorded in
+`article_redirects`, and the proxy answers old URLs with a real `308` to the
+article's current location, so bookmarks, shared links and search engines keep
+working. Archived targets answer `410`; drafts never leak. Folder renames are
+the same operation applied to a prefix and are available to ROOT users in
+`/admin/taxonomy` → Content structure. Internal links can be rewritten in the
+same transaction, and a `article.moved` webhook event is emitted.
+
+- Behaviour details, API semantics and a manual QA checklist: [`docs/PATH-CHANGE-AND-REDIRECTS.md`](docs/PATH-CHANGE-AND-REDIRECTS.md)
+- Step-by-step local acceptance script (AC-1 ~ AC-16, DB inspection, cleanup): [`docs/LOCAL-VERIFICATION.md`](docs/LOCAL-VERIFICATION.md)
+- Automated F/G/H/I check against a running instance: `ROOT_EMAIL=... ROOT_PASSWORD=... node scripts/verify-path-change.mjs`
+- Local setup applies the schema with `pnpm exec prisma db push` (this checkout
+  has no migration baseline) or `pnpm exec prisma migrate deploy` on databases
+  that already track migrations.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:

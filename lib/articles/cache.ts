@@ -1,4 +1,4 @@
-import { revalidatePath, revalidateTag } from "next/cache";
+import { revalidatePath, revalidateTag, updateTag } from "next/cache";
 import {
   articleCacheTag,
   articleCommentsCacheTag,
@@ -36,4 +36,60 @@ export function revalidateAdminArticlePaths(articleId?: string) {
   revalidateLocalizedPath("/admin/articles");
   revalidateLocalizedPath("/admin");
   revalidateLocalizedPath("/admin/taxonomy");
+}
+
+export type PathChangeCacheInput = {
+  oldPaths: string[];
+  newPaths: string[];
+  articleIds: string[];
+  rewrittenPaths?: string[];
+  rewrittenArticleIds?: string[];
+};
+
+/**
+ * Invalidates every cache touched by a path change: article detail tags for
+ * old and new paths, the shared list/tree tag (sidebar, taxonomy, sitemap),
+ * comments tags, wiki pages and the affected admin pages.
+ *
+ * Server Actions pass `mode: "action"` so `updateTag` gives read-your-own-writes
+ * semantics; Route Handlers must use `revalidateTag` instead.
+ */
+export function invalidatePathChangeCaches(
+  input: PathChangeCacheInput,
+  options?: { mode?: "action" | "route" },
+) {
+  const mode = options?.mode ?? "route";
+  const invalidateTag =
+    mode === "action"
+      ? (tag: string) => updateTag(tag)
+      : (tag: string) => revalidateTag(tag, { expire: 0 });
+
+  invalidateTag(ARTICLES_CACHE_TAG);
+
+  const paths = new Set([
+    ...input.oldPaths,
+    ...input.newPaths,
+    ...(input.rewrittenPaths ?? []),
+  ]);
+
+  for (const path of paths) {
+    invalidateTag(articleCacheTag(path));
+    revalidateWikiPaths(path);
+  }
+
+  const articleIds = new Set([
+    ...input.articleIds,
+    ...(input.rewrittenArticleIds ?? []),
+  ]);
+
+  for (const articleId of articleIds) {
+    invalidateTag(articleCommentsCacheTag(articleId));
+    revalidateLocalizedPath(`/admin/articles/${articleId}`);
+    revalidateLocalizedPath(`/admin/articles/${articleId}/history`);
+  }
+
+  revalidateLocalizedPath("/admin/articles");
+  revalidateLocalizedPath("/admin");
+  revalidateLocalizedPath("/admin/taxonomy");
+  revalidateLocalizedPath("/admin/users");
 }

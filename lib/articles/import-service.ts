@@ -12,6 +12,7 @@ import {
 } from "@/lib/articles/import-files";
 import { resolveImportPublishedAt } from "@/lib/articles/import";
 import { snapshotArticleRevision } from "@/lib/articles/revisions";
+import { releasePathRedirects } from "@/lib/articles/redirects";
 import { enqueueArticleEmbeddingSync } from "@/lib/embedding-queue";
 import { syncArticleMediaReferences } from "@/lib/media/references";
 import { prisma } from "@/lib/prisma";
@@ -180,6 +181,8 @@ export async function applyArticleImport(options: {
         await snapshotArticleRevision(tx, article, options.authorId, {
           force: !existing,
         });
+        // Importing a path re-claims it: drop any redirect that still shadows it.
+        await releasePathRedirects(tx, [article.path]);
         await syncArticleMediaReferences(tx, article.id, article.markdown);
         await tx.log.create({
           data: {

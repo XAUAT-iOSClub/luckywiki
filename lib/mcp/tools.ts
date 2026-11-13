@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { ArticleStatus } from "@/generated/prisma/enums";
 import { searchArticles } from "@/lib/search";
 import { extractMarkdownDescription } from "@/lib/text";
+import { resolveWikiPath } from "@/lib/articles/redirects";
+import { canonicalizePath } from "@/lib/wiki/path";
 
 /**
  * MCP 工具定义
@@ -171,52 +173,99 @@ async function searchWiki({ query, page, pageSize }: z.infer<typeof searchSchema
 }
 
 async function getArticle({ path }: z.infer<typeof getArticleSchema>) {
-  const article = await prisma.article.findFirst({
-    where: {
-      path,
-      status: ArticleStatus.PUBLISHED,
-    },
-    select: {
-      id: true,
-      path: true,
-      title: true,
-      description: true,
-      tags: true,
-      markdown: true,
-      createdAt: true,
-      updatedAt: true,
-      publishedAt: true,
-      author: {
-        select: {
-          name: true,
-        },
-      },
-      _count: {
-        select: {
-          comments: true,
-        },
-      },
-    },
-  });
+  let normalizedPath = path;
 
-  if (!article) {
-    return { article: null, message: "Article not found" };
+  try {
+    normalizedPath = canonicalizePath(path);
+  } catch {
+    // Keep the raw path; it simply will not match anything.
   }
 
-  return {
-    article: {
-      id: article.id,
-      path: article.path,
-      title: article.title,
-      description: article.description ?? extractMarkdownDescription(article.markdown),
-      tags: article.tags,
-      markdown: article.markdown,
-      authorName: article.author?.name ?? null,
-      commentCount: article._count.comments,
-      createdAt: article.createdAt.toISOString(),
-      updatedAt: article.updatedAt.toISOString(),
-      publishedAt: article.publishedAt?.toISOString() ?? null,
+  const select = {
+    id: true,
+    path: true,
+    title: true,
+    description: true,
+    tags: true,
+    markdown: true,
+    createdAt: true,
+    updatedAt: true,
+    publishedAt: true,
+    author: {
+      select: {
+        name: true,
+      },
     },
+    _count: {
+      select: {
+        comments: true,
+      },
+    },
+  } as const;
+
+  const article = await prisma.article.findFirst({
+    where: {
+      path: normalizedPath,
+      status: ArticleStatus.PUBLISHED,
+    },
+    select,
+  });
+
+  if (article) {
+    return { article: toMcpArticle(article) };
+  }
+
+  // Path changes are transparent for MCP clients: resolve the old path to the
+  // article's current location instead of reporting "not found".
+  const resolution = await resolveWikiPath(normalizedPath);
+
+  if (resolution.type === "redirect") {
+    const current = await prisma.article.findFirst({
+      where: {
+        path: resolution.path,
+        status: ArticleStatus.PUBLISHED,
+      },
+      select,
+    });
+
+    if (current) {
+      return {
+        article: toMcpArticle(current),
+        requestedPath: normalizedPath,
+        redirectedTo: current.path,
+      };
+    }
+  }
+
+  return { article: null, message: "Article not found" };
+}
+
+function toMcpArticle(article: {
+  id: string;
+  path: string;
+  title: string;
+  description: string | null;
+  tags: string[];
+  markdown: string;
+  createdAt: Date;
+  updatedAt: Date;
+  publishedAt: Date | null;
+  author: { name: string } | null;
+  _count: { comments: number };
+}) {
+  return {
+    id: article.id,
+    path: article.path,
+    title: article.title,
+    description:
+      article.description ?? extractMarkdownDescription(article.markdown),
+    tags: article.tags,
+    markdown: article.markdown,
+    authorName: article.author?.name ?? null,
+    commentCount: article._count.comments,
+    createdAt: article.createdAt.toISOString(),
+    updatedAt: article.updatedAt.toISOString(),
+    publishedAt: article.publishedAt?.toISOString() ?? null,
   };
 }
 
@@ -273,10 +322,22 @@ async function getRelatedArticles({
   path,
   limit,
 }: z.infer<typeof getRelatedSchema>) {
-  const article = await prisma.article.findFirst({
+  let article = await prisma.article.findFirst({
     where: { path, status: ArticleStatus.PUBLISHED },
     select: { path: true, title: true, tags: true },
   });
+
+  if (!article) {
+    // Old paths resolve to the current location before giving up.
+    const resolution = await resolveWikiPath(path);
+
+    if (resolution.type === "redirect") {
+      article = await prisma.article.findFirst({
+        where: { path: resolution.path, status: ArticleStatus.PUBLISHED },
+        select: { path: true, title: true, tags: true },
+      });
+    }
+  }
 
   if (!article) {
     return { totalCount: 0, articles: [] };

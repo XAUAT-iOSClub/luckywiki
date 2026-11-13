@@ -18,6 +18,7 @@
     "media:sync": "tsx scripts/media-sync.ts",
     "media:cleanup": "tsx scripts/media-cleanup.ts",
     "db:seed": "tsx prisma/seed.ts",
+    "verify:path-change": "node scripts/verify-path-change.mjs",
     "postinstall": "prisma generate"
   },
   "prisma": {

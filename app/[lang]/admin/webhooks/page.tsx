@@ -36,6 +36,7 @@ const EVENT_OPTIONS = [
   { value: "article.created", label: "创建文章" },
   { value: "article.published", label: "发布文章" },
   { value: "article.updated", label: "更新文章" },
+  { value: "article.moved", label: "移动文章" },
   { value: "article.archived", label: "归档文章" },
   { value: "article.restored", label: "恢复文章" },
   { value: "article.deleted", label: "删除文章" },

@@ -5,11 +5,17 @@ import {
   WEBHOOK_EVENTS,
   type WebhookActor,
   type WebhookEventType,
+  type WebhookMoveDetails,
   type WebhookPayload,
 } from "./types";
 
 export { WEBHOOK_EVENTS };
-export type { WebhookActor, WebhookEventType, WebhookPayload } from "./types";
+export type {
+  WebhookActor,
+  WebhookEventType,
+  WebhookMoveDetails,
+  WebhookPayload,
+} from "./types";
 
 const MAX_RETRIES = 3;
 const TIMEOUT_MS = 10_000;
@@ -19,6 +25,7 @@ export async function dispatchWebhookEvent(
   event: WebhookEventType,
   article: { id: string; path: string; title: string; status?: string },
   actor?: WebhookActor | null,
+  move?: WebhookMoveDetails,
 ) {
   try {
     const configs = await prisma.webhookConfig.findMany({
@@ -30,6 +37,7 @@ export async function dispatchWebhookEvent(
     const payload: WebhookPayload = {
       event,
       article,
+      ...(move ? { move } : {}),
       ...(actor ? { actor } : {}),
       timestamp: new Date().toISOString(),
     };
@@ -56,8 +64,9 @@ export function dispatchWebhookEventAfterResponse(
   event: WebhookEventType,
   article: { id: string; path: string; title: string; status?: string },
   actor?: WebhookActor | null,
+  move?: WebhookMoveDetails,
 ) {
-  after(() => dispatchWebhookEvent(event, article, actor));
+  after(() => dispatchWebhookEvent(event, article, actor, move));
 }
 
 async function deliverWithRetry(

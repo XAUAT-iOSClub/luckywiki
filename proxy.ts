@@ -8,9 +8,14 @@ import {
   localeCookieName,
   localizeHref,
 } from "@/lib/i18n/config";
+import { resolveWikiPath } from "@/lib/articles/redirects";
+import {
+  buildWikiHref,
+  getWikiArticlePathFromPathname,
+} from "@/lib/wiki/path";
 import { WIKI_PATHNAME_HEADER } from "@/lib/wiki/request-headers";
 
-export function proxy(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   const pathnameLocale = getPathnameLocale(pathname);
 
@@ -44,6 +49,32 @@ export function proxy(request: NextRequest) {
     redirectUrl.pathname = localizeHref(pathnameLocale, "/wiki/home");
 
     return NextResponse.redirect(redirectUrl, 308);
+  }
+
+  // Old paths are resolved in the HTTP layer so external links and search
+  // engines get a real 308 (and archived pages a real 410) instead of a
+  // client-side meta refresh. `resolveWikiPath` fails open: a database outage
+  // falls through to the page and its 404 handling.
+  if (normalizedPathname.startsWith(`/${pathnameLocale}/wiki/`)) {
+    const articlePath = getWikiArticlePathFromPathname(normalizedPathname);
+
+    if (articlePath) {
+      const resolution = await resolveWikiPath(articlePath);
+
+      if (resolution.type === "redirect") {
+        const redirectUrl = request.nextUrl.clone();
+        redirectUrl.pathname = buildWikiHref(resolution.path, pathnameLocale);
+
+        return NextResponse.redirect(redirectUrl, 308);
+      }
+
+      if (resolution.type === "gone") {
+        return new NextResponse("Gone", {
+          status: 410,
+          headers: { "content-type": "text/plain; charset=utf-8" },
+        });
+      }
+    }
   }
 
   if (!pathname.startsWith(`/${pathnameLocale}/admin`)) {
@@ -86,7 +117,12 @@ function nextWithPathnameHeader(request: NextRequest, pathname: string) {
   });
 }
 
-
 export const config = {
-  matcher: ["/((?!api|_next/static|_next/image|favicon.ico|.*\\..*).*)"],
+  matcher: [
+    // Everything except API routes, all Next internals (including the dev HMR
+    // websocket), static files and metadata routes. A dedicated entry below
+    // still lets wiki paths that contain a dot reach the proxy.
+    "/((?!api|_next|favicon.ico|.*\\..*).*)",
+    "/:locale(zh|en)/wiki/:path*",
+  ],
 };

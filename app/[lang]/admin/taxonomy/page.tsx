@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowUpRight, FolderTree, Tags } from "lucide-react";
+import { FolderManager } from "@/components/admin/folder-manager";
 import {
   EmptyState,
   List,
@@ -8,7 +9,7 @@ import {
   PageHeader,
   Panel,
 } from "@/components/ui/page-ui";
-import { listAdminTaxonomy } from "@/lib/admin";
+import { listAdminFolders, listAdminTaxonomy } from "@/lib/admin";
 import { formatDateTime, formatNumber } from "@/lib/i18n/format";
 import { getDictionary } from "@/lib/i18n/get-dictionary";
 import { hasLocale, localizeHref } from "@/lib/i18n/config";
@@ -29,8 +30,9 @@ export default async function AdminTaxonomyPage({
 
   await requireRootSession(lang, localizeHref(lang, "/admin/articles"));
 
-  const [taxonomy, dictionary] = await Promise.all([
+  const [taxonomy, folders, dictionary] = await Promise.all([
     listAdminTaxonomy(),
+    listAdminFolders(),
     getDictionary(lang),
   ]);
 
@@ -176,6 +178,18 @@ export default async function AdminTaxonomyPage({
           )}
         </Panel>
       </div>
+
+      <Panel
+        description={dictionary.admin.folders.description}
+        title={
+          <span className="inline-flex items-center gap-2">
+            <FolderTree className="size-4 text-muted-foreground" />
+            {dictionary.admin.folders.title}
+          </span>
+        }
+      >
+        <FolderManager folders={folders} />
+      </Panel>
     </Page>
   );
 }

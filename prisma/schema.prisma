@@ -28,6 +28,8 @@ enum CommentStatus {
 enum LogAction {
   CREATE_ARTICLE
   UPDATE_ARTICLE
+  MOVE_ARTICLE
+  RENAME_FOLDER
   DELETE_ARTICLE
   ARCHIVE_ARTICLE
   RESTORE_ARTICLE
@@ -130,6 +132,7 @@ model Article {
   comments    Comment[]
   agentChunks AgentChunk[]
   mediaReferences MediaReference[]
+  redirects   ArticleRedirect[]
 
   @@index([status])
   @@index([authorId])
@@ -139,6 +142,23 @@ model Article {
 // Immutable snapshot of an article's content at save time. Article only keeps
 // the current markdown, so these rows are the version history used for diffs
 // and rollbacks.
+// Old URL of an article. Only the old path is persisted: the redirect target is
+// always the article's current `path`, so moving a page repeatedly (x → y → z)
+// never produces redirect chains, and deleting the article removes its rows.
+model ArticleRedirect {
+  id        String    @id @default(cuid())
+  oldPath   String    @unique @map("old_path") // canonical, lowercase
+  articleId String    @map("article_id")
+  createdAt DateTime  @default(now()) @map("created_at")
+  createdBy String?   @map("created_by") // actor user id, no FK on purpose
+  hitCount  Int       @default(0) @map("hit_count")
+  lastHitAt DateTime? @map("last_hit_at")
+  article   Article   @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  @@index([articleId])
+  @@map("article_redirects")
+}
+
 model ArticleRevision {
   id        String   @id @default(cuid())
   articleId String   @map("article_id")
