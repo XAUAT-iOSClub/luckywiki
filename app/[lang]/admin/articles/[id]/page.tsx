@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { updateArticleAction } from "@/app/actions/admin";
+import { previewArticlePathChangeAction, updateArticleAction } from "@/app/actions/admin";
 import { generateArticleSummaryAction } from "@/app/actions/summary";
 import { ArticleEditor } from "@/components/article-editor";
 import { getArticleById } from "@/lib/articles";
@@ -41,6 +41,7 @@ export default async function EditArticlePage({
         historyHref={localizeHref(lang, `/admin/articles/${article.id}/history`)}
         initialState={{}}
         initialValues={article}
+        previewAction={previewArticlePathChangeAction.bind(null, article.id, lang)}
         summaryAction={summaryAction}
         submitLabel={dictionary.admin.saveArticleChanges}
       />

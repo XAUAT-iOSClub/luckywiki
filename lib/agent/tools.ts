@@ -7,6 +7,7 @@ import {
   retrieveRelevantAgentChunks,
 } from "@/lib/agent/search";
 import { prisma } from "@/lib/prisma";
+import { resolveWikiPath } from "@/lib/articles/redirects";
 import { extractMarkdownDescription } from "@/lib/text";
 import type { AgentSource, RetrievedAgentChunk } from "@/types/agent";
 
@@ -51,25 +52,47 @@ const defaultRecentLimit = 5;
 const defaultRelatedLimit = 4;
 const defaultCategoryLimit = 8;
 
+const publishedArticleRecordSelect = {
+  id: true,
+  path: true,
+  title: true,
+  description: true,
+  tags: true,
+  markdown: true,
+  updatedAt: true,
+  publishedAt: true,
+} as const;
+
 const defaultWikiAgentToolDeps: WikiAgentToolDeps = {
   retrieveRelevantChunks: retrieveRelevantAgentChunks,
   findSuggestedSources: findSuggestedAgentSources,
   async findArticleByPath(path) {
-    return prisma.article.findFirst({
+    const article = await prisma.article.findFirst({
       where: {
         path,
         status: ArticleStatus.PUBLISHED,
       },
-      select: {
-        id: true,
-        path: true,
-        title: true,
-        description: true,
-        tags: true,
-        markdown: true,
-        updatedAt: true,
-        publishedAt: true,
+      select: publishedArticleRecordSelect,
+    });
+
+    if (article) {
+      return article;
+    }
+
+    // Agents are often given an old path from a bookmark or an earlier answer;
+    // resolve it to the current path instead of claiming the page is missing.
+    const resolution = await resolveWikiPath(path);
+
+    if (resolution.type !== "redirect") {
+      return null;
+    }
+
+    return prisma.article.findFirst({
+      where: {
+        path: resolution.path,
+        status: ArticleStatus.PUBLISHED,
       },
+      select: publishedArticleRecordSelect,
     });
   },
   async findArticlesByPath(query, limit) {

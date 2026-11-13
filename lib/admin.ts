@@ -38,6 +38,31 @@ export type AdminTagSummary = {
   sampleTitles: string[];
 };
 
+export type AdminFolderSummary = {
+  path: string;
+  label: string;
+  depth: number;
+  totalArticles: number;
+  publishedArticles: number;
+  draftArticles: number;
+  archivedArticles: number;
+  /** The folder path is itself an article. */
+  isArticle: boolean;
+  articleTitle: string | null;
+};
+
+export const listAdminFolders = cache(async () => {
+  const articles = await prisma.article.findMany({
+    select: {
+      path: true,
+      title: true,
+      status: true,
+    },
+  });
+
+  return buildFolderSummaries(articles);
+});
+
 export const listAdminTaxonomy = cache(async () => {
   const articles = await prisma.article.findMany({
     select: {
@@ -256,6 +281,57 @@ export const listAdminLogs = cache(
     };
   },
 );
+
+function buildFolderSummaries(
+  articles: Array<{ path: string; title: string; status: ArticleStatus }>,
+) {
+  const folders = new Map<string, AdminFolderSummary>();
+
+  for (const article of articles) {
+    const segments = article.path.split("/").filter(Boolean);
+
+    // Every prefix of an article path is a folder, including prefixes that do
+    // not have an article of their own.
+    for (let index = 1; index <= segments.length; index += 1) {
+      const path = segments.slice(0, index).join("/");
+      let folder = folders.get(path);
+
+      if (!folder) {
+        folder = {
+          path,
+          label: segments[index - 1] ?? path,
+          depth: index - 1,
+          totalArticles: 0,
+          publishedArticles: 0,
+          draftArticles: 0,
+          archivedArticles: 0,
+          isArticle: false,
+          articleTitle: null,
+        };
+        folders.set(path, folder);
+      }
+
+      folder.totalArticles += 1;
+
+      if (article.status === ArticleStatus.PUBLISHED) {
+        folder.publishedArticles += 1;
+      } else if (article.status === ArticleStatus.ARCHIVED) {
+        folder.archivedArticles += 1;
+      } else {
+        folder.draftArticles += 1;
+      }
+
+      if (article.path === path) {
+        folder.isArticle = true;
+        folder.articleTitle = article.title;
+      }
+    }
+  }
+
+  return Array.from(folders.values()).sort((left, right) =>
+    left.path.localeCompare(right.path, "zh-Hans-CN"),
+  );
+}
 
 function buildSectionSummaries(articles: ArticleTaxonomySource[]) {
   const sectionMap = new Map<string, AdminSectionSummary>();

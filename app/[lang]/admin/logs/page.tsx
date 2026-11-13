@@ -271,10 +271,38 @@ function parseDetail(
     if (parsed.title) parts.push(`${dictionary.admin.logDetail.title}: ${parsed.title}`);
     if (parsed.path) parts.push(`${dictionary.admin.logDetail.path}: ${parsed.path}`);
     if (parsed.status) parts.push(`${dictionary.admin.logDetail.status}: ${parsed.status}`);
-    if (parsed.oldPath) parts.push(`old path: ${parsed.oldPath}`);
+    if (parsed.oldPath)
+      parts.push(`${dictionary.admin.logDetail.oldPath}: ${parsed.oldPath}`);
+    if (parsed.newPath && parsed.newPath !== parsed.path)
+      parts.push(`${dictionary.admin.logDetail.newPath}: ${parsed.newPath}`);
     if (parsed.articlePath)
       parts.push(`${dictionary.admin.logDetail.articlePath}: ${parsed.articlePath}`);
     if (parsed.restoredFrom) parts.push(dictionary.admin.logDetail.restoredFrom);
+
+    if (typeof parsed.movedCount === "number") {
+      parts.push(
+        formatTemplate(dictionary.admin.logDetail.movedCount, {
+          count: parsed.movedCount,
+        }),
+      );
+    }
+    if (typeof parsed.redirectsCreated === "number" && parsed.redirectsCreated > 0) {
+      parts.push(
+        formatTemplate(dictionary.admin.logDetail.redirectsCreated, {
+          count: parsed.redirectsCreated,
+        }),
+      );
+    }
+    if (typeof parsed.linkRewriteCount === "number" && parsed.linkRewriteCount > 0) {
+      parts.push(
+        formatTemplate(dictionary.admin.logDetail.linkRewriteCount, {
+          count: parsed.linkRewriteCount,
+        }),
+      );
+    }
+    if (parsed.reason === "path-change-link-rewrite") {
+      parts.push(dictionary.admin.logDetail.reasonLinkRewrite);
+    }
 
     if (parsed.oldStatus && parsed.newStatus) {
       parts.push(

@@ -4,6 +4,7 @@ export const WEBHOOK_EVENTS = {
   ARTICLE_CREATED: "article.created",
   ARTICLE_PUBLISHED: "article.published",
   ARTICLE_UPDATED: "article.updated",
+  ARTICLE_MOVED: "article.moved",
   ARTICLE_ARCHIVED: "article.archived",
   ARTICLE_RESTORED: "article.restored",
   ARTICLE_DELETED: "article.deleted",
@@ -18,6 +19,16 @@ export type WebhookActor = {
   email: string;
 };
 
+/** 路径变更附带的迁移明细（article.moved 事件） */
+export type WebhookMoveDetails = {
+  oldPath: string;
+  newPath: string;
+  movedCount: number;
+  redirectsCreated: number;
+  linkRewriteCount: number;
+  items: Array<{ id: string; oldPath: string; newPath: string }>;
+};
+
 export type WebhookPayload = {
   event: WebhookEventType;
   article: {
@@ -26,6 +37,8 @@ export type WebhookPayload = {
     title: string;
     status?: string;
   };
+  /** 路径变更明细，仅 article.moved 事件携带 */
+  move?: WebhookMoveDetails;
   /** 操作人；系统任务或全局 API Key 触发时可能为空 */
   actor?: WebhookActor;
   timestamp: string;

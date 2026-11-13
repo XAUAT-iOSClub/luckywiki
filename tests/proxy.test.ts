@@ -4,33 +4,33 @@ import { NextRequest } from "next/server";
 import { proxy } from "@/proxy";
 import { WIKI_PATHNAME_HEADER } from "@/lib/wiki/request-headers";
 
-test("proxy redirects bare wiki routes to the default locale prefix", () => {
-  const response = proxy(new NextRequest("http://localhost:3000/wiki"));
+test("proxy redirects bare wiki routes to the default locale prefix", async () => {
+  const response = await proxy(new NextRequest("http://localhost:3000/wiki"));
 
   assert.equal(response.status, 307);
   assert.equal(response.headers.get("location"), "http://localhost:3000/zh/wiki");
 });
 
-test("proxy respects accept-language when choosing a locale", () => {
+test("proxy respects accept-language when choosing a locale", async () => {
   const request = new NextRequest("http://localhost:3000/wiki", {
     headers: {
       "accept-language": "en-US,en;q=0.9",
     },
   });
-  const response = proxy(request);
+  const response = await proxy(request);
 
   assert.equal(response.headers.get("location"), "http://localhost:3000/en/wiki");
 });
 
-test("proxy redirects localized roots to the wiki home article", () => {
-  const wikiRoot = proxy(new NextRequest("http://localhost:3000/en/wiki"));
+test("proxy redirects localized roots to the wiki home article", async () => {
+  const wikiRoot = await proxy(new NextRequest("http://localhost:3000/en/wiki"));
   assert.equal(wikiRoot.status, 308);
   assert.equal(
     wikiRoot.headers.get("location"),
     "http://localhost:3000/en/wiki/home",
   );
 
-  const localeRoot = proxy(new NextRequest("http://localhost:3000/zh"));
+  const localeRoot = await proxy(new NextRequest("http://localhost:3000/zh"));
   assert.equal(localeRoot.status, 308);
   assert.equal(
     localeRoot.headers.get("location"),
@@ -38,14 +38,14 @@ test("proxy redirects localized roots to the wiki home article", () => {
   );
 });
 
-test("proxy leaves other localized routes alone", () => {
-  const response = proxy(new NextRequest("http://localhost:3000/en/wiki/guide"));
+test("proxy leaves other localized routes alone", async () => {
+  const response = await proxy(new NextRequest("http://localhost:3000/en/wiki/guide"));
 
   assert.equal(response.headers.get("location"), null);
 });
 
-test("proxy forwards the current pathname to server components", () => {
-  const response = proxy(
+test("proxy forwards the current pathname to server components", async () => {
+  const response = await proxy(
     new NextRequest("http://localhost:3000/en/wiki/guide/install"),
   );
 
@@ -55,8 +55,19 @@ test("proxy forwards the current pathname to server components", () => {
   );
 });
 
-test("proxy redirects unauthenticated admin requests to localized sign-in", () => {
-  const response = proxy(new NextRequest("http://localhost:3000/zh/admin"));
+test("proxy resolves existing wiki paths without a database (fail-open)", async () => {
+  // No DATABASE_URL in unit tests: the redirect lookup must never throw and
+  // must fall through to the page for a normal published path.
+  const response = await proxy(
+    new NextRequest("http://localhost:3000/zh/wiki/guide/v1.2"),
+  );
+
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get("location"), null);
+});
+
+test("proxy redirects unauthenticated admin requests to localized sign-in", async () => {
+  const response = await proxy(new NextRequest("http://localhost:3000/zh/admin"));
 
   assert.equal(response.status, 307);
   assert.equal(

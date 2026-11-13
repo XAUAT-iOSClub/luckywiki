@@ -1,6 +1,6 @@
 "use client";
 
-import type { ChangeEvent, ClipboardEvent } from "react";
+import type { ChangeEvent, ClipboardEvent, FormEvent } from "react";
 import { useActionState, useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -68,14 +68,25 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from "@/components/ui/drawer";
-import type { FormActionState } from "@/app/actions/admin";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import type { FormActionState, PathChangePreviewActionResult } from "@/app/actions/admin";
 import {
   MAX_SUMMARY_DESCRIPTION_CHARS,
   MAX_SUMMARY_INPUT_MARKDOWN_CHARS,
   type ArticleSummaryAction,
 } from "@/lib/articles/summary-contract";
+import type { PathChangePreview } from "@/lib/articles/path-change";
+import { formatTemplate } from "@/lib/i18n/format";
 import { useT } from "@/lib/i18n/provider";
 import { buildImageHtml, buildImageMarkdown } from "@/lib/media/markdown";
+import { canonicalizePath } from "@/lib/wiki/path";
 import { cn } from "@/lib/utils";
 
 type ArticleEditorProps = {
@@ -91,6 +102,8 @@ type ArticleEditorProps = {
     status: ArticleStatus;
   };
   summaryAction?: ArticleSummaryAction;
+  /** Server-side preview of a path change while editing an existing article. */
+  previewAction?: (nextPath: string) => Promise<PathChangePreviewActionResult>;
   submitLabel: string;
   historyHref?: string;
   exportHref?: string;
@@ -101,6 +114,7 @@ export function ArticleEditor({
   initialState,
   initialValues,
   summaryAction,
+  previewAction,
   submitLabel,
   historyHref,
   exportHref,
@@ -109,6 +123,8 @@ export function ArticleEditor({
   const [state, formAction] = useActionState(action, initialState);
   const t = useT();
   const { resolvedTheme } = useTheme();
+  const formRef = useRef<HTMLFormElement | null>(null);
+  const pathConfirmedRef = useRef(false);
   const [title, setTitle] = useState(initialValues?.title ?? "");
   const [path, setPath] = useState(initialValues?.path ?? "");
   const [description, setDescription] = useState(initialValues?.description ?? "");
@@ -119,6 +135,11 @@ export function ArticleEditor({
     initialValues?.status ?? ArticleStatus.DRAFT,
   );
   const [isPathPickerOpen, setIsPathPickerOpen] = useState(false);
+  const [isPathConfirmOpen, setIsPathConfirmOpen] = useState(false);
+  const [isPreviewingPath, setIsPreviewingPath] = useState(false);
+  const [pathPreview, setPathPreview] = useState<PathChangePreview | null>(null);
+  const [pathPreviewError, setPathPreviewError] = useState<string | null>(null);
+  const [rewriteLinks, setRewriteLinks] = useState(true);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
   const [summaryError, setSummaryError] = useState<string | null>(null);
@@ -492,6 +513,56 @@ export function ArticleEditor({
     setPath(newPath);
   }
 
+  function canonicalizeOrNull(value: string) {
+    try {
+      return canonicalizePath(value.trim());
+    } catch {
+      return null;
+    }
+  }
+
+  // A path change is a move, not a metadata edit: confirm it (with a preview of
+  // the affected pages, redirects and links) before the server action runs.
+  function handleFormSubmit(event: FormEvent<HTMLFormElement>) {
+    if (!previewAction || pathConfirmedRef.current || !initialValues) {
+      return;
+    }
+
+    const nextPath = canonicalizeOrNull(path);
+    const currentPath = canonicalizeOrNull(initialValues.path);
+
+    if (nextPath === null || nextPath === currentPath) {
+      return;
+    }
+
+    event.preventDefault();
+    setPathPreview(null);
+    setPathPreviewError(null);
+    setIsPathConfirmOpen(true);
+    setIsPreviewingPath(true);
+
+    void previewAction(path)
+      .then((result) => {
+        setPathPreview(result.preview);
+        setPathPreviewError(result.ok ? null : result.error);
+      })
+      .catch(() => {
+        setPathPreviewError(t.feedback.somethingWentWrong);
+      })
+      .finally(() => {
+        setIsPreviewingPath(false);
+      });
+  }
+
+  function handlePathConfirm() {
+    setIsPathConfirmOpen(false);
+    pathConfirmedRef.current = true;
+    formRef.current?.requestSubmit();
+    // requestSubmit fires the submit event synchronously; reset afterwards so a
+    // later edit still goes through the confirmation again.
+    pathConfirmedRef.current = false;
+  }
+
   async function handleImageInputChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     event.target.value = "";
@@ -518,7 +589,12 @@ export function ArticleEditor({
   }
 
   return (
-    <form action={formAction} className="relative flex h-[calc(100dvh-3.5rem)] flex-col overflow-hidden bg-background">
+    <form
+      action={formAction}
+      className="relative flex h-[calc(100dvh-3.5rem)] flex-col overflow-hidden bg-background"
+      onSubmit={handleFormSubmit}
+      ref={formRef}
+    >
       {/* Hidden inputs for metadata to be included in form submission */}
       <input type="hidden" name="title" value={title} />
       <input type="hidden" name="path" value={path} />
@@ -527,6 +603,7 @@ export function ArticleEditor({
       <input type="hidden" name="editor" value={editorName} />
       <input type="hidden" name="description" value={description} />
       <input type="hidden" name="markdown" value={markdown} />
+      <input type="hidden" name="rewriteLinks" value={rewriteLinks ? "1" : "0"} />
 
       {/* Main Working Area: Editor & Preview */}
       <section className="flex min-h-0 flex-1 flex-col overflow-hidden">
@@ -1204,6 +1281,126 @@ export function ArticleEditor({
         onSelect={handlePathSelect}
         currentPath={path.split("/").slice(0, -1).join("/")}
       />
+
+      <Dialog
+        onOpenChange={(open) => {
+          if (!isPreviewingPath) {
+            setIsPathConfirmOpen(open);
+          }
+        }}
+        open={isPathConfirmOpen}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{t.admin.pathChange.previewTitle}</DialogTitle>
+            <DialogDescription>
+              {t.admin.pathChange.previewDescription}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex flex-col gap-3 text-[12.5px]">
+            <div className="flex flex-col gap-1 rounded-md border border-border/60 bg-muted/30 px-3 py-2">
+              <p className="text-muted-foreground">
+                {t.admin.pathChange.currentPath}:{" "}
+                <span className="font-mono text-foreground">
+                  /{initialValues?.path}
+                </span>
+              </p>
+              <p className="text-muted-foreground">
+                {t.admin.pathChange.nextPath}:{" "}
+                <span className="font-mono text-foreground">
+                  /{pathPreview?.nextPath ?? path.trim()}
+                </span>
+              </p>
+            </div>
+
+            {isPreviewingPath ? (
+              <p className="flex items-center gap-2 text-muted-foreground">
+                <Loader2 className="size-3.5 animate-spin" />
+                {t.admin.pathChange.previewing}
+              </p>
+            ) : null}
+
+            {pathPreviewError ? (
+              <p className="text-destructive" role="alert">
+                {pathPreviewError}
+                {pathPreview?.conflictPath ? (
+                  <span className="block font-mono text-[11.5px] opacity-80">
+                    {formatTemplate(t.admin.pathChange.conflictAt, {
+                      path: pathPreview.conflictPath,
+                    })}
+                  </span>
+                ) : null}
+              </p>
+            ) : null}
+
+            {pathPreview?.status === "ok" ? (
+              <ul className="flex flex-col gap-1 text-muted-foreground">
+                <li>
+                  {formatTemplate(t.admin.pathChange.affectedPages, {
+                    count: pathPreview.movedCount,
+                    published: pathPreview.publishedCount,
+                  })}
+                </li>
+                <li>
+                  {formatTemplate(t.admin.pathChange.redirectsCreated, {
+                    count: pathPreview.redirectCount,
+                  })}
+                </li>
+                <li>
+                  {pathPreview.linkCount > 0
+                    ? formatTemplate(t.admin.pathChange.linkUpdates, {
+                        articles: pathPreview.linkArticleCount,
+                        links: pathPreview.linkCount,
+                      })
+                    : t.admin.pathChange.noLinkUpdates}
+                </li>
+              </ul>
+            ) : null}
+
+            {pathPreview?.status === "ok" ? (
+              <label className="flex items-start gap-2 rounded-md border border-border/60 px-3 py-2">
+                <input
+                  checked={rewriteLinks}
+                  className="mt-0.5 size-3.5 accent-foreground"
+                  onChange={(event) => setRewriteLinks(event.target.checked)}
+                  type="checkbox"
+                />
+                <span className="flex flex-col gap-0.5">
+                  <span className="text-foreground">
+                    {t.admin.pathChange.linkRewriteLabel}
+                  </span>
+                  <span className="text-[11.5px] text-muted-foreground">
+                    {t.admin.pathChange.linkRewriteHint}
+                  </span>
+                </span>
+              </label>
+            ) : null}
+          </div>
+
+          <DialogFooter>
+            <Button
+              disabled={isPreviewingPath}
+              onClick={() => setIsPathConfirmOpen(false)}
+              type="button"
+              variant="outline"
+            >
+              {t.admin.pathChange.cancel}
+            </Button>
+            <Button
+              disabled={
+                isPreviewingPath ||
+                !pathPreview ||
+                pathPreview.status !== "ok"
+              }
+              onClick={handlePathConfirm}
+              type="button"
+            >
+              {t.admin.pathChange.confirm}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </form>
   );
 }

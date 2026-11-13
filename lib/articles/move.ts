@@ -10,6 +10,15 @@ export type ArticlePathMovePlan =
   | { status: "descendant" }
   | { status: "conflict"; path: string };
 
+export type PlanArticlePathMoveOptions = {
+  /**
+   * `true` (default) requires the moved node itself to be an article, which is
+   * what a single-page move needs. Folder renames pass `false`: the folder is
+   * only a path prefix and may not have an article of its own.
+   */
+  requireSourceArticle?: boolean;
+};
+
 /**
  * Builds the path updates for moving an article (and, when it has nested
  * pages, its whole subtree) to a new location.
@@ -21,8 +30,9 @@ export function planArticlePathMove(
   existingPaths: string[],
   currentPath: string,
   nextPath: string,
+  options?: PlanArticlePathMoveOptions,
 ): ArticlePathMovePlan {
-  if (!nextPath) {
+  if (!currentPath || !nextPath) {
     return { status: "invalid" };
   }
 
@@ -38,7 +48,11 @@ export function planArticlePathMove(
     (path) => path === currentPath || path.startsWith(`${currentPath}/`),
   );
 
-  if (!affectedPaths.includes(currentPath)) {
+  if (!affectedPaths.length) {
+    return { status: "invalid" };
+  }
+
+  if (options?.requireSourceArticle !== false && !affectedPaths.includes(currentPath)) {
     return { status: "invalid" };
   }
 

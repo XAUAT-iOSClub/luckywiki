@@ -14,9 +14,18 @@ import { syncArticleMediaReferences } from "@/lib/media/references";
 import { enqueueArticleEmbeddingSync } from "@/lib/embedding-queue";
 import {
   invalidateArticleCache,
+  invalidatePathChangeCaches,
   revalidateAdminArticlePaths,
   revalidateWikiPaths,
 } from "@/lib/articles/cache";
+import {
+  applyPathChange,
+  getPathChangeCacheInput,
+  publishPathChangeSideEffects,
+} from "@/lib/articles/path-change";
+import { resolveWikiPath } from "@/lib/articles/redirects";
+import { canonicalizePath } from "@/lib/wiki/path";
+import type { PathChangeFailure } from "@/lib/articles/path-change";
 
 const editArticleSchema = z.object({
   title: z.string().trim().min(1).max(200).optional(),
@@ -25,14 +34,42 @@ const editArticleSchema = z.object({
   tags: z.array(z.string().trim().min(1).max(100)).max(12).optional(),
   editor: z.string().trim().max(40).nullable().optional(),
   markdown: z.string().min(1).optional(),
+  /** 是否同时重写其他文章里的旧链接，默认开启 */
+  rewriteLinks: z.boolean().optional(),
 });
 
 function joinCatchAllPath(segments: string[]): string {
   return segments.join("/").replace(/^\/+|\/+$/g, "");
 }
 
+function encodeArticlePath(path: string) {
+  return path
+    .split("/")
+    .filter(Boolean)
+    .map((segment) => encodeURIComponent(segment))
+    .join("/");
+}
+
 function notFound() {
   return NextResponse.json({ error: "Article not found" }, { status: 404 });
+}
+
+function pathChangeErrorResponse(failure: PathChangeFailure) {
+  if (failure.status === "conflict") {
+    return NextResponse.json(
+      { error: "Article path already exists", conflictPath: failure.conflictPath },
+      { status: 409 },
+    );
+  }
+
+  if (failure.status === "not-found") {
+    return notFound();
+  }
+
+  return NextResponse.json(
+    { error: "Invalid path change", reason: failure.status },
+    { status: 400 },
+  );
 }
 
 // GET /api/v1/articles/[...path] — 获取单篇公开文章
@@ -78,6 +115,23 @@ export async function GET(
     });
 
     if (!article) {
+      // Old paths answer with a real 308 so clients keep working after a move.
+      const resolution = await resolveWikiPath(articlePath);
+
+      if (resolution.type === "redirect") {
+        const redirectUrl = new URL(
+          `/api/v1/articles/${encodeArticlePath(resolution.path)}`,
+          request.url,
+        );
+        redirectUrl.search = request.nextUrl.search;
+
+        return NextResponse.redirect(redirectUrl, 308);
+      }
+
+      if (resolution.type === "gone") {
+        return NextResponse.json({ error: "Article is archived" }, { status: 410 });
+      }
+
       return notFound();
     }
 
@@ -125,11 +179,72 @@ export async function PUT(
       return NextResponse.json({ error: "Nothing to update" }, { status: 400 });
     }
 
+    const { path: requestedPath, rewriteLinks = true, ...articleData } = parsed.data;
+    let normalizedPath = article.path;
+
+    if (requestedPath !== undefined) {
+      try {
+        normalizedPath = canonicalizePath(requestedPath.trim());
+      } catch {
+        return NextResponse.json({ error: "Invalid article path" }, { status: 400 });
+      }
+
+      if (!normalizedPath) {
+        return NextResponse.json({ error: "Invalid article path" }, { status: 400 });
+      }
+    }
+
+    const actor = {
+      id: identity.userId,
+      name: identity.userName,
+      email: identity.userEmail,
+    };
+
+    // A path change is a move: cascade the subtree, write redirects and (by
+    // default) rewrite internal links, all in one transaction.
+    if (normalizedPath !== article.path) {
+      const result = await applyPathChange({
+        target: { kind: "article", articleId: article.id },
+        nextPathInput: normalizedPath,
+        actorId: identity.userId,
+        source: "rest-api",
+        rewriteLinks,
+        primaryData: articleData,
+      });
+
+      if (result.status !== "ok") {
+        return pathChangeErrorResponse(result);
+      }
+
+      await publishPathChangeSideEffects(result, actor);
+      invalidatePathChangeCaches(
+        {
+          ...getPathChangeCacheInput(result),
+          rewrittenPaths: result.rewrittenArticles.map((item) => item.path),
+          rewrittenArticleIds: result.rewrittenArticles.map((item) => item.id),
+        },
+        { mode: "route" },
+      );
+
+      return NextResponse.json({
+        data: {
+          id: result.primaryArticleId,
+          path: result.nextPath,
+          title: result.primaryArticle?.title ?? null,
+          status: result.primaryArticle?.status ?? null,
+          oldPath: result.currentPath,
+          movedCount: result.moves.length,
+          redirectsCreated: result.redirectsCreated,
+          linkRewriteCount: result.linkRewriteCount,
+        },
+      });
+    }
+
     // 与后台编辑保持一致：更新内容、写修订快照、同步媒体引用、记录审计日志
     const result = await prisma.$transaction(async (tx) => {
       const updated = await tx.article.update({
         where: { id: article.id },
-        data: parsed.data,
+        data: { ...articleData, path: normalizedPath },
       });
 
       await snapshotArticleRevision(tx, updated, identity.userId);
@@ -144,7 +259,6 @@ export async function PUT(
             path: updated.path,
             status: updated.status,
             source: "rest-api",
-            ...(article.path !== updated.path ? { oldPath: article.path } : {}),
           }),
           userId: identity.userId,
         },
@@ -174,18 +288,12 @@ export async function PUT(
       {
         id: result.id, path: result.path, title: result.title, status: result.status,
       },
-      { id: identity.userId, name: identity.userName, email: identity.userEmail },
+      actor,
     );
 
     // REST 写入同样要让前台与后台缓存失效，否则页面会读到旧内容
-    invalidateArticleCache(article.path, result.id);
-    if (article.path !== result.path) {
-      invalidateArticleCache(result.path, result.id);
-    }
-    revalidateWikiPaths(article.path);
-    if (article.path !== result.path) {
-      revalidateWikiPaths(result.path);
-    }
+    invalidateArticleCache(result.path, result.id);
+    revalidateWikiPaths(result.path);
     revalidateAdminArticlePaths(result.id);
 
     return NextResponse.json({ data: result });

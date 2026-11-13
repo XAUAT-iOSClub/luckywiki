@@ -2,6 +2,7 @@
 import "dotenv/config";
 import { prisma } from "../lib/prisma";
 import { snapshotArticleRevision } from "../lib/articles/revisions";
+import { releasePathRedirects } from "../lib/articles/redirects";
 import {
   importArticlesFromDirectory,
   parseImportCliArgs,
@@ -48,6 +49,8 @@ async function main() {
       async createArticle(data) {
         await prisma.$transaction(async (tx) => {
           const article = await tx.article.create({ data });
+          // Re-importing a path re-claims it; a stale redirect must not win.
+          await releasePathRedirects(tx, [article.path]);
           await snapshotArticleRevision(tx, article, data.authorId, {
             force: true,
           });
